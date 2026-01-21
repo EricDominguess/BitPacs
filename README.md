@@ -70,8 +70,6 @@ Este projeto utiliza os seguintes componentes open-source:
 - Orthanc PACS Server - GPLv3 License
   - Copyright (C) 2012-2016 Sebastien Jodogne
   - https://www.orthanc-server.com/
-    
-Consulte THIRD_PARTY_LICENSES.md para detalhes completos.
 
 ##👥 Suporte
 - Email: suporte@suaempresa.com
