@@ -51,7 +51,7 @@ Interface web customizada para visualização de estudos DICOM, desenvolvida com
 ### Configuração
 
 
-📝 Configuração do Orthanc
+###📝 Configuração do Orthanc
 O projeto requer Orthanc PACS Server configurado com:
 
 - CORS habilitado
@@ -60,13 +60,13 @@ O projeto requer Orthanc PACS Server configurado com:
 - Exemplo de configuração: orthanc.json
 
 
-📖 Documentação
+##📖 Documentação
 - Guia de Instalação
 - API Reference
 - Configuração Avançada
 
 
-📄 Licença
+###📄 Licença
 Código Proprietário
 © 2026 BitFix. Todos os direitos reservados.
 
@@ -83,13 +83,13 @@ Este projeto utiliza os seguintes componentes open-source:
 Consulte THIRD_PARTY_LICENSES.md para detalhes completos.
 
 
-👥 Suporte
+###👥 Suporte
 Email: suporte@suaempresa.com
 Documentação: https://docs.suaempresa.com
 Telefone & Whatsapp: (43) 3336-4004
 
 
-🏢 Sobre BitFix
+###🏢 Sobre BitFix
 [Descrição da sua empresa]
 
 Website: [www.bitfix.com.br](https://www.bitfix.com.br/)
