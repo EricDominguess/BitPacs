@@ -48,7 +48,7 @@ Interface web customizada para visualização de estudos DICOM, desenvolvida com
 - Docker & Docker Compose
 - Orthanc PACS Server
 
-## Configuração
+Configuração
 
 
 ##📝 Configuração do Orthanc
