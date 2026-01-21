@@ -1,17 +1,14 @@
 # BitPacs
 
-
 🏥 BitFix Medical PACS Viewer
 
 Sistema de visualização e gerenciamento de imagens médicas DICOM com interface moderna e intuitiva.
 
 ![Logo](docs/logo.png)
 
-
 ## 📋 Sobre o Projeto
 
 Interface web customizada para visualização de estudos DICOM, desenvolvida com React, TypeScript e Tailwind CSS.
-
 
 ### ✨ Funcionalidades
 
@@ -20,7 +17,6 @@ Interface web customizada para visualização de estudos DICOM, desenvolvida com
 - 🎨 Interface moderna e responsiva
 - 📱 Compatível com dispositivos móveis
 - 🔒 Segurança e conformidade LGPD/HIPAA
-
 
 ## 🛠️ Tecnologias
 
@@ -39,7 +35,6 @@ Interface web customizada para visualização de estudos DICOM, desenvolvida com
 - **Stone Web Viewer** (Visualizador DICOM)
 - **OHIF Viewer** (Visualizador avançado)
 
-
 ## 🚀 Instalação
 
 ### Pré-requisitos
@@ -50,7 +45,6 @@ Interface web customizada para visualização de estudos DICOM, desenvolvida com
 
 Configuração
 
-
 ##📝 Configuração do Orthanc
 O projeto requer Orthanc PACS Server configurado com:
 
@@ -59,19 +53,16 @@ O projeto requer Orthanc PACS Server configurado com:
 - DICOMweb habilitado
 - Exemplo de configuração: orthanc.json
 
-
 ##📖 Documentação
 - Guia de Instalação
 - API Reference
 - Configuração Avançada
-
 
 ##📄 Licença
 Código Proprietário
 © 2026 BitFix. Todos os direitos reservados.
 
 O código-fonte deste frontend é proprietário e confidencial.
-
 
 Componentes Open Source
 Este projeto utiliza os seguintes componentes open-source:
@@ -82,12 +73,10 @@ Este projeto utiliza os seguintes componentes open-source:
     
 Consulte THIRD_PARTY_LICENSES.md para detalhes completos.
 
-
 ##👥 Suporte
-Email: suporte@suaempresa.com
-Documentação: https://docs.suaempresa.com
-Telefone & Whatsapp: (43) 3336-4004
-
+- Email: suporte@suaempresa.com
+- Documentação: https://docs.suaempresa.com
+- Telefone & Whatsapp: (43) 3336-4004
 
 ##🏢 Sobre BitFix
 [Descrição da sua empresa]
