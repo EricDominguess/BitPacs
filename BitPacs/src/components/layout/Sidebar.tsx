@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../../utils/cn';
+import { ContactModal, ProfileModal } from '../common';
 
 const navItems = [
   {
@@ -21,25 +23,6 @@ const navItems = [
     ),
   },
   {
-    label: 'Visualizador',
-    href: '/viewer',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Upload',
-    href: '/upload',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-      </svg>
-    ),
-  },
-  {
     label: 'Configurações',
     href: '/settings',
     icon: (
@@ -53,9 +36,12 @@ const navItems = [
 
 export function Sidebar() {
   const location = useLocation();
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   return (
-    <aside className="w-64 bg-purple-dark/30 border-r border-purple/20 min-h-[calc(100vh-72px)] flex flex-col">
+    <>
+    <aside className="w-64 bg-theme-secondary/50 border-r border-theme-light min-h-[calc(100vh-72px)] flex flex-col transition-colors duration-300">
       <nav className="p-4 flex flex-col gap-1 flex-1">
         {navItems.map((item) => {
           const isActive = location.pathname === item.href;
@@ -67,12 +53,12 @@ export function Sidebar() {
                 'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group',
                 isActive
                   ? 'bg-nautico text-white shadow-brand'
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
+                  : 'text-theme-muted hover:text-theme-primary hover:bg-nautico/10'
               )}
             >
               <span className={cn(
                 'transition-colors',
-                isActive ? 'text-ultra' : 'text-white/50 group-hover:text-ultra'
+                isActive ? 'text-ultra' : 'text-theme-muted group-hover:text-ultra'
               )}>
                 {item.icon}
               </span>
@@ -82,18 +68,52 @@ export function Sidebar() {
         })}
       </nav>
 
+      {/* Botão Contatar Suporte */}
+      <div className="px-4 pb-2">
+        <button
+          onClick={() => setShowSupportModal(true)}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-theme-muted hover:text-ultra hover:bg-ultra/10 transition-all duration-200 group"
+        >
+          <span className="text-theme-muted group-hover:text-ultra transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          </span>
+          <span className="font-medium">Contatar Suporte</span>
+        </button>
+      </div>
+
       {/* Footer do Sidebar */}
-      <div className="p-4 border-t border-purple/20">
-        <div className="flex items-center gap-3 px-2">
+      <div className="p-4 border-t border-theme-light">
+        <button 
+          onClick={() => setShowProfileModal(true)}
+          className="w-full flex items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group"
+        >
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-nautico to-purple-light flex items-center justify-center">
             <span className="text-sm font-semibold text-white">U</span>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">Usuário</p>
-            <p className="text-xs text-white/50 truncate">admin@bitpacs.com</p>
+          <div className="flex-1 min-w-0 text-left">
+            <p className="text-sm font-medium text-theme-primary truncate group-hover:text-nautico transition-colors">Usuário</p>
+            <p className="text-xs text-theme-muted truncate">admin@bitpacs.com</p>
           </div>
-        </div>
+          <svg className="w-4 h-4 text-theme-muted group-hover:text-nautico transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
     </aside>
+
+    {/* Modal de Suporte */}
+    <ContactModal 
+      isOpen={showSupportModal} 
+      onClose={() => setShowSupportModal(false)} 
+    />
+
+    {/* Modal de Perfil */}
+    <ProfileModal
+      isOpen={showProfileModal}
+      onClose={() => setShowProfileModal(false)}
+    />
+    </>
   );
 }

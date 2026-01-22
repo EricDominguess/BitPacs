@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { MainLayout } from '../../components/layout';
 import { Card, Button, Input, Badge } from '../../components/common';
 
@@ -33,17 +34,9 @@ export function Studies() {
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Estudos DICOM</h1>
-            <p className="text-white/60 mt-1">{filteredStudies.length} estudos encontrados</p>
-          </div>
-          <Button>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Novo Upload
-          </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-theme-primary">Estudos DICOM</h1>
+          <p className="text-theme-muted mt-1">{filteredStudies.length} estudos encontrados</p>
         </div>
 
         {/* Filters */}
@@ -69,7 +62,7 @@ export function Studies() {
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     selectedModality === mod
                       ? 'bg-nautico text-white'
-                      : 'bg-purple-dark/50 text-white/70 hover:text-white hover:bg-purple-dark'
+                      : 'bg-theme-card text-theme-muted hover:text-theme-primary border border-theme-border'
                   }`}
                 >
                   {mod === 'all' ? 'Todos' : mod}
@@ -83,29 +76,29 @@ export function Studies() {
         <Card className="overflow-hidden !p-0">
           <div className="overflow-x-auto scrollbar-thin">
             <table className="w-full min-w-[800px]">
-              <thead className="bg-purple-dark/50">
+              <thead className="bg-theme-secondary">
                 <tr>
-                  <th className="text-left text-sm font-semibold text-white/80 px-6 py-4">Paciente</th>
-                  <th className="text-left text-sm font-semibold text-white/80 px-6 py-4">ID</th>
-                  <th className="text-left text-sm font-semibold text-white/80 px-6 py-4">Modalidade</th>
-                  <th className="text-left text-sm font-semibold text-white/80 px-6 py-4">Descrição</th>
-                  <th className="text-left text-sm font-semibold text-white/80 px-6 py-4">Data</th>
-                  <th className="text-left text-sm font-semibold text-white/80 px-6 py-4">Séries</th>
-                  <th className="text-left text-sm font-semibold text-white/80 px-6 py-4">Imagens</th>
-                  <th className="text-right text-sm font-semibold text-white/80 px-6 py-4">Ações</th>
+                  <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Paciente</th>
+                  <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">ID</th>
+                  <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Modalidade</th>
+                  <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Descrição</th>
+                  <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Data</th>
+                  <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Séries</th>
+                  <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Imagens</th>
+                  <th className="text-right text-sm font-semibold text-theme-secondary px-6 py-4">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-purple/10">
+              <tbody className="divide-y divide-theme-light">
                 {filteredStudies.map((study) => (
                   <tr 
                     key={study.id} 
-                    className="hover:bg-white/5 transition-colors group"
+                    className="hover:bg-nautico/10 transition-colors group"
                   >
                     <td className="px-6 py-4">
-                      <span className="font-medium text-white">{study.patient}</span>
+                      <span className="font-medium text-theme-primary">{study.patient}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-white/60 font-mono text-sm">{study.patientId}</span>
+                      <span className="text-theme-muted font-mono text-sm">{study.patientId}</span>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex px-2.5 py-1 rounded text-xs font-semibold border ${modalityColors[study.modality] || ''}`}>
@@ -113,25 +106,27 @@ export function Studies() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-white/80">{study.description}</span>
+                      <span className="text-theme-secondary">{study.description}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-white/60">{study.date}</span>
+                      <span className="text-theme-muted">{study.date}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-white/80">{study.series}</span>
+                      <span className="text-theme-secondary">{study.series}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-white/80">{study.images}</span>
+                      <span className="text-theme-secondary">{study.images}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="sm">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        </Button>
+                        <Link to={`/viewer/${study.id}`}>
+                          <Button variant="ghost" size="sm" title="Visualizar estudo">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </Button>
+                        </Link>
                         <Button variant="ghost" size="sm">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -151,8 +146,8 @@ export function Studies() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-purple/20 bg-purple-dark/30">
-            <span className="text-sm text-white/60">
+          <div className="flex items-center justify-between px-6 py-4 border-t border-theme-border bg-theme-secondary">
+            <span className="text-sm text-theme-muted">
               Mostrando 1-{filteredStudies.length} de {filteredStudies.length} resultados
             </span>
             <div className="flex items-center gap-2">

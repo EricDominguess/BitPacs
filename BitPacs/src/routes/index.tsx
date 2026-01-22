@@ -3,10 +3,10 @@ import { lazy, Suspense } from 'react';
 
 // Lazy loading para melhor performance
 const Home = lazy(() => import('../pages/Home/Home').then(m => ({ default: m.Home })));
+const Login = lazy(() => import('../pages/Login/Login').then(m => ({ default: m.Login })));
 const Dashboard = lazy(() => import('../pages/Dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
 const Studies = lazy(() => import('../pages/Studies/Studies').then(m => ({ default: m.Studies })));
 const Viewer = lazy(() => import('../pages/Viewer/Viewer').then(m => ({ default: m.Viewer })));
-const Upload = lazy(() => import('../pages/Upload/Upload').then(m => ({ default: m.Upload })));
 const Settings = lazy(() => import('../pages/Settings/Settings').then(m => ({ default: m.Settings })));
 
 // Loading Component
@@ -30,6 +30,14 @@ const router = createBrowserRouter([
     element: (
       <Suspense fallback={<PageLoader />}>
         <Home />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/login',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <Login />
       </Suspense>
     ),
   },
@@ -62,14 +70,6 @@ const router = createBrowserRouter([
     element: (
       <Suspense fallback={<PageLoader />}>
         <Viewer />
-      </Suspense>
-    ),
-  },
-  {
-    path: '/upload',
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <Upload />
       </Suspense>
     ),
   },

@@ -29,7 +29,7 @@ export function Home() {
           <nav className="flex items-center gap-8">
             <a href="#features" className="text-white/70 hover:text-white transition-colors">Recursos</a>
             <a href="#about" className="text-white/70 hover:text-white transition-colors">Sobre</a>
-            <Link to="/dashboard">
+            <Link to="/login">
               <Button variant="secondary" size="sm">Acessar Sistema</Button>
             </Link>
           </nav>
@@ -55,16 +55,13 @@ export function Home() {
               </p>
 
               <div className="flex items-center gap-4">
-                <Link to="/dashboard">
+                <Link to="/login">
                   <Button size="lg">
                     Começar Agora
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
                   </Button>
-                </Link>
-                <Link to="/studies">
-                  <Button variant="outline" size="lg">Ver Estudos</Button>
                 </Link>
               </div>
 

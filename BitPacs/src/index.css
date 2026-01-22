@@ -36,6 +36,40 @@
   /* Animations */
   --animate-fade-in: fade-in 0.3s ease-out;
   --animate-slide-up: slide-up 0.3s ease-out;
+
+  /* Theme Colors - usando variáveis CSS dinâmicas */
+  --color-bg-primary: var(--theme-bg-primary);
+  --color-bg-secondary: var(--theme-bg-secondary);
+  --color-bg-card: var(--theme-bg-card);
+  --color-text-primary: var(--theme-text-primary);
+  --color-text-secondary: var(--theme-text-secondary);
+  --color-text-muted: var(--theme-text-muted);
+  --color-border: var(--theme-border);
+  --color-border-light: var(--theme-border-light);
+}
+
+/* Dark Theme (Default) */
+:root, :root.dark {
+  --theme-bg-primary: #0a0748;
+  --theme-bg-secondary: #240b4f;
+  --theme-bg-card: rgba(36, 11, 79, 0.5);
+  --theme-text-primary: #ffffff;
+  --theme-text-secondary: rgba(255, 255, 255, 0.8);
+  --theme-text-muted: rgba(255, 255, 255, 0.6);
+  --theme-border: rgba(60, 8, 149, 0.3);
+  --theme-border-light: rgba(60, 8, 149, 0.2);
+}
+
+/* Light Theme */
+:root.light {
+  --theme-bg-primary: #f8fafc;
+  --theme-bg-secondary: #ffffff;
+  --theme-bg-card: rgba(255, 255, 255, 0.9);
+  --theme-text-primary: #0a0748;
+  --theme-text-secondary: rgba(10, 7, 72, 0.8);
+  --theme-text-muted: rgba(10, 7, 72, 0.6);
+  --theme-border: rgba(0, 66, 255, 0.2);
+  --theme-border-light: rgba(0, 66, 255, 0.1);
 }
 
 @keyframes fade-in {
@@ -56,7 +90,9 @@
   }
 
   body {
-    @apply bg-tangaroa text-white m-0;
+    @apply m-0 transition-colors duration-300;
+    background-color: var(--theme-bg-primary);
+    color: var(--theme-text-primary);
   }
 
   * {
@@ -64,9 +100,60 @@
   }
 }
 
+/* Light theme specific overrides */
+:root.light {
+  /* Scrollbar para tema claro */
+  .scrollbar-thin {
+    scrollbar-color: #0042ff #e2e8f0;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: #e2e8f0;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #0042ff;
+  }
+}
+
 @layer components {
   .text-gradient {
     @apply bg-linear-to-r from-ultra to-green-aqua bg-clip-text text-transparent;
+  }
+
+  /* Theme-aware text colors */
+  .text-theme-primary {
+    color: var(--theme-text-primary);
+  }
+  
+  .text-theme-secondary {
+    color: var(--theme-text-secondary);
+  }
+  
+  .text-theme-muted {
+    color: var(--theme-text-muted);
+  }
+
+  /* Theme-aware backgrounds */
+  .bg-theme-primary {
+    background-color: var(--theme-bg-primary);
+  }
+  
+  .bg-theme-secondary {
+    background-color: var(--theme-bg-secondary);
+  }
+  
+  .bg-theme-card {
+    background-color: var(--theme-bg-card);
+  }
+
+  /* Theme-aware borders */
+  .border-theme-border {
+    border-color: var(--theme-border);
+  }
+  
+  .border-theme-light {
+    border-color: var(--theme-border-light);
   }
 }
 

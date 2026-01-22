@@ -7,7 +7,7 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="min-h-screen bg-tangaroa">
+    <div className="min-h-screen bg-theme-primary transition-colors duration-300">
       <Header />
       <div className="flex">
         <Sidebar />
