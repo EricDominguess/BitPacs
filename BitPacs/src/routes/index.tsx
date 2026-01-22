@@ -5,6 +5,7 @@ import { lazy, Suspense } from 'react';
 const Home = lazy(() => import('../pages/Home/Home').then(m => ({ default: m.Home })));
 const Login = lazy(() => import('../pages/Login/Login').then(m => ({ default: m.Login })));
 const Dashboard = lazy(() => import('../pages/Dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
+const UserDashboard = lazy(() => import('../pages/Dashboard/UserDashboard').then(m => ({ default: m.UserDashboard })));
 const Studies = lazy(() => import('../pages/Studies/Studies').then(m => ({ default: m.Studies })));
 const Viewer = lazy(() => import('../pages/Viewer/Viewer').then(m => ({ default: m.Viewer })));
 const Settings = lazy(() => import('../pages/Settings/Settings').then(m => ({ default: m.Settings })));
@@ -46,6 +47,14 @@ const router = createBrowserRouter([
     element: (
       <Suspense fallback={<PageLoader />}>
         <Dashboard />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/user-dashboard',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <UserDashboard />
       </Suspense>
     ),
   },

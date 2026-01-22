@@ -1,5 +1,5 @@
 import { MainLayout } from '../../components/layout';
-import { Card, Badge } from '../../components/common';
+import { StatCard, RecentStudiesTable, StorageCard, ModalityStats } from '../../components/dashboard';
 
 const stats = [
   { label: 'Estudos Hoje', value: '24', change: '+12%', positive: true },
@@ -35,102 +35,19 @@ export function Dashboard() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, i) => (
-            <Card key={i} className="hover:border-nautico/50 transition-colors">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-theme-muted">{stat.label}</p>
-                  <p className="text-3xl font-bold text-theme-primary mt-1">{stat.value}</p>
-                </div>
-                <Badge variant={stat.positive ? 'success' : 'warning'}>
-                  {stat.change}
-                </Badge>
-              </div>
-            </Card>
+            <StatCard key={i} {...stat} />
           ))}
         </div>
 
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Recent Studies */}
-          <Card title="Estudos Recentes" className="lg:col-span-2">
-            <div className="overflow-x-auto -mx-6 px-6">
-              <table className="w-full min-w-[500px]">
-                <thead>
-                  <tr className="border-b border-theme-border">
-                    <th className="text-left text-sm font-medium text-theme-muted pb-3">Paciente</th>
-                    <th className="text-left text-sm font-medium text-theme-muted pb-3">Modalidade</th>
-                    <th className="text-left text-sm font-medium text-theme-muted pb-3">Data</th>
-                    <th className="text-left text-sm font-medium text-theme-muted pb-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-theme-light">
-                  {recentStudies.map((study, i) => (
-                    <tr key={i} className="hover:bg-nautico/10 transition-colors cursor-pointer">
-                      <td className="py-3">
-                        <span className="text-theme-primary font-medium">{study.patient}</span>
-                      </td>
-                      <td className="py-3">
-                        <Badge>{study.modality}</Badge>
-                      </td>
-                      <td className="py-3 text-theme-secondary">{study.date}</td>
-                      <td className="py-3">
-                        <Badge variant={study.status === 'Completo' ? 'success' : 'warning'}>
-                          {study.status}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+          <RecentStudiesTable studies={recentStudies} className="lg:col-span-2" />
 
           {/* Quick Stats */}
           <div className="space-y-6">
-            {/* Storage */}
-            <Card title="Armazenamento">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-theme-muted">Usado</span>
-                  <span className="text-theme-primary font-medium">2.4 TB / 4 TB</span>
-                </div>
-                <div className="h-3 bg-theme-secondary rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-nautico to-ultra rounded-full transition-all"
-                    style={{ width: '60%' }}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div className="text-center p-3 bg-theme-card border border-theme-border rounded-lg">
-                    <p className="text-xl font-bold text-theme-primary">1,247</p>
-                    <p className="text-xs text-theme-muted">Total Estudos</p>
-                  </div>
-                  <div className="text-center p-3 bg-theme-card border border-theme-border rounded-lg">
-                    <p className="text-xl font-bold text-theme-primary">45,892</p>
-                    <p className="text-xs text-theme-muted">Total Imagens</p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* Modalidades */}
-            <Card title="Por Modalidade">
-              <div className="space-y-3">
-                {[
-                  { name: 'CT', count: 423, color: 'bg-nautico' },
-                  { name: 'MR', count: 312, color: 'bg-purple-light' },
-                  { name: 'CR', count: 289, color: 'bg-ultra' },
-                  { name: 'US', count: 156, color: 'bg-green-aqua' },
-                  { name: 'Outros', count: 67, color: 'bg-purple' },
-                ].map((mod) => (
-                  <div key={mod.name} className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded ${mod.color}`} />
-                    <span className="flex-1 text-sm text-theme-secondary">{mod.name}</span>
-                    <span className="text-sm font-medium text-theme-primary">{mod.count}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            <StorageCard />
+            <ModalityStats />
           </div>
         </div>
       </div>
