@@ -1,4 +1,4 @@
-export { RecentStudiesTable } from './RecentStudiesTable';
-export { ModalityStats } from './ModalityStats';
+export { RecentStudiesTable } from './shared/RecentStudiesTable';
+export { ModalityStats } from './shared/ModalityStats';
 export { StorageCard } from './StorageCard';
-export { StatCard } from './StatCard';
+export { StatCard } from './shared/StatCard';

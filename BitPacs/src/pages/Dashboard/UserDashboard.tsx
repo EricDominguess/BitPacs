@@ -1,48 +1,20 @@
 import { MainLayout } from '../../components/layout';
 import { StatCard, RecentStudiesTable, ModalityStats } from '../../components/dashboard';
-import { useEffect, useState } from 'react';
-import { data } from 'react-router-dom';
+import { useOrthancData, useOrthancStats } from '../../hooks';
 
 export function UserDashboard() {
-
-  // teste do console.log
-  console.log("UserDashboard renderizado");
-
-  // hooks e logica
-  const data = new Date();
-  const dataHoje = `${data.getFullYear()}${(data.getMonth()+1).toString().padStart(2,'0')}${data.getDate().toString().padStart(2,'0')}`;
-  const [pacientes, setPacientes] = useState([]);
-  const [estudos, setEstudos] = useState([]);
+  // Super hook: fetch + monitoramento em tempo real
+  const { pacientes, estudos, series, isLoading, isMonitoring } = useOrthancData();
+  
+  // Hook de estatísticas derivadas
+  const { estudosHoje, totalPacientes } = useOrthancStats(estudos, pacientes);
 
   const stats = [
-  { label: 'Estudos Hoje', value: estudos.filter(estudo => estudo.MainDicomTags.StudyDate === dataHoje).length.toString()},
-  { label: 'Pacientes Ativos', value: pacientes.length.toString()},
+    { label: 'Estudos Hoje', value: estudosHoje.toString() },
+    { label: 'Pacientes Ativos', value: totalPacientes.toString() },
   ];
-  
-  const recentStudies = [
-    { patient: 'Maria Silva', modality: 'CT', date: '12/01/2026', status: 'Completo' },
-    { patient: 'João Santos', modality: 'MR', date: '12/01/2026', status: 'Processando' },
-    { patient: 'Ana Oliveira', modality: 'CR', date: '11/01/2026', status: 'Completo' },
-    { patient: 'Carlos Lima', modality: 'US', date: '11/01/2026', status: 'Completo' },
-    { patient: 'Paula Costa', modality: 'CT', date: '10/01/2026', status: 'Completo' },
-  ];
-  
-  // Comunicando com o Orthanc via Proxy
-  useEffect(() => {
-    // Fetch vai bater na porta do seu Proxy
-    fetch('/orthanc/patients')
-      // conversão da resposta bruta para JSON
-      .then(resposta => resposta.json())
-      // dados prontos para uso
-      .then(dados => console.log("Recebi do Orthanc:", setPacientes(dados))) // mostra no console
-      .catch(erro => console.error("Deu erro:", erro));
 
-    fetch('/orthanc/studies?expand')
-      .then(response => response.json())
-      .then(data => console.log("Estudos recebidos", setEstudos(data)))
-      .catch(erro => console.error("Deu erro:", erro));
-
-  }, []);
+  console.log(`📊 UserDashboard: ${isLoading ? 'Carregando...' : 'Dados prontos'} | Monitorando: ${isMonitoring}`);
 
   return (
     <MainLayout>
@@ -52,10 +24,6 @@ export function UserDashboard() {
           <div>
             <h1 className="text-2xl font-bold text-theme-primary">Dashboard</h1>
             <p className="text-theme-muted mt-1">Visão geral do sistema PACS</p>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-theme-muted">
-            <span>Última atualização:</span>
-            <span className="text-ultra">há 2 minutos</span>
           </div>
         </div>
 
@@ -69,10 +37,10 @@ export function UserDashboard() {
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Recent Studies */}
-          <RecentStudiesTable studies={recentStudies} className="lg:col-span-2" />
+          <RecentStudiesTable dados={estudos} series={series} className="lg:col-span-2" />
 
           {/* Modalidades */}
-          <ModalityStats />
+          <ModalityStats estudos={series} />
         </div>
       </div>
     </MainLayout>

@@ -1,13 +1,11 @@
-import { Card} from '../../components/common';
+import { Card} from '../../common';
 
 interface StatCardProps {
   label: string;
   value: string;
-  change: string;
-  positive?: boolean;
 }
 
-export function StatCard({ label, value}: StatCardProps) {
+export function StatCard({label, value}: StatCardProps) {
   return (
     <Card className="hover:border-nautico/50 transition-colors">
       <div className="flex items-start justify-between">
