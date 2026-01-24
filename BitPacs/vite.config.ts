@@ -1,24 +1,28 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite' // 1. Importe o loadEnv
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-  server: {
-    proxy: {
-      // 1. Configuração para o Orthanc
-      '/orthanc': {
-        target: 'http://10.31.0.43:8042', // Porta do Orthanc no Docker
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/orthanc/, ''),
+export default defineConfig(({ mode }) => {
+  
+  const env = loadEnv(mode, process.cwd(), '')
+
+  return {
+    plugins: [react()],
+    
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
       },
+    },
+    server: {
+      proxy: {
+        '/orthanc': {
+          target: env.VITE_ORTHANC_IP_FAZENDA || 'http://localhost:8042', 
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path.replace(/^\/orthanc/, ''),
+        },
+      }
     }
   }
 })

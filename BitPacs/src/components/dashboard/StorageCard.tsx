@@ -5,8 +5,11 @@ interface StorageCardProps {
   totalCapacity?: number; 
 }
 
-// Valor padrão: 4TB em Bytes
-const DEFAULT_CAPACITY = 4 * 1024 * 1024 * 1024 * 1024;
+const limiteConfiguradoGB = Number(import.meta.env.VITE_STORAGE_TOTAL_FAZENDA);
+const capacidadeTotalBytes = limiteConfiguradoGB * 1024 * 1024 * 1024;
+
+// Valor da capacidade
+const DEFAULT_CAPACITY = capacidadeTotalBytes;
 
 export function StorageCard({ stats, totalCapacity = DEFAULT_CAPACITY }: StorageCardProps) {
   

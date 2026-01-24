@@ -3,12 +3,13 @@ import { Card } from '../../common';
 
 // Mapeamento de Cores
 const CORES_POR_MODALIDADE: Record<string, string> = {
-  DX: 'bg-nautico',      // Raio-X
-  CR: 'bg-purple-light', // Raio-X Digitalizado
-  CT: 'bg-ultra',        // Tomografia
-  MR: 'bg-green-aqua',   // Ressonância
-  US: 'bg-purple',       // Ultrassom
-  OT: 'bg-gray-400',     // Outros
+  DX: 'bg-nautico', // Raio-X
+  CT: 'bg-nautico/20 text-nautico border-nautico/30', // Tomografia
+  MR: 'bg-purple-light/20 text-purple-light border-purple-light/30', // Ressonância
+  CR: 'bg-ultra/20 text-ultra border-ultra/30', // Raio-X Digitalizado
+  US: 'bg-green-aqua/20 text-green-aqua border-green-aqua/30', // Ultrassom
+  DR: 'bg-accent-orange/20 text-accent-orange border-accent-orange/30',
+  OT: 'bg-gray-400/20 text-gray-500 border-gray-400/30', // Outros
 };
 
 interface ModalityStatsProps {
