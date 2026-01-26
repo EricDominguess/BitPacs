@@ -7,6 +7,9 @@ interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
+  // Novos campos para animação
+  enableAnimations: boolean;
+  toggleAnimations: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -16,9 +19,17 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
+  // 1. Lógica do Tema (Mantida igual)
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem('bitpacs-theme');
     return (stored as Theme) || 'dark';
+  });
+
+  // 2. Lógica das Animações (Nova)
+  const [enableAnimations, setEnableAnimations] = useState(() => {
+    const stored = localStorage.getItem('bitpacs-animations');
+    // Padrão é true (ligado) se não tiver nada salvo
+    return stored === null ? true : stored === 'true';
   });
 
   useEffect(() => {
@@ -34,12 +45,28 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     }
   }, [theme]);
 
+  // Efeito "Kill Switch" para Animações
+  useEffect(() => {
+    localStorage.setItem('bitpacs-animations', String(enableAnimations));
+    const body = document.body;
+    
+    if (!enableAnimations) {
+      body.classList.add('disable-animations'); // Adiciona a classe matadora
+    } else {
+      body.classList.remove('disable-animations');
+    }
+  }, [enableAnimations]);
+
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
+  const toggleAnimations = () => {
+    setEnableAnimations(prev => !prev);
+  };
+
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme, enableAnimations, toggleAnimations }}>
       {children}
     </ThemeContext.Provider>
   );

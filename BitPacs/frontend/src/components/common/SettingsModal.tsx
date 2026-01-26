@@ -6,7 +6,9 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const { theme, toggleTheme } = useTheme();
+  // Pegamos as novas funções do hook
+  const { theme, toggleTheme, enableAnimations, toggleAnimations } = useTheme();
+  
   const isDark = theme === 'dark';
 
   if (!isOpen) return null;
@@ -55,25 +57,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </button>
           </div>
 
-          {/* Animações */}
+          {/* Animações (AGORA FUNCIONA) */}
           <div className="flex items-center justify-between p-4 bg-theme-card rounded-xl border border-theme-border">
             <div>
               <p className="font-medium text-theme-primary">Animações</p>
               <p className="text-sm text-theme-muted">Habilitar animações de transição</p>
             </div>
-            <button className="w-12 h-6 bg-nautico rounded-full p-1 transition-colors">
-              <div className="w-4 h-4 bg-white rounded-full transform translate-x-6 transition-transform" />
-            </button>
-          </div>
-
-          {/* Notificações */}
-          <div className="flex items-center justify-between p-4 bg-theme-card rounded-xl border border-theme-border">
-            <div>
-              <p className="font-medium text-theme-primary">Notificações</p>
-              <p className="text-sm text-theme-muted">Receber notificações de novos estudos</p>
-            </div>
-            <button className="w-12 h-6 bg-purple/30 rounded-full p-1 transition-colors">
-              <div className="w-4 h-4 bg-white rounded-full transition-transform" />
+            <button 
+              onClick={toggleAnimations}
+              className={`w-12 h-6 rounded-full p-1 transition-colors ${enableAnimations ? 'bg-nautico' : 'bg-purple/30'}`}
+            >
+              <div className={`w-4 h-4 bg-white rounded-full transition-transform ${enableAnimations ? 'translate-x-6' : 'translate-x-0'}`} />
             </button>
           </div>
         </div>
