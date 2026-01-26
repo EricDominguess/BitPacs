@@ -113,6 +113,58 @@ export function Studies() {
     if (currentPage > 1) setCurrentPage(prev => prev - 1);
   };
 
+  // 1. SIMULAÇÃO DO USUÁRIO (Posteriormente virá do AuthContext)
+  const currentUser = {
+    id: 1,
+    nome: "Admin Sistema",
+    email: "admin@bitpacs.com",
+    ip: "127.0.0.1" // Em produção, o backend pega isso sozinho
+  };
+
+  // 2. FUNÇÃO DE LOG (Auditoria)
+  const registrarLogDownload = async (studyId: string, filename: string) => {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      usuario: {
+        id: currentUser.id,
+        nome: currentUser.nome,
+        email: currentUser.email
+      },
+      acao: "DOWNLOAD_ZIP",
+      detalhes: {
+        studyId: studyId,
+        arquivo: filename
+      }
+    };
+
+    // --- AQUI VAI SER A CHAMADA PARA O BACKEND NO FUTURO ---
+    // await fetch('http://localhost:5000/api/logs', { method: 'POST', body: JSON.stringify(logEntry) ... })
+    
+    // Por enquanto, salvamos num "JSON Local" (Console do navegador)
+    console.log("📝 [AUDITORIA] Novo Download Registrado:", JSON.stringify(logEntry, null, 2));
+    
+    // Dica: Você também pode salvar no localStorage para ver persistir depois
+    const logsAntigos = JSON.parse(localStorage.getItem('bitpacs_logs') || '[]');
+    logsAntigos.push(logEntry);
+    localStorage.setItem('bitpacs_logs', JSON.stringify(logsAntigos));
+  };
+
+  // 3. FUNÇÃO DE DOWNLOAD ATUALIZADA
+  const handleDownload = (studyId: string) => {
+    const filename = `estudo-${studyId}.zip`;
+    
+    // Primeiro: Registra quem está baixando
+    registrarLogDownload(studyId, filename);
+
+    // Segundo: Executa o download (Técnica do Link Fantasma)
+    const link = document.createElement('a');
+    link.href = `/orthanc/studies/${studyId}/archive`;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -227,7 +279,7 @@ export function Studies() {
                               </svg>
                             </Button>
                           </Link>
-                          <Button variant="ghost" size="sm" title="Baixar estudo">
+                          <Button variant="ghost" size="sm" title="Baixar estudo (ZIP)" onClick={() => handleDownload(study.id)}>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
