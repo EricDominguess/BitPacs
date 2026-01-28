@@ -99,15 +99,19 @@ export function Login() {
                 </span>
               </label>
 
-              <a href="#" className="text-sm text-nautico hover:text-blue-intense transition-colors">
+              <button
+                type="button"
+                onClick={() => setShowContactModal(true)}
+                className="text-sm text-nautico hover:text-blue-intense transition-colors hover:underline cursor-pointer"
+              >
                 Esqueceu a senha?
-              </a>
+              </button>
             </div>
 
             {/* Botão de Login */}
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full cursor-pointer" 
               size="lg"
               disabled={isLoading}
             >
@@ -135,7 +139,7 @@ export function Login() {
             Não tem uma conta?{' '}
             <button 
               onClick={() => setShowContactModal(true)}
-              className="text-ultra hover:text-green-aqua transition-colors font-medium"
+              className="text-ultra hover:text-green-aqua transition-colors font-medium cursor-pointer"
             >
               Entre em contato
             </button>

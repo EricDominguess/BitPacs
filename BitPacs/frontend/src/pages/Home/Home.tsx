@@ -28,7 +28,6 @@ export function Home() {
 
           <nav className="flex items-center gap-8">
             <a href="#features" className="text-white/70 hover:text-white transition-colors">Recursos</a>
-            <a href="#about" className="text-white/70 hover:text-white transition-colors">Sobre</a>
             <Link to="/login">
               <Button variant="secondary" size="sm">Acessar Sistema</Button>
             </Link>
