@@ -3,7 +3,11 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
+  // Ajusta para buscar o .env na raiz do BitPacs
+  const envDir = path.resolve(__dirname, '..');
+  const env = loadEnv(mode, envDir);
+  console.log('Variáveis carregadas pelo loadEnv:', env);
+  console.log('VITE_STORAGE_TOTAL_FAZENDA (build):', env.VITE_STORAGE_TOTAL_FAZENDA);
   const orthancUrl = env.VITE_ORTHANC_IP_FAZENDA || 'http://localhost:8042';
 
   // Configuração padrão do proxy (sem senhas)

@@ -4,21 +4,56 @@ import { Button, Input, ContactModal } from '../../components/common';
 
 export function Login() {
   const navigate = useNavigate();
+  
+  // Estados do Formulário
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  
+  // Estados de Controle
   const [isLoading, setIsLoading] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [error, setError] = useState(''); // <--- Novo estado para erros
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulação de login
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Redireciona para o dashboard após login
-    navigate('/dashboard');
+    setError(''); // Limpa erro anterior ao tentar de novo
+
+    try {
+      // 1. Conexão real com sua API .NET (que fala com o Postgres)
+      // Ajuste a URL 'http://localhost:5151...' para a porta da sua API C#
+      const response = await fetch('http://localhost:5151/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email, 
+          password 
+        }),
+      });
+
+      if (response.ok) {
+        // Sucesso: Pega o token que o C# devolveu
+        const data = await response.json();
+        
+        // Salva no navegador para manter logado
+        localStorage.setItem('bitpacs_token', data.token);
+        localStorage.setItem('bitpacs_user', JSON.stringify(data.user));
+        
+        navigate('/dashboard');
+      } else {
+        // Erro: Senha errada ou usuário não existe
+        setError('E-mail ou senha incorretos.');
+      }
+    } catch (err) {
+      // Erro de Rede (API fora do ar)
+      setError('Erro de conexão com o servidor.');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -46,6 +81,17 @@ export function Login() {
 
           {/* Formulário */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            
+            {/* MENSAGEM DE ERRO (Aparece só quando necessário) */}
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2 animate-fade-in">
+                <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm text-red-200">{error}</span>
+              </div>
+            )}
+
             <div className="space-y-4">
               <Input
                 label="Email"
@@ -99,7 +145,8 @@ export function Login() {
                 </span>
               </label>
 
-              <button
+              {/* Botão Esqueceu a Senha (Com Cursor Pointer e Modal) */}
+              <button 
                 type="button"
                 onClick={() => setShowContactModal(true)}
                 className="text-sm text-nautico hover:text-blue-intense transition-colors hover:underline cursor-pointer"
@@ -108,7 +155,7 @@ export function Login() {
               </button>
             </div>
 
-            {/* Botão de Login */}
+            {/* Botão de Login (Com Cursor Pointer) */}
             <Button 
               type="submit" 
               className="w-full cursor-pointer" 
@@ -134,7 +181,7 @@ export function Login() {
             </Button>
           </form>
 
-          {/* Link para Contato */}
+          {/* Link para Criar Conta (Também abre o Modal) */}
           <p className="mt-8 text-center text-white/60">
             Não tem uma conta?{' '}
             <button 
@@ -145,7 +192,7 @@ export function Login() {
             </button>
           </p>
 
-          {/* Modal de Contato */}
+          {/* Modal de Contato (Reutilizado) */}
           <ContactModal 
             isOpen={showContactModal} 
             onClose={() => setShowContactModal(false)} 
@@ -153,31 +200,24 @@ export function Login() {
         </div>
       </div>
 
-      {/* Lado Direito - Visual */}
+      {/* Lado Direito - Visual (Mantido igual) */}
       <div className="hidden lg:flex flex-1 bg-gradient-to-br from-nautico to-purple-light p-12 items-center justify-center relative overflow-hidden">
-        {/* Decorações */}
         <div className="absolute inset-0">
           <div className="absolute top-10 right-10 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
           <div className="absolute bottom-10 left-10 w-48 h-48 bg-ultra/20 rounded-full blur-3xl" />
         </div>
-
-        {/* Conteúdo */}
         <div className="relative z-10 text-center max-w-md">
-          {/* Ícone Grande */}
           <div className="w-32 h-32 mx-auto mb-8 bg-white/10 rounded-3xl flex items-center justify-center backdrop-blur-sm border border-white/20">
             <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-
           <h2 className="text-3xl font-bold text-white mb-4">
             Sistema PACS Completo
           </h2>
           <p className="text-white/80 text-lg mb-8">
             Gerencie imagens médicas DICOM com eficiência, segurança e conformidade.
           </p>
-
-          {/* Stats */}
           <div className="grid grid-cols-3 gap-4">
             <div className="p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
               <p className="text-2xl font-bold text-white">50K+</p>
@@ -193,8 +233,6 @@ export function Login() {
             </div>
           </div>
         </div>
-
-        {/* Elementos decorativos animados */}
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-purple-dark/50 to-transparent" />
       </div>
     </div>

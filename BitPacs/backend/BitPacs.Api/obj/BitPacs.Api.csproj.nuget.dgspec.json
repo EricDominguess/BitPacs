@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\BIT049\\Documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj": {}
+    "C:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj": {}
   },
   "projects": {
-    "C:\\Users\\BIT049\\Documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj": {
+    "C:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\BIT049\\Documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj",
+        "projectUniqueName": "C:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj",
         "projectName": "BitPacs.Api",
-        "projectPath": "C:\\Users\\BIT049\\Documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj",
+        "projectPath": "C:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj",
         "packagesPath": "C:\\Users\\BIT049\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\BIT049\\Documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\obj\\",
+        "outputPath": "C:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\BIT049\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -44,6 +44,14 @@
         "net10.0": {
           "targetAlias": "net10.0",
           "dependencies": {
+            "BCrypt.Net-Next": {
+              "target": "Package",
+              "version": "[4.0.3, )"
+            },
+            "DotNetEnv": {
+              "target": "Package",
+              "version": "[3.1.1, )"
+            },
             "Microsoft.AspNetCore.Authentication.JwtBearer": {
               "target": "Package",
               "version": "[10.0.2, )"
@@ -67,6 +75,14 @@
               "suppressParent": "All",
               "target": "Package",
               "version": "[10.0.2, )"
+            },
+            "Npgsql.EntityFrameworkCore.PostgreSQL": {
+              "target": "Package",
+              "version": "[10.0.0, )"
+            },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[10.1.0, )"
             }
           },
           "imports": [

@@ -1,38 +1,31 @@
 using BitPacs.Api.Models;
-using Microsoft.AspNetCore.Identity;
+using BCrypt.Net; // Certifique-se que o pacote BCrypt.Net-Next está instalado
 
 namespace BitPacs.Api.Data
 {
     public static class DbInitializer
     {
-        public static void Initialize(AppDbContext context)
+        public static void Seed(AppDbContext context)
         {
-            // Garante que o banco foi criado
+            // Garante que o banco existe
             context.Database.EnsureCreated();
 
-            // Trava de segurança: Se já tiver qualquer usuário, não faz nada
-            if (context.Usuarios.Any())
+            // Verifica se já tem usuários
+            if (context.Users.Any())
             {
                 return; // O banco já foi semeado
             }
 
-            // Se não tem ninguém, cria o Admin Supremo
-            var admin = new Usuario
+            // Cria o Admin Supremo
+            var adminUser = new User
             {
-                Nome = "Administrador Supremo",
-                Email = "suporte6@bitpacs.com",
-                Cargo = "Admin",
-                Ativo = true,
-                DataCriacao = DateTime.UtcNow
-                SenhaHash = ""
+                Nome = "Admin Supremo",          // <--- PRECISE DESTA VÍRGULA
+                Email = "admin@bitpacs.com",     // <--- PRECISE DESTA VÍRGULA
+                Role = "Master",                 // <--- PRECISE DESTA VÍRGULA
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123") // A última linha não precisa
             };
 
-            // Gera o hash da senha
-            var hasher = newPasswordHasher<Usuario>();
-            admin.SenhaHash = hasher.HashPassword(admin, "Admin@2026!");
-
-            // Salva no banco
-            context.Usuarios.Add(admin);
+            context.Users.Add(adminUser);
             context.SaveChanges();
         }
     }

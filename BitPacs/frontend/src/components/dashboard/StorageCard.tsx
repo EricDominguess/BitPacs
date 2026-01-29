@@ -5,8 +5,11 @@ interface StorageCardProps {
   totalCapacity?: number; 
 }
 
+console.log('VITE_STORAGE_TOTAL_FAZENDA:', import.meta.env.VITE_STORAGE_TOTAL_FAZENDA);
 const limiteConfiguradoGB = Number(import.meta.env.VITE_STORAGE_TOTAL_FAZENDA);
+console.log('limiteConfiguradoGB:', limiteConfiguradoGB);
 const capacidadeTotalBytes = limiteConfiguradoGB * 1024 * 1024 * 1024;
+console.log('capacidadeTotalBytes:', capacidadeTotalBytes);
 
 // Valor da capacidade
 const DEFAULT_CAPACITY = capacidadeTotalBytes;
