@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
+import { Users } from '@/pages/Users/Users';
 
 // Lazy loading para melhor performance
 const Home = lazy(() => import('../pages/Home/Home').then(m => ({ default: m.Home })));
@@ -32,6 +33,14 @@ const router = createBrowserRouter([
         <Home />
       </Suspense>
     ),
+  },
+  {
+    path: '/users',
+    element: (
+    <Suspense fallback={<PageLoader />}>
+      <Users />
+    </Suspense>
+  ),
   },
   {
     path: '/login',

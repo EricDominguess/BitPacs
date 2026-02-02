@@ -18,7 +18,8 @@ const modalityColors: Record<string, string> = {
 const ITEMS_PER_PAGE = 8;
 
 export function Studies() {
-  const { estudos, series: todasSeries, isLoading } = useOrthancData();
+  // Usa o índice de séries por estudo para busca O(1)
+  const { estudos, seriesByStudy, isLoading } = useOrthancData();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedModality, setSelectedModality] = useState<string>('all');
@@ -26,7 +27,7 @@ export function Studies() {
   // 1. Estado para controlar a página atual
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Formatação dos dados (igual ao anterior)
+  // Formatação dos dados OTIMIZADA
   // 3. Transformando E ORDENANDO os dados
   const studiesFormatted = useMemo(() => {
     if (!estudos) return [];
@@ -45,7 +46,8 @@ export function Studies() {
       const modalidadeBruta = estudo.MainDicomTags?.ModalitiesInStudy || 'OT';
       const mainModality = modalidadeBruta.split('\\')[0] || 'OT';
 
-      const seriesDoEstudo = todasSeries.filter((s: any) => s.ParentStudy === estudo.ID);
+      // OTIMIZADO: Usa o índice para busca O(1) em vez de filtrar O(n)
+      const seriesDoEstudo = seriesByStudy.get(estudo.ID) || [];
       const totalInstances = seriesDoEstudo.reduce((acc: number, s: any) => acc + (s.Instances?.length || 0), 0);
 
       // Formata nome do paciente (remove ^ e substitui por espaço)
@@ -85,7 +87,7 @@ export function Studies() {
       return 0;
     });
 
-  }, [estudos, todasSeries]);
+  }, [estudos, seriesByStudy]);
 
   const filteredStudies = studiesFormatted.filter(study => {
     const matchesSearch = study.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||

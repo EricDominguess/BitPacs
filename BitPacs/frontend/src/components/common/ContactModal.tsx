@@ -49,7 +49,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
 
           {/* Email */}
           <a 
-            href="mailto:suporte@bitfix.com.br"
+            href="mailto:suporte6@bitfix.com.br"
             className="flex items-center gap-4 p-4 bg-theme-card border border-theme-border rounded-xl hover:border-ultra/50 hover:bg-ultra/5 transition-colors group"
           >
             <div className="p-3 bg-ultra/20 rounded-lg group-hover:bg-ultra/30 transition-colors">
@@ -59,7 +59,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
             </div>
             <div>
               <p className="text-sm text-theme-muted">Email</p>
-              <p className="text-theme-primary font-medium">suporte@bitfix.com.br</p>
+              <p className="text-theme-primary font-medium">suporte6@bitfix.com.br</p>
             </div>
           </a>
 

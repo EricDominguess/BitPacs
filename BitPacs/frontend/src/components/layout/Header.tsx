@@ -1,16 +1,24 @@
 import { useState} from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { SettingsModal } from '../common';
 
 export function Header() {
   const [showSettings, setShowSettings] = useState(false);
+  const navigate = useNavigate();
+
+  // Função de logout
+  const handleLogout = () => {
+    localStorage.removeItem('bitpacs_token');
+    localStorage.removeItem('bitpacs_user');
+    navigate('/');
+  };
 
   return (
     <>
     <header className="h-[72px] bg-theme-primary/95 backdrop-blur-md border-b border-theme-light sticky top-0 z-50 transition-colors duration-300">
       <div className="h-full px-6 flex items-center justify-between">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 group">
+        {/* Logo - Clica para fazer logout e voltar para home */}
+        <button onClick={handleLogout} className="flex items-center gap-2 group">
           {/* Ícone estilizado baseado na identidade */}
           <div className="relative w-10 h-10">
             <div className="absolute inset-0 bg-ultra rounded-lg transform rotate-45 group-hover:rotate-90 transition-transform duration-300" />
@@ -23,7 +31,7 @@ export function Header() {
             </span>
             <span className="text-[10px] text-theme-muted -mt-1">suporte sob medida</span>
           </div>
-        </Link>
+        </button>
 
         <div className="flex-1 flex justify-center items-center">
           <div className="flex items-center gap-2 bg-theme-card border border-theme-border px-4 py-2 rounded-full">

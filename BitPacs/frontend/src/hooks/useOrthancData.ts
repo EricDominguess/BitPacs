@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 // Intervalo entre atualizações (em ms)
-const INTERVALO_ATUALIZACAO = 5000;
+const INTERVALO_ATUALIZACAO = 15000;
 
 interface UseOrthancDataReturn {
   pacientes: any[];
   estudos: any[];
   series: any[];
-  status: any[];
+  seriesByStudy: Map<string, any[]>;
+  status: any;
   isLoading: boolean;
   isMonitoring: boolean;
   error: string | null;
@@ -15,16 +16,17 @@ interface UseOrthancDataReturn {
 }
 
 /**
- * Super Hook que combina:
+ * Super Hook OTIMIZADO que combina:
  * - Fetch inicial de dados do Orthanc (pacientes, estudos, séries)
  * - Monitoramento em tempo real de mudanças
- * - Atualização automática quando novos exames chegam
+ * - Indexação de séries por estudo para busca O(1)
  */
 export function useOrthancData(): UseOrthancDataReturn {
   // Estados de dados
   const [pacientes, setPacientes] = useState<any[]>([]);
   const [estudos, setEstudos] = useState<any[]>([]);
   const [series, setSeries] = useState<any[]>([]);
+  const [seriesByStudy, setSeriesByStudy] = useState<Map<string, any[]>>(new Map());
   const [status, setStatus] = useState<any>(null);
   
   // Estados de controle
@@ -34,46 +36,78 @@ export function useOrthancData(): UseOrthancDataReturn {
   
   // Ref para o monitoramento de mudanças
   const lastSequenceRef = useRef<number>(0);
+  const isLoadingRef = useRef<boolean>(false);
 
   /**
    * Carrega todos os dados do Orthanc
    */
   const carregarTudo = useCallback(async () => {
+    // Evita múltiplas requisições simultâneas
+    if (isLoadingRef.current) {
+      console.log("⏳ Já está carregando, ignorando...");
+      return;
+    }
+
+    isLoadingRef.current = true;
     const timestamp = Date.now();
     console.log("🔄 Carregando tudo do Orthanc...");
     setError(null);
     
     try {
-      const [pacientesRes, estudosRes, seriesRes, statsRes] = await Promise.all([
-        fetch(`/orthanc/patients?_t=${timestamp}`),
+      // Carrega estudos e estatísticas primeiro (mais importantes)
+      const [estudosRes, statsRes] = await Promise.all([
         fetch(`/orthanc/studies?expand&_t=${timestamp}`),
-        fetch(`/orthanc/series?expand&_t=${timestamp}`),
         fetch(`/orthanc/statistics?_t=${timestamp}`)
       ]);
 
-      if (!pacientesRes.ok || !estudosRes.ok || !seriesRes.ok || !statsRes.ok) {
+      if (!estudosRes.ok || !statsRes.ok) {
         throw new Error('Falha ao carregar dados do Orthanc');
       }
 
-      const [pacientesData, estudosData, seriesData, statsData] = await Promise.all([
-        pacientesRes.json(),
+      const [estudosData, statsData] = await Promise.all([
         estudosRes.json(),
-        seriesRes.json(),
         statsRes.json()
       ]);
 
-      console.log(`✅ Dados carregados: ${pacientesData.length} pacientes, ${estudosData.length} estudos, ${seriesData.length} séries`);
-      
-      setPacientes(pacientesData);
+      // Atualiza estudos e status imediatamente para UI responsiva
       setEstudos(estudosData);
-      setSeries(seriesData);
       setStatus(statsData);
       setIsLoading(false);
+
+      // Carrega séries em paralelo
+      const seriesRes = await fetch(`/orthanc/series?expand&_t=${timestamp}`);
+      if (seriesRes.ok) {
+        const seriesData = await seriesRes.json();
+        
+        // Cria índice de séries por estudo para busca O(1)
+        const seriesMap = new Map<string, any[]>();
+        seriesData.forEach((serie: any) => {
+          const studyId = serie.ParentStudy;
+          if (!seriesMap.has(studyId)) {
+            seriesMap.set(studyId, []);
+          }
+          seriesMap.get(studyId)!.push(serie);
+        });
+        
+        setSeries(seriesData);
+        setSeriesByStudy(seriesMap);
+      }
+
+      // Carrega pacientes
+      const pacientesRes = await fetch(`/orthanc/patients?_t=${timestamp}`);
+      if (pacientesRes.ok) {
+        const pacientesData = await pacientesRes.json();
+        setPacientes(pacientesData);
+      }
+
+      console.log(`✅ Dados carregados: ${estudosData.length} estudos`);
       
     } catch (erro) {
       console.error("❌ Erro ao carregar dados:", erro);
       setError(erro instanceof Error ? erro.message : 'Erro desconhecido');
       setIsLoading(false);
+    } finally {
+      isLoadingRef.current = false;
     }
   }, []);
 
@@ -138,6 +172,7 @@ export function useOrthancData(): UseOrthancDataReturn {
     pacientes,
     estudos,
     series,
+    seriesByStudy,
     status,
     isLoading,
     isMonitoring,

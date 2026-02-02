@@ -1,5 +1,6 @@
 using BitPacs.Api.Models;
 using BCrypt.Net; // Certifique-se que o pacote BCrypt.Net-Next está instalado
+using Microsoft.EntityFrameworkCore;
 
 namespace BitPacs.Api.Data
 {
@@ -9,6 +10,26 @@ namespace BitPacs.Api.Data
         {
             // Garante que o banco existe
             context.Database.EnsureCreated();
+
+            // Adiciona a coluna AvatarUrl se não existir
+            try
+            {
+                context.Database.ExecuteSqlRaw(@"
+                    DO $$ 
+                    BEGIN 
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'Users' AND column_name = 'AvatarUrl'
+                        ) THEN 
+                            ALTER TABLE ""Users"" ADD COLUMN ""AvatarUrl"" text;
+                        END IF; 
+                    END $$;
+                ");
+            }
+            catch
+            {
+                // Ignora se a coluna já existe
+            }
 
             // Verifica se já tem usuários
             if (context.Users.Any())

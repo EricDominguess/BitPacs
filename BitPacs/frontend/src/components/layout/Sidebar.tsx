@@ -5,8 +5,26 @@ import { ContactModal, ProfileModal } from '../common';
 
 const navItems = [
   {
+    label: 'Controle de usuários',
+    href: '/users',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg>
+    ),
+  },
+  {
     label: 'Dashboard',
     href: '/dashboard',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Dashboard',
+    href: '/user-dashboard',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -28,34 +46,44 @@ export function Sidebar() {
   const location = useLocation();
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  
+  // Pegando usuário logado dentro do componente para garantir dados atualizados
+  const user = JSON.parse(localStorage.getItem('bitpacs_user') || '{}');
 
   return (
     <>
     <aside className="w-64 bg-theme-secondary/50 border-r border-theme-light min-h-[calc(100vh-72px)] flex flex-col transition-colors duration-300">
       <nav className="p-4 flex flex-col gap-1 flex-1">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group',
-                isActive
-                  ? 'bg-nautico text-white shadow-brand'
-                  : 'text-theme-muted hover:text-theme-primary hover:bg-nautico/10'
-              )}
-            >
-              <span className={cn(
-                'transition-colors',
-                isActive ? 'text-ultra' : 'text-theme-muted group-hover:text-ultra'
-              )}>
-                {item.icon}
-              </span>
-              <span className="font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
+        {navItems
+          .filter (item => {
+            if (item.href === '/dashboard') return user.role === 'Master' || user.role === 'Admin';
+            if (item.href === '/user-dashboard') return user.role !== 'Master' && user.role !== 'Admin';
+            if (item.href === '/users') return user.role === 'Master' || user.role === 'Admin';
+            return true;
+          })
+          .map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group',
+                  isActive
+                    ? 'bg-nautico text-white shadow-brand'
+                    : 'text-theme-muted hover:text-theme-primary hover:bg-nautico/10'
+                )}
+              >
+                <span className={cn(
+                  'transition-colors',
+                  isActive ? 'text-ultra' : 'text-theme-muted group-hover:text-ultra'
+                )}>
+                  {item.icon}
+                </span>
+                <span className="font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
       </nav>
 
       {/* Botão Contatar Suporte */}
@@ -79,12 +107,24 @@ export function Sidebar() {
           onClick={() => setShowProfileModal(true)}
           className="w-full flex items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group"
         >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-nautico to-purple-light flex items-center justify-center">
-            <span className="text-sm font-semibold text-white">U</span>
-          </div>
+          {user.avatarUrl ? (
+            <img 
+              src={`http://localhost:5151${user.avatarUrl}`}
+              alt="Avatar"
+              className="w-8 h-8 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-nautico to-purple-light flex items-center justify-center">
+              <span className="text-sm font-semibold text-white">
+                {user.nome ? user.nome.charAt(0).toUpperCase() : 'U'}
+              </span>
+            </div>
+          )}
           <div className="flex-1 min-w-0 text-left">
-            <p className="text-sm font-medium text-theme-primary truncate group-hover:text-nautico transition-colors">Usuário</p>
-            <p className="text-xs text-theme-muted truncate">admin@bitpacs.com</p>
+            <p className="text-sm font-medium text-theme-primary truncate group-hover:text-nautico transition-colors">
+              {user.nome || 'Usuário'}
+            </p>
+            <p className="text-xs text-theme-muted truncate">{user.email || 'email@bitpacs.com'}</p>
           </div>
           <svg className="w-4 h-4 text-theme-muted group-hover:text-nautico transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

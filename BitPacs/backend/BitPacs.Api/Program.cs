@@ -26,8 +26,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Registra o serviço que gera os tokens (TokenService.cs)
 builder.Services.AddScoped<TokenService>();
 
-// Pega a chave secreta do .env
-var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET") ?? "chave_fallback_para_dev";
+// Pega a chave secreta do appsettings.json (mesma que o TokenService usa)
+var secretKey = builder.Configuration["JwtSettings:SecretKey"] ?? "chave_fallback_para_dev";
 var key = Encoding.ASCII.GetBytes(secretKey);
 
 builder.Services.AddAuthentication(x =>
@@ -54,7 +54,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReact", policy =>
     {
-        policy.WithOrigins("http://localhost:5173") // A porta do seu Front React
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174") // Portas do Front React
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -73,6 +73,9 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<AppDbContext>();
+        
+        // Inicializa o banco (adiciona colunas faltantes)
+        DbInitializer.Seed(context);
         
         // Esta linha cria o Admin se ele não existir
         DbSeeder.Seed(context); 

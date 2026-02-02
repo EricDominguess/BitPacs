@@ -166,3 +166,4 @@ C:\Users\BIT049\documents\projetos\BitPacs\BitPacs\backend\BitPacs.Api\obj\Debug
 C:\Users\BIT049\documents\projetos\BitPacs\BitPacs\backend\BitPacs.Api\obj\Debug\net10.0\BitPacs.Api.pdb
 C:\Users\BIT049\documents\projetos\BitPacs\BitPacs\backend\BitPacs.Api\obj\Debug\net10.0\BitPacs.Api.genruntimeconfig.cache
 C:\Users\BIT049\documents\projetos\BitPacs\BitPacs\backend\BitPacs.Api\obj\Debug\net10.0\ref\BitPacs.Api.dll
+C:\Users\BIT049\documents\projetos\BitPacs\BitPacs\backend\BitPacs.Api\bin\Debug\net10.0\BitPacs.Api.staticwebassets.runtime.json

@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button, Input, ContactModal } from '../../components/common';
 
 export function Login() {
-  const navigate = useNavigate();
-  
   // Estados do Formulário
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,7 +40,8 @@ export function Login() {
         localStorage.setItem('bitpacs_token', data.token);
         localStorage.setItem('bitpacs_user', JSON.stringify(data.user));
         
-        navigate('/dashboard');
+        // Força reload para atualizar todos os componentes com o novo usuário
+        window.location.href = '/dashboard';
       } else {
         // Erro: Senha errada ou usuário não existe
         setError('E-mail ou senha incorretos.');

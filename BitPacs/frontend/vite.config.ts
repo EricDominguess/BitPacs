@@ -4,8 +4,7 @@ import path from 'path'
 
 export default defineConfig(({ mode }) => {
   // Ajusta para buscar o .env na raiz do BitPacs
-  const envDir = path.resolve(__dirname, '..');
-  const env = loadEnv(mode, envDir);
+  const env = loadEnv(mode, process.cwd());
   console.log('Variáveis carregadas pelo loadEnv:', env);
   console.log('VITE_STORAGE_TOTAL_FAZENDA (build):', env.VITE_STORAGE_TOTAL_FAZENDA);
   const orthancUrl = env.VITE_ORTHANC_IP_FAZENDA || 'http://localhost:8042';
@@ -34,7 +33,8 @@ export default defineConfig(({ mode }) => {
         },
         
         // 2. Rotas de API que o Stone exige na raiz
-        '/studies': proxyConfig,
+        // NOTA: /studies removido para não conflitar com a rota React /studies
+        // O Stone deve usar /orthanc/studies ou acessar via dicom-web
         '/series': proxyConfig,
         '/instances': proxyConfig,
         '/dicom-web': proxyConfig,
