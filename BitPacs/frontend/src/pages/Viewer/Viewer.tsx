@@ -37,6 +37,40 @@ export function Viewer() {
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
       `;
       iframeDoc.head.appendChild(style);
+
+      // JS INJECT: Traduz avisos do Stone Viewer para português
+      const translateWarnings = () => {
+        const translations: Record<string, string> = {
+          'For patients, researchers and quality assurance. Not for diagnostic usage.': 
+            'Para pacientes, pesquisadores e controle de qualidade. Não para uso diagnóstico.',
+          'Not for diagnostic usage': 
+            'Não para uso diagnóstico',
+          'For research use only': 
+            'Apenas para uso em pesquisa',
+        };
+
+        // Busca todos os elementos de texto e traduz
+        const walker = iframeDoc.createTreeWalker(
+          iframeDoc.body,
+          NodeFilter.SHOW_TEXT,
+          null
+        );
+
+        let node;
+        while ((node = walker.nextNode())) {
+          const text = node.textContent?.trim();
+          if (text && translations[text]) {
+            node.textContent = translations[text];
+          }
+        }
+      };
+
+      // Executa tradução imediatamente e após um delay (para elementos carregados dinamicamente)
+      translateWarnings();
+      setTimeout(translateWarnings, 500);
+      setTimeout(translateWarnings, 1500);
+      setTimeout(translateWarnings, 3000);
+
     } catch (e) {
       // Ignora erros de cross-origin se ocorrerem
     }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../../components/layout';
-import { Card, Button, Input, Badge } from '../../components/common';
+import { Card, Button, Input, Badge, UserLogsModal } from '../../components/common';
 
 // Tipos
 interface User {
@@ -69,6 +69,11 @@ export function Users() {
   const [formData, setFormData] = useState<FormData>({ nome: '', email: '', password: '', role: 'Medico' });
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Estados do Modal de Logs
+  const [showLogsModal, setShowLogsModal] = useState(false);
+  const [logsUserId, setLogsUserId] = useState<number>(0);
+  const [logsUserName, setLogsUserName] = useState<string>('');
 
   // Carregar usuários
   const fetchUsers = async () => {
@@ -148,6 +153,13 @@ export function Users() {
     setFormData({ nome: user.nome, email: user.email, password: '', role: user.role });
     setFormError('');
     setShowModal(true);
+  };
+
+  // Abrir modal de logs do usuário
+  const handleShowLogs = (user: User) => {
+    setLogsUserId(user.id);
+    setLogsUserName(user.nome);
+    setShowLogsModal(true);
   };
 
   // Salvar (criar ou editar)
@@ -330,6 +342,11 @@ export function Users() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="sm" title="Histórico de atividades" onClick={() => handleShowLogs(user)}>
+                            <svg className="w-4 h-4 text-green-aqua" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </Button>
                           <Button variant="ghost" size="sm" title="Editar" onClick={() => handleEdit(user)}>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -495,6 +512,14 @@ export function Users() {
           </div>
         </div>
       )}
+
+      {/* Modal de Logs do Usuário */}
+      <UserLogsModal
+        isOpen={showLogsModal}
+        onClose={() => setShowLogsModal(false)}
+        userId={logsUserId}
+        userName={logsUserName}
+      />
     </MainLayout>
   );
 }

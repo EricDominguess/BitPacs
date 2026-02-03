@@ -40,8 +40,10 @@ export function Login() {
         localStorage.setItem('bitpacs_token', data.token);
         localStorage.setItem('bitpacs_user', JSON.stringify(data.user));
         
-        // Força reload para atualizar todos os componentes com o novo usuário
-        window.location.href = '/dashboard';
+        // Redireciona baseado no role do usuário
+        // Master e Admin vão para /dashboard, outros vão para /user-dashboard
+        const isAdminOrMaster = data.user.role === 'Master' || data.user.role === 'Admin';
+        window.location.href = isAdminOrMaster ? '/dashboard' : '/user-dashboard';
       } else {
         // Erro: Senha errada ou usuário não existe
         setError('E-mail ou senha incorretos.');

@@ -116,56 +116,62 @@ export function Studies() {
     if (currentPage > 1) setCurrentPage(prev => prev - 1);
   };
 
-  // 1. SIMULAÇÃO DO USUÁRIO (Posteriormente virá do AuthContext)
-  const currentUser = {
-    id: 1,
-    nome: "Admin Sistema",
-    email: "admin@bitpacs.com",
-    ip: "127.0.0.1" // Em produção, o backend pega isso sozinho
-  };
+  // 1. Obtém o usuário logado
+  const currentUser = JSON.parse(localStorage.getItem('bitpacs_user') || '{}');
 
-  // 2. FUNÇÃO DE LOG (Auditoria)
-  const registrarLogDownload = async (studyId: string, filename: string) => {
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      usuario: {
-        id: currentUser.id,
-        nome: currentUser.nome,
-        email: currentUser.email
-      },
-      acao: "DOWNLOAD_ZIP",
-      detalhes: {
-        studyId: studyId,
-        arquivo: filename
-      }
-    };
-
-    // --- AQUI VAI SER A CHAMADA PARA O BACKEND NO FUTURO ---
-    // await fetch('http://localhost:5000/api/logs', { method: 'POST', body: JSON.stringify(logEntry) ... })
-    
-    // Por enquanto, salvamos num "JSON Local" (Console do navegador)
-    console.log("📝 [AUDITORIA] Novo Download Registrado:", JSON.stringify(logEntry, null, 2));
-    
-    // Dica: Você também pode salvar no localStorage para ver persistir depois
-    const logsAntigos = JSON.parse(localStorage.getItem('bitpacs_logs') || '[]');
-    logsAntigos.push(logEntry);
-    localStorage.setItem('bitpacs_logs', JSON.stringify(logsAntigos));
+  // 2. FUNÇÃO DE LOG (Auditoria) - Envia para o backend
+  const registrarLog = async (
+    actionType: 'VIEW' | 'DOWNLOAD',
+    study: {
+      id: string;
+      studyInstanceUID: string;
+      patient: string;
+      description: string;
+      modality: string;
+    }
+  ) => {
+    try {
+      const token = localStorage.getItem('bitpacs_token');
+      await fetch('http://localhost:5151/api/studylogs', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          actionType,
+          studyId: study.id,
+          studyInstanceUID: study.studyInstanceUID,
+          patientName: study.patient,
+          studyDescription: study.description,
+          modality: study.modality,
+        }),
+      });
+    } catch (err) {
+      console.error('Erro ao registrar log:', err);
+    }
   };
 
   // 3. FUNÇÃO DE DOWNLOAD ATUALIZADA
-  const handleDownload = (studyId: string) => {
-    const filename = `estudo-${studyId}.zip`;
+  const handleDownload = (study: typeof studiesFormatted[0]) => {
+    const filename = `estudo-${study.id}.zip`;
     
-    // Primeiro: Registra quem está baixando
-    registrarLogDownload(studyId, filename);
+    // Registra o download no backend
+    registrarLog('DOWNLOAD', study);
 
-    // Segundo: Executa o download (Técnica do Link Fantasma)
+    // Executa o download (Técnica do Link Fantasma)
     const link = document.createElement('a');
-    link.href = `/orthanc/studies/${studyId}/archive`;
+    link.href = `/orthanc/studies/${study.id}/archive`;
     link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // 4. FUNÇÃO DE VISUALIZAÇÃO - Registra log antes de navegar
+  const handleView = (study: typeof studiesFormatted[0]) => {
+    // Registra a visualização no backend
+    registrarLog('VIEW', study);
   };
 
   return (
@@ -274,7 +280,7 @@ export function Studies() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
-                          <Link to={`/viewer/${study.studyInstanceUID}`}>
+                          <Link to={`/viewer/${study.studyInstanceUID}`} onClick={() => handleView(study)}>
                             <Button variant="ghost" size="sm" title="Visualizar estudo">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -282,7 +288,7 @@ export function Studies() {
                               </svg>
                             </Button>
                           </Link>
-                          <Button variant="ghost" size="sm" title="Baixar estudo (ZIP)" onClick={() => handleDownload(study.id)}>
+                          <Button variant="ghost" size="sm" title="Baixar estudo (ZIP)" onClick={() => handleDownload(study)}>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>

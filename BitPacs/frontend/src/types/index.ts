@@ -21,3 +21,26 @@ export interface NavItem {
   href: string;
   icon?: React.ReactNode;
 }
+
+// Log de visualização/download de estudos
+export interface StudyLog {
+  id: number;
+  actionType: 'VIEW' | 'DOWNLOAD';
+  studyId: string;
+  studyInstanceUID?: string;
+  patientName?: string;
+  studyDescription?: string;
+  modality?: string;
+  timestamp: string;
+  ipAddress?: string;
+}
+
+export interface StudyLogsResponse {
+  logs: StudyLog[];
+  pagination: {
+    currentPage: number;
+    pageSize: number;
+    totalLogs: number;
+    totalPages: number;
+  };
+}
