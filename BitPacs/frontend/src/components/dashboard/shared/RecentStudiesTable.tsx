@@ -78,7 +78,7 @@ export function RecentStudiesTable({ dados = [], series = [], className = '' }: 
             ) : (
               // Agora usamos 'estudosProcessados' em vez de 'studies'
               estudosProcessados.map((estudo, i) => (
-                <tr key={i} className="hover:bg-nautico/10 transition-colors cursor-pointer">
+                <tr key={i} className="hover:bg-nautico/10 transition-colors">
                   <td className="py-3">
                     <span className="text-theme-primary font-medium">
                       {formatarNome(estudo.PatientMainDicomTags?.PatientName)}
