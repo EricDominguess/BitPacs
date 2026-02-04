@@ -9,6 +9,7 @@ interface User {
   nome: string;
   email: string;
   role: 'Master' | 'Admin' | 'Medico' | 'Enfermeiro';
+  unidade?: string;
   createdAt?: string;
   isActive?: boolean;
 }
@@ -20,6 +21,7 @@ interface FormData {
   email: string;
   password: string;
   role: UserRole;
+  unidade: string;
 }
 
 // Cores por role
@@ -38,6 +40,12 @@ const allowedRolesToCreate: Record<string, UserRole[]> = {
 
 // Constante de itens por página
 const ITEMS_PER_PAGE = 8;
+
+// Lista de unidades do .env
+const unidades = [
+  { value: 'fazenda', label: import.meta.env.VITE_UNIDADE_FAZENDA || 'Unidade Fazenda' },
+  { value: 'riobranco', label: import.meta.env.VITE_UNIDADE_RIOBRANCO || 'Unidade Rio Branco' },
+];
 
 export function Users() {
   const navigate = useNavigate();
@@ -66,7 +74,7 @@ export function Users() {
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [formData, setFormData] = useState<FormData>({ nome: '', email: '', password: '', role: 'Medico' });
+  const [formData, setFormData] = useState<FormData>({ nome: '', email: '', password: '', role: 'Medico', unidade: '' });
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -141,7 +149,7 @@ export function Users() {
     setEditingUser(null);
     // Define o role padrão como o primeiro disponível para o usuário
     const defaultRole = availableRoles[0] || 'Medico';
-    setFormData({ nome: '', email: '', password: '', role: defaultRole });
+    setFormData({ nome: '', email: '', password: '', role: defaultRole, unidade: '' });
     setFormError('');
     setShowModal(true);
   };
@@ -150,7 +158,7 @@ export function Users() {
   const handleEdit = (user: User) => {
     setModalMode('edit');
     setEditingUser(user);
-    setFormData({ nome: user.nome, email: user.email, password: '', role: user.role });
+    setFormData({ nome: user.nome, email: user.email, password: '', role: user.role, unidade: user.unidade || '' });
     setFormError('');
     setShowModal(true);
   };
@@ -491,6 +499,25 @@ export function Users() {
                   </p>
                 )}
               </div>
+
+              {/* Select de Unidade - apenas para não-Master */}
+              {formData.role !== 'Master' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-theme-secondary">Unidade</label>
+                  <select
+                    value={formData.unidade}
+                    onChange={(e) => setFormData(prev => ({ ...prev, unidade: e.target.value }))}
+                    className="w-full px-4 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent transition-all duration-200"
+                  >
+                    <option value="">Selecione uma unidade...</option>
+                    {unidades.map((unidade) => (
+                      <option key={unidade.value} value={unidade.value}>
+                        {unidade.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Footer do Modal */}

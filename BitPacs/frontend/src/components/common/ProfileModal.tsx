@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from './Button';
 import { Input } from './Input';
 import { Badge } from './Badge';
+import { UNIDADES_CONFIG } from '../../contexts';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -14,6 +15,18 @@ const roleColors: Record<string, { badge: 'default' | 'success' | 'warning' | 'e
   Admin: { badge: 'warning', label: 'Administrador' },
   Medico: { badge: 'default', label: 'Médico' },
   Enfermeiro: { badge: 'default', label: 'Enfermeiro' },
+};
+
+// Função para obter o label da unidade
+const getUnidadeLabel = (unidadeKey: string | null | undefined, role: string): string => {
+  if (role === 'Master') {
+    return 'Acesso Global (Todas as Unidades)';
+  }
+  if (!unidadeKey) {
+    return 'Nenhuma unidade vinculada';
+  }
+  const config = UNIDADES_CONFIG[unidadeKey as keyof typeof UNIDADES_CONFIG];
+  return config?.label || unidadeKey;
 };
 
 export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
@@ -45,7 +58,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const readOnlyData = {
     email: storedUser.email || 'email@exemplo.com',
     cargo: storedUser.role || 'Usuário',
-    instituicao: import.meta.env.VITE_UNIDADE_FAZENDA || 'Unidade Padrão',
+    instituicao: getUnidadeLabel(storedUser.unidade, storedUser.role),
   };
 
   if (!isOpen) return null;

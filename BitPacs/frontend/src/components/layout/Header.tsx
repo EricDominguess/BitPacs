@@ -1,10 +1,12 @@
 import { useState} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SettingsModal } from '../common';
+import { useUnidade } from '../../contexts';
 
 export function Header() {
   const [showSettings, setShowSettings] = useState(false);
   const navigate = useNavigate();
+  const { unidadeLabel, isUnidadeSelected } = useUnidade();
 
   // Função de logout
   const handleLogout = () => {
@@ -39,9 +41,9 @@ export function Header() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
             <span className="text-sm font-medium text-theme-primary">
-              {import.meta.env.VITE_UNIDADE_FAZENDA}
+              {unidadeLabel}
             </span>
-            <span className="w-2 h-2 rounded-full bg-green-500 ml-2"></span>
+            <span className={`w-2 h-2 rounded-full ml-2 ${isUnidadeSelected ? 'bg-green-500' : 'bg-amber-500'}`}></span>
           </div>
         </div>
                 

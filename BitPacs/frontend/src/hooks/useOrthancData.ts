@@ -1,7 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useContext } from 'react';
 
 // Intervalo entre atualizações (em ms)
 const INTERVALO_ATUALIZACAO = 15000;
+
+// Configuração das unidades
+const UNIDADES_CONFIG: Record<string, { orthancProxy: string }> = {
+  localhost: { orthancProxy: '/orthanc' }, // Localhost usa o proxy padrão
+  fazenda: { orthancProxy: '/orthanc-fazenda' },
+  riobranco: { orthancProxy: '/orthanc-riobranco' },
+};
 
 interface UseOrthancDataReturn {
   pacientes: any[];
@@ -13,6 +20,7 @@ interface UseOrthancDataReturn {
   isMonitoring: boolean;
   error: string | null;
   refetch: () => void;
+  unidadeAtual: string;
 }
 
 /**
@@ -20,8 +28,22 @@ interface UseOrthancDataReturn {
  * - Fetch inicial de dados do Orthanc (pacientes, estudos, séries)
  * - Monitoramento em tempo real de mudanças
  * - Indexação de séries por estudo para busca O(1)
+ * - Suporte a múltiplas unidades
  */
 export function useOrthancData(): UseOrthancDataReturn {
+  // Pega a unidade do localStorage/contexto
+  const getUnidadeAtual = useCallback(() => {
+    const user = JSON.parse(localStorage.getItem('bitpacs_user') || '{}');
+    const isMaster = user?.role === 'Master';
+    
+    if (isMaster) {
+      return localStorage.getItem('bitpacs-unidade-master') || 'fazenda';
+    }
+    return user?.unidade || 'fazenda';
+  }, []);
+
+  const [unidadeAtual, setUnidadeAtual] = useState(getUnidadeAtual);
+
   // Estados de dados
   const [pacientes, setPacientes] = useState<any[]>([]);
   const [estudos, setEstudos] = useState<any[]>([]);
@@ -38,6 +60,12 @@ export function useOrthancData(): UseOrthancDataReturn {
   const lastSequenceRef = useRef<number>(0);
   const isLoadingRef = useRef<boolean>(false);
 
+  // Obtém o prefixo do proxy baseado na unidade
+  const getProxyPrefix = useCallback(() => {
+    const config = UNIDADES_CONFIG[unidadeAtual];
+    return config?.orthancProxy || '/orthanc';
+  }, [unidadeAtual]);
+
   /**
    * Carrega todos os dados do Orthanc
    */
@@ -50,14 +78,15 @@ export function useOrthancData(): UseOrthancDataReturn {
 
     isLoadingRef.current = true;
     const timestamp = Date.now();
-    console.log("🔄 Carregando tudo do Orthanc...");
+    const proxyPrefix = getProxyPrefix();
+    console.log(`🔄 Carregando tudo do Orthanc (${unidadeAtual})... Proxy: ${proxyPrefix}`);
     setError(null);
     
     try {
       // Carrega estudos e estatísticas primeiro (mais importantes)
       const [estudosRes, statsRes] = await Promise.all([
-        fetch(`/orthanc/studies?expand&_t=${timestamp}`),
-        fetch(`/orthanc/statistics?_t=${timestamp}`)
+        fetch(`${proxyPrefix}/studies?expand&_t=${timestamp}`),
+        fetch(`${proxyPrefix}/statistics?_t=${timestamp}`)
       ]);
 
       if (!estudosRes.ok || !statsRes.ok) {
@@ -75,7 +104,7 @@ export function useOrthancData(): UseOrthancDataReturn {
       setIsLoading(false);
 
       // Carrega séries em paralelo
-      const seriesRes = await fetch(`/orthanc/series?expand&_t=${timestamp}`);
+      const seriesRes = await fetch(`${proxyPrefix}/series?expand&_t=${timestamp}`);
       if (seriesRes.ok) {
         const seriesData = await seriesRes.json();
         
@@ -94,7 +123,7 @@ export function useOrthancData(): UseOrthancDataReturn {
       }
 
       // Carrega pacientes
-      const pacientesRes = await fetch(`/orthanc/patients?_t=${timestamp}`);
+      const pacientesRes = await fetch(`${proxyPrefix}/patients?_t=${timestamp}`);
       if (pacientesRes.ok) {
         const pacientesData = await pacientesRes.json();
         setPacientes(pacientesData);
@@ -109,16 +138,18 @@ export function useOrthancData(): UseOrthancDataReturn {
     } finally {
       isLoadingRef.current = false;
     }
-  }, []);
+  }, [getProxyPrefix, unidadeAtual]);
 
   /**
    * Verifica mudanças no Orthanc e recarrega se necessário
    */
   const checkChanges = useCallback(async () => {
+    const proxyPrefix = getProxyPrefix();
+    
     try {
       // Primeira execução: pega o último ID de sequência
       if (lastSequenceRef.current === 0) {
-        const response = await fetch('/orthanc/changes?descending=true&limit=1');
+        const response = await fetch(`${proxyPrefix}/changes?descending=true&limit=1`);
         const data = await response.json();
         lastSequenceRef.current = data.Last || 0;
         console.log(`🔔 Monitor iniciado. Última sequência: ${lastSequenceRef.current}`);
@@ -127,7 +158,7 @@ export function useOrthancData(): UseOrthancDataReturn {
       }
 
       // Verifica se há mudanças desde a última sequência
-      const response = await fetch(`/orthanc/changes?since=${lastSequenceRef.current}&limit=100`);
+      const response = await fetch(`${proxyPrefix}/changes?since=${lastSequenceRef.current}&limit=100`);
       const data = await response.json();
 
       if (data.Last > lastSequenceRef.current) {
@@ -148,7 +179,41 @@ export function useOrthancData(): UseOrthancDataReturn {
     } catch (error) {
       console.error("❌ Erro ao verificar mudanças:", error);
     }
-  }, [carregarTudo]);
+  }, [carregarTudo, getProxyPrefix]);
+
+  // Efeito para detectar mudanças de unidade (via storage event)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'bitpacs-unidade-master' || e.key === 'bitpacs_user') {
+        const novaUnidade = getUnidadeAtual();
+        if (novaUnidade !== unidadeAtual) {
+          console.log(`🔄 Unidade alterada: ${unidadeAtual} -> ${novaUnidade}`);
+          setUnidadeAtual(novaUnidade);
+          lastSequenceRef.current = 0; // Reset do monitor
+          setIsLoading(true);
+        }
+      }
+    };
+
+    // Também verifica periodicamente (para mudanças na mesma aba)
+    const checkUnidade = () => {
+      const novaUnidade = getUnidadeAtual();
+      if (novaUnidade !== unidadeAtual) {
+        console.log(`🔄 Unidade alterada: ${unidadeAtual} -> ${novaUnidade}`);
+        setUnidadeAtual(novaUnidade);
+        lastSequenceRef.current = 0;
+        setIsLoading(true);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    const unidadeCheckInterval = setInterval(checkUnidade, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(unidadeCheckInterval);
+    };
+  }, [getUnidadeAtual, unidadeAtual]);
 
   // Efeito principal: carrega dados e inicia monitoramento
   useEffect(() => {
@@ -166,7 +231,7 @@ export function useOrthancData(): UseOrthancDataReturn {
       clearInterval(intervalId);
       console.log("🛑 Monitor parado");
     };
-  }, [carregarTudo, checkChanges]);
+  }, [carregarTudo, checkChanges, unidadeAtual]);
 
   return {
     pacientes,
@@ -177,7 +242,8 @@ export function useOrthancData(): UseOrthancDataReturn {
     isLoading,
     isMonitoring,
     error,
-    refetch: carregarTudo
+    refetch: carregarTudo,
+    unidadeAtual
   };
 }
 

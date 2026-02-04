@@ -1,28 +1,34 @@
 import { Card } from '../../components/common';
+import { useUnidade } from '../../contexts';
 
 interface StorageCardProps {
   stats: any; 
-  totalCapacity?: number; 
 }
 
-console.log('VITE_STORAGE_TOTAL_FAZENDA:', import.meta.env.VITE_STORAGE_TOTAL_FAZENDA);
-const limiteConfiguradoGB = Number(import.meta.env.VITE_STORAGE_TOTAL_FAZENDA);
-console.log('limiteConfiguradoGB:', limiteConfiguradoGB);
-const capacidadeTotalBytes = limiteConfiguradoGB * 1024 * 1024 * 1024;
-console.log('capacidadeTotalBytes:', capacidadeTotalBytes);
-
-// Valor da capacidade
-const DEFAULT_CAPACITY = capacidadeTotalBytes;
-
-export function StorageCard({ stats, totalCapacity = DEFAULT_CAPACITY }: StorageCardProps) {
+export function StorageCard({ stats }: StorageCardProps) {
+  const { storageTotalBytes } = useUnidade();
   
-  // 1. Formatação de Bytes (KB, MB, GB, TB)
+  // Usa o valor do contexto (baseado na unidade selecionada)
+  const totalCapacity = storageTotalBytes || 1080 * 1024 * 1024 * 1024; // Fallback para 1080GB
+  
+  // 1. Formatação de Bytes (KB, MB, GB, TB) - converte para TB a partir de 1000 GB
   const formatBytes = (bytes: number, decimals = 2) => {
     if (!bytes || bytes === 0) return '0 B';
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    // Calcula o índice baseado em log
+    let i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    // Se estiver em GB (i=3) e for >= 1000 GB, converte para TB
+    if (i === 3) {
+      const gbValue = bytes / Math.pow(k, 3);
+      if (gbValue >= 1000) {
+        i = 4; // Força para TB
+      }
+    }
+    
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   };
 

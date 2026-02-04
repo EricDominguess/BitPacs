@@ -41,7 +41,7 @@ namespace BitPacs.Api.Controllers
             return Ok(new
             {
                 token = token,
-                user = new { user.Id, user.Nome, user.Email, user.Role, user.AvatarUrl }
+                user = new { user.Id, user.Nome, user.Email, user.Role, user.Unidade, user.AvatarUrl }
             });
         }
 
@@ -62,7 +62,7 @@ namespace BitPacs.Api.Controllers
             }
 
             var users = query
-                .Select(u => new { u.Id, u.Nome, u.Email, u.Role, u.AvatarUrl })
+                .Select(u => new { u.Id, u.Nome, u.Email, u.Role, u.Unidade, u.AvatarUrl })
                 .ToList();
 
             return Ok(users);
@@ -77,7 +77,7 @@ namespace BitPacs.Api.Controllers
             if (user == null)
                 return NotFound("Usuário não encontrado.");
 
-            return Ok(new { user.Id, user.Nome, user.Email, user.Role, user.AvatarUrl });
+            return Ok(new { user.Id, user.Nome, user.Email, user.Role, user.Unidade, user.AvatarUrl });
         }
 
         // POST: Registrar novo usuário
@@ -102,13 +102,14 @@ namespace BitPacs.Api.Controllers
                 Nome = request.Nome,
                 Email = request.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                Role = request.Role
+                Role = request.Role,
+                Unidade = request.Role != "Master" ? request.Unidade : null
             };
 
             _context.Users.Add(user);
             _context.SaveChanges();
 
-            return Ok(new { user.Id, user.Nome, user.Email, user.Role, user.AvatarUrl });
+            return Ok(new { user.Id, user.Nome, user.Email, user.Role, user.Unidade, user.AvatarUrl });
         }
 
         // PUT: Atualizar usuário
@@ -145,9 +146,12 @@ namespace BitPacs.Api.Controllers
             if (!string.IsNullOrEmpty(request.Role))
                 user.Role = request.Role;
 
+            if (request.Unidade != null)
+                user.Unidade = user.Role != "Master" ? request.Unidade : null;
+
             _context.SaveChanges();
 
-            return Ok(new { user.Id, user.Nome, user.Email, user.Role, user.AvatarUrl });
+            return Ok(new { user.Id, user.Nome, user.Email, user.Role, user.Unidade, user.AvatarUrl });
         }
 
         // DELETE: Excluir usuário
@@ -303,6 +307,7 @@ namespace BitPacs.Api.Controllers
         public required string Email { get; set; }
         public required string Password { get; set; }
         public string Role { get; set; } = "Medico";
+        public string? Unidade { get; set; }
     }
 
     public class UpdateUserRequest
@@ -311,5 +316,6 @@ namespace BitPacs.Api.Controllers
         public string? Email { get; set; }
         public string? Password { get; set; }
         public string? Role { get; set; }
+        public string? Unidade { get; set; }
     }
 }

@@ -1,0 +1,145 @@
+import { createContext, useContext, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+
+// Configuração das unidades do .env
+const UNIDADES_CONFIG = {
+  localhost: {
+    value: 'localhost',
+    label: 'Nenhuma (Localhost)',
+    orthancUrl: 'http://localhost:8042',
+    storageTotalGB: 0,
+  },
+  fazenda: {
+    value: 'fazenda',
+    label: import.meta.env.VITE_UNIDADE_FAZENDA || 'Unidade Fazenda',
+    orthancUrl: import.meta.env.VITE_ORTHANC_IP_FAZENDA || 'http://localhost:8042',
+    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_FAZENDA) || 1080,
+  },
+  riobranco: {
+    value: 'riobranco',
+    label: import.meta.env.VITE_UNIDADE_RIOBRANCO || 'Unidade Rio Branco',
+    orthancUrl: import.meta.env.VITE_ORTHANC_IP_RIOBRANCO || 'http://localhost:8042',
+    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_RIOBRANCO) || 1080,
+  },
+};
+
+type UnidadeKey = keyof typeof UNIDADES_CONFIG;
+
+interface UnidadeContextType {
+  unidade: UnidadeKey;
+  unidadeLabel: string;
+  orthancUrl: string;
+  storageTotalBytes: number; // Capacidade total de armazenamento em bytes
+  setUnidade: (unidade: UnidadeKey) => void;
+  unidadesDisponiveis: typeof UNIDADES_CONFIG;
+  isMaster: boolean;
+  isUnidadeSelected: boolean; // Indica se o Master já escolheu uma unidade real
+}
+
+const UnidadeContext = createContext<UnidadeContextType | undefined>(undefined);
+
+interface UnidadeProviderProps {
+  children: ReactNode;
+}
+
+export function UnidadeProvider({ children }: UnidadeProviderProps) {
+  // Pega o usuário logado
+  const [currentUser, setCurrentUser] = useState(() => {
+    const stored = localStorage.getItem('bitpacs_user');
+    return stored ? JSON.parse(stored) : null;
+  });
+
+  const isMaster = currentUser?.role === 'Master';
+
+  // Determina a unidade inicial
+  const getInitialUnidade = (): UnidadeKey => {
+    // Se for Master, verifica se tem preferência salva, senão inicia em localhost
+    if (isMaster) {
+      const stored = localStorage.getItem('bitpacs-unidade-master');
+      if (stored && stored in UNIDADES_CONFIG) {
+        return stored as UnidadeKey;
+      }
+      // Master inicia em localhost (sem unidade selecionada)
+      return 'localhost';
+    } else if (currentUser?.unidade) {
+      // Se não for Master, usa a unidade do usuário
+      if (currentUser.unidade in UNIDADES_CONFIG) {
+        return currentUser.unidade as UnidadeKey;
+      }
+    }
+    // Padrão: fazenda
+    return 'fazenda';
+  };
+
+  const [unidade, setUnidadeState] = useState<UnidadeKey>(getInitialUnidade);
+
+  // Atualiza quando o usuário muda
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const stored = localStorage.getItem('bitpacs_user');
+      const user = stored ? JSON.parse(stored) : null;
+      setCurrentUser(user);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Atualiza a unidade quando o usuário muda (para não-Master)
+  useEffect(() => {
+    if (!isMaster && currentUser?.unidade && currentUser.unidade in UNIDADES_CONFIG) {
+      setUnidadeState(currentUser.unidade as UnidadeKey);
+    }
+  }, [currentUser, isMaster]);
+
+  // Reset para localhost quando Master faz login
+  useEffect(() => {
+    if (isMaster) {
+      const stored = localStorage.getItem('bitpacs-unidade-master');
+      if (!stored) {
+        setUnidadeState('localhost');
+      }
+    }
+  }, [isMaster]);
+
+  const setUnidade = (novaUnidade: UnidadeKey) => {
+    // Apenas Master pode trocar manualmente
+    if (isMaster) {
+      setUnidadeState(novaUnidade);
+      localStorage.setItem('bitpacs-unidade-master', novaUnidade);
+    }
+  };
+
+  const config = UNIDADES_CONFIG[unidade];
+  const isUnidadeSelected = unidade !== 'localhost';
+  const storageTotalBytes = config.storageTotalGB * 1024 * 1024 * 1024;
+
+  return (
+    <UnidadeContext.Provider
+      value={{
+        unidade,
+        unidadeLabel: config.label,
+        orthancUrl: config.orthancUrl,
+        storageTotalBytes,
+        setUnidade,
+        unidadesDisponiveis: UNIDADES_CONFIG,
+        isMaster,
+        isUnidadeSelected,
+      }}
+    >
+      {children}
+    </UnidadeContext.Provider>
+  );
+}
+
+export function useUnidade() {
+  const context = useContext(UnidadeContext);
+  if (context === undefined) {
+    throw new Error('useUnidade must be used within a UnidadeProvider');
+  }
+  return context;
+}
+
+// Exporta as configurações para uso em outros lugares
+export { UNIDADES_CONFIG };
+export type { UnidadeKey };
