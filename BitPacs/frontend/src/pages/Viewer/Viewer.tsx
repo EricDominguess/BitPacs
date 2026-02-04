@@ -1,17 +1,29 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
+import { useUnidade } from '../../contexts';
+
+// Configuração dos proxies por unidade (deve corresponder ao vite.config.ts)
+const UNIDADE_PROXY: Record<string, string> = {
+  localhost: '/orthanc',
+  fazenda: '/orthanc-fazenda',
+  riobranco: '/orthanc-riobranco',
+};
 
 export function Viewer() {
   const { studyId } = useParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const { unidade } = useUnidade();
+
+  // Obtém o proxy correto baseado na unidade selecionada
+  const proxyPrefix = UNIDADE_PROXY[unidade] || '/orthanc';
 
   // URL do Stone Viewer - usa StudyInstanceUID como parâmetro
   // O Stone WebViewer espera o StudyInstanceUID do DICOM, não o ID interno do Orthanc
   const viewerUrl = studyId 
-    ? `/orthanc/stone-webviewer/index.html?study=${encodeURIComponent(studyId)}`
-    : `/orthanc/stone-webviewer/index.html`;
+    ? `${proxyPrefix}/stone-webviewer/index.html?study=${encodeURIComponent(studyId)}`
+    : `${proxyPrefix}/stone-webviewer/index.html`;
 
   const handleIframeLoad = () => {
     setIsLoading(false);
