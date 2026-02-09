@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj": {}
+    "C:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj": {}
   },
   "projects": {
-    "c:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj": {
+    "C:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj",
+        "projectUniqueName": "C:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj",
         "projectName": "BitPacs.Api",
-        "projectPath": "c:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj",
+        "projectPath": "C:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj",
         "packagesPath": "C:\\Users\\BIT049\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\obj\\",
+        "outputPath": "C:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\BIT049\\AppData\\Roaming\\NuGet\\NuGet.Config"

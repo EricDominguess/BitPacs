@@ -8,6 +8,7 @@ const UNIDADES_CONFIG: Record<string, { orthancProxy: string }> = {
   localhost: { orthancProxy: '/orthanc' }, // Localhost usa o proxy padrão
   fazenda: { orthancProxy: '/orthanc-fazenda' },
   riobranco: { orthancProxy: '/orthanc-riobranco' },
+  foziguacu: { orthancProxy: '/orthanc-foziguacu' },
 };
 
 interface UseOrthancDataReturn {

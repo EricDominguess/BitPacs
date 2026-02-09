@@ -21,6 +21,12 @@ const UNIDADES_CONFIG = {
     orthancUrl: import.meta.env.VITE_ORTHANC_IP_RIOBRANCO || 'http://localhost:8042',
     storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_RIOBRANCO) || 1080,
   },
+  foziguacu: {
+    value: 'foziguacu',
+    label: import.meta.env.VITE_UNIDADE_FOZIGUACU || 'Unidade Foz do Iguaçu',
+    orthancUrl: import.meta.env.VITE_ORTHANC_IP_FOZIGUACU || 'http://localhost:8042',
+    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_FOZIGUACU) || 1020,
+  },
 };
 
 type UnidadeKey = keyof typeof UNIDADES_CONFIG;

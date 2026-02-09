@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react'; // <--- Adicione useEffect
 import { Link } from 'react-router-dom';
 import { MainLayout } from '../../components/layout';
 import { Card, Button, Input } from '../../components/common';
+import { PeriodFilter, useFilteredStudies } from '../../components/dashboard';
+import type { PeriodType } from '../../components/dashboard';
 import { useOrthancData } from '../../hooks';
 
 const modalityColors: Record<string, string> = {
@@ -24,16 +26,29 @@ export function Studies() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedModality, setSelectedModality] = useState<string>('all');
   
+  // Estados do filtro de período
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  
   // 1. Estado para controlar a página atual
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Filtra estudos pelo período selecionado
+  const { estudosFiltrados: estudosPorPeriodo } = useFilteredStudies(
+    estudos,
+    selectedPeriod,
+    customStartDate,
+    customEndDate
+  );
 
   // Formatação dos dados OTIMIZADA
   // 3. Transformando E ORDENANDO os dados
   const studiesFormatted = useMemo(() => {
-    if (!estudos) return [];
+    if (!estudosPorPeriodo) return [];
 
     // Primeiro fazemos o map para formatar
-    const formatted = estudos.map(estudo => {
+    const formatted = estudosPorPeriodo.map(estudo => {
       // Data crua para ordenação (ex: 20260124)
       const rawDate = estudo.MainDicomTags?.StudyDate || '';
       const rawTime = estudo.MainDicomTags?.StudyTime || ''; // Hora também ajuda no desempate!
@@ -87,7 +102,7 @@ export function Studies() {
       return 0;
     });
 
-  }, [estudos, seriesByStudy]);
+  }, [estudosPorPeriodo, seriesByStudy]);
 
   const filteredStudies = studiesFormatted.filter(study => {
     const matchesSearch = study.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -99,7 +114,7 @@ export function Studies() {
   // 2. Resetar para página 1 se o usuário filtrar ou buscar algo novo
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedModality]);
+  }, [searchTerm, selectedModality, selectedPeriod, customStartDate, customEndDate]);
 
   // 3. Cálculos da Paginação
   const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
@@ -177,14 +192,26 @@ export function Studies() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-theme-primary">Estudos DICOM</h1>
-          <p className="text-theme-muted mt-1">
-            {isLoading 
-              ? 'Carregando dados...' 
-              : `${filteredStudies.length} estudos encontrados`
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-theme-primary">Estudos DICOM</h1>
+            <p className="text-theme-muted mt-1">
+              {isLoading 
+                ? 'Carregando dados...' 
+                : `${filteredStudies.length} estudos encontrados`
             }
           </p>
+          </div>
+          <PeriodFilter
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+            customStartDate={customStartDate}
+            customEndDate={customEndDate}
+            onCustomDateChange={(start, end) => {
+              setCustomStartDate(start);
+              setCustomEndDate(end);
+            }}
+          />
         </div>
 
         <Card className="!p-4">

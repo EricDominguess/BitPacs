@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
   // URLs das unidades
   const orthancFazenda = env.VITE_ORTHANC_IP_FAZENDA || 'http://localhost:8042';
   const orthancRioBranco = env.VITE_ORTHANC_IP_RIOBRANCO || 'http://localhost:8042';
+  const orthancFozIguacu = env.VITE_ORTHANC_IP_FOZIGUACU || 'http://localhost:8042';
   
   // Proxy padrão (Rio Branco como fallback para rotas legadas)
   const orthancUrl = orthancRioBranco;
@@ -36,6 +37,13 @@ export default defineConfig(({ mode }) => {
     secure: false,
   };
 
+  // Configuração do proxy para Foz do Iguaçu
+  const proxyConfigFozIguacu = {
+    target: orthancFozIguacu,
+    changeOrigin: true,
+    secure: false,
+  };
+
   return {
     plugins: [react()],
     resolve: {
@@ -54,6 +62,10 @@ export default defineConfig(({ mode }) => {
         '/orthanc-riobranco': {
           ...proxyConfigRioBranco,
           rewrite: (path) => path.replace(/^\/orthanc-riobranco/, ''),
+        },
+        '/orthanc-foziguacu': {
+          ...proxyConfigFozIguacu,
+          rewrite: (path) => path.replace(/^\/orthanc-foziguacu/, ''),
         },
         
         // 1. Rota Principal legada (HTML do visualizador) - usa Rio Branco como padrão
