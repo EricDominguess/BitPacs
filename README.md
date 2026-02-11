@@ -26,6 +26,8 @@ Interface web customizada para visualização de estudos DICOM, desenvolvida com
 - Axios para requisições HTTP
 - Vite para build
 
+- Responsável pelo front-end: Eric Domingues de Souza
+
 ### Backend/PACS (Open Source)
 - **Orthanc PACS Server** (GPLv3)
   - Repositório: https://github.com/jodogne/orthanc
@@ -34,6 +36,8 @@ Interface web customizada para visualização de estudos DICOM, desenvolvida com
   
 - **Stone Web Viewer** (Visualizador DICOM)
 - **OHIF Viewer** (Visualizador avançado)
+
+- Responsável pela integração do orthanc: Murilo Henrique Reis de Moraes
 
 ## 🚀 Instalação
 
