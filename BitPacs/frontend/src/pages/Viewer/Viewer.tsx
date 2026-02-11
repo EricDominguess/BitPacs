@@ -5,8 +5,14 @@ import { useUnidade } from '../../contexts';
 // Configuração dos proxies por unidade (deve corresponder ao vite.config.ts)
 const UNIDADE_PROXY: Record<string, string> = {
   localhost: '/orthanc',
-  fazenda: '/orthanc-fazenda',
   riobranco: '/orthanc-riobranco',
+  foziguacu: '/orthanc-foziguacu',
+  fazenda: '/orthanc-fazenda',
+  faxinal: '/orthanc-faxinal',
+  santamariana: '/orthanc-santamariana',
+  guarapuava: '/orthanc-guarapuava',
+  carlopolis: '/orthanc-carlopolis',
+  arapoti: '/orthanc-arapoti',
 };
 
 export function Viewer() {

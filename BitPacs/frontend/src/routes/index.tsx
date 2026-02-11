@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { Users } from '@/pages/Users/Users';
+import { ProtectedRoute, PublicOnlyRoute } from '@/components/common';
 
 // Lazy loading para melhor performance
 const Home = lazy(() => import('../pages/Home/Home').then(m => ({ default: m.Home })));
@@ -30,23 +31,29 @@ const router = createBrowserRouter([
     path: '/',
     element: (
       <Suspense fallback={<PageLoader />}>
-        <Home />
+        <PublicOnlyRoute>
+          <Home />
+        </PublicOnlyRoute>
       </Suspense>
     ),
   },
   {
     path: '/users',
     element: (
-    <Suspense fallback={<PageLoader />}>
-      <Users />
-    </Suspense>
-  ),
+      <Suspense fallback={<PageLoader />}>
+        <ProtectedRoute allowedRoles={['Master', 'Admin']}>
+          <Users />
+        </ProtectedRoute>
+      </Suspense>
+    ),
   },
   {
     path: '/login',
     element: (
       <Suspense fallback={<PageLoader />}>
-        <Login />
+        <PublicOnlyRoute>
+          <Login />
+        </PublicOnlyRoute>
       </Suspense>
     ),
   },
@@ -54,7 +61,9 @@ const router = createBrowserRouter([
     path: '/dashboard',
     element: (
       <Suspense fallback={<PageLoader />}>
-        <Dashboard />
+        <ProtectedRoute allowedRoles={['Master', 'Admin']}>
+          <Dashboard />
+        </ProtectedRoute>
       </Suspense>
     ),
   },
@@ -62,7 +71,9 @@ const router = createBrowserRouter([
     path: '/user-dashboard',
     element: (
       <Suspense fallback={<PageLoader />}>
-        <UserDashboard />
+        <ProtectedRoute allowedRoles={['Medico', 'Enfermeiro']}>
+          <UserDashboard />
+        </ProtectedRoute>
       </Suspense>
     ),
   },
@@ -70,7 +81,9 @@ const router = createBrowserRouter([
     path: '/studies',
     element: (
       <Suspense fallback={<PageLoader />}>
-        <Studies />
+        <ProtectedRoute>
+          <Studies />
+        </ProtectedRoute>
       </Suspense>
     ),
   },
@@ -78,7 +91,9 @@ const router = createBrowserRouter([
     path: '/viewer',
     element: (
       <Suspense fallback={<PageLoader />}>
-        <Viewer />
+        <ProtectedRoute>
+          <Viewer />
+        </ProtectedRoute>
       </Suspense>
     ),
   },
@@ -86,7 +101,9 @@ const router = createBrowserRouter([
     path: '/viewer/:studyId',
     element: (
       <Suspense fallback={<PageLoader />}>
-        <Viewer />
+        <ProtectedRoute>
+          <Viewer />
+        </ProtectedRoute>
       </Suspense>
     ),
   },

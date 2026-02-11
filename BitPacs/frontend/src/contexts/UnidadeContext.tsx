@@ -9,23 +9,53 @@ const UNIDADES_CONFIG = {
     orthancUrl: 'http://localhost:8042',
     storageTotalGB: 0,
   },
-  fazenda: {
-    value: 'fazenda',
-    label: import.meta.env.VITE_UNIDADE_FAZENDA || 'Unidade Fazenda',
-    orthancUrl: import.meta.env.VITE_ORTHANC_IP_FAZENDA || 'http://localhost:8042',
-    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_FAZENDA) || 1080,
-  },
   riobranco: {
     value: 'riobranco',
-    label: import.meta.env.VITE_UNIDADE_RIOBRANCO || 'Unidade Rio Branco',
+    label: import.meta.env.VITE_UNIDADE_RIOBRANCO || 'CIS - Unidade de Rio Branco',
     orthancUrl: import.meta.env.VITE_ORTHANC_IP_RIOBRANCO || 'http://localhost:8042',
-    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_RIOBRANCO) || 1080,
+    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_RIOBRANCO) || 1020,
   },
   foziguacu: {
     value: 'foziguacu',
-    label: import.meta.env.VITE_UNIDADE_FOZIGUACU || 'Unidade Foz do Iguaçu',
+    label: import.meta.env.VITE_UNIDADE_FOZIGUACU || 'CIS - Unidade de Foz do Iguaçu',
     orthancUrl: import.meta.env.VITE_ORTHANC_IP_FOZIGUACU || 'http://localhost:8042',
     storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_FOZIGUACU) || 1020,
+  },
+  fazenda: {
+    value: 'fazenda',
+    label: import.meta.env.VITE_UNIDADE_FAZENDA || 'CIS - Unidade de Fazenda',
+    orthancUrl: import.meta.env.VITE_ORTHANC_IP_FAZENDA || 'http://localhost:8042',
+    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_FAZENDA) || 1080,
+  },
+  faxinal: {
+    value: 'faxinal',
+    label: import.meta.env.VITE_UNIDADE_FAXINAL || 'CIS - Unidade de Faxinal',
+    orthancUrl: import.meta.env.VITE_ORTHANC_IP_FAXINAL || 'http://localhost:8042',
+    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_FAXINAL) || 1020,
+  },
+  santamariana: {
+    value: 'santamariana',
+    label: import.meta.env.VITE_UNIDADE_SANTAMARIANA || 'CIS - Unidade de Santa Mariana',
+    orthancUrl: import.meta.env.VITE_ORTHANC_IP_SANTAMARIANA || 'http://localhost:8042',
+    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_SANTAMARIANA) || 1020,
+  },
+  guarapuava: {
+    value: 'guarapuava',
+    label: import.meta.env.VITE_UNIDADE_GUARAPUAVA || 'CIS - Unidade de Guarapuava',
+    orthancUrl: import.meta.env.VITE_ORTHANC_IP_GUARAPUAVA || 'http://localhost:8042',
+    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_GUARAPUAVA) || 1020,
+  },
+  carlopolis: {
+    value: 'carlopolis',
+    label: import.meta.env.VITE_UNIDADE_CARLOPOLIS || 'CIS - Unidade de Carlópolis',
+    orthancUrl: import.meta.env.VITE_ORTHANC_IP_CARLOPOLIS || 'http://localhost:8042',
+    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_CARLOPOLIS) || 1020,
+  },
+  arapoti: {
+    value: 'arapoti',
+    label: import.meta.env.VITE_UNIDADE_ARAPOTI || 'CIS - Unidade de Arapoti',
+    orthancUrl: import.meta.env.VITE_ORTHANC_IP_ARAPOTI || 'http://localhost:8042',
+    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_ARAPOTI) || 1020,
   },
 };
 

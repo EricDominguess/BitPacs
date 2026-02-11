@@ -43,8 +43,14 @@ const ITEMS_PER_PAGE = 8;
 
 // Lista de unidades do .env
 const unidades = [
-  { value: 'fazenda', label: import.meta.env.VITE_UNIDADE_FAZENDA || 'Unidade Fazenda' },
-  { value: 'riobranco', label: import.meta.env.VITE_UNIDADE_RIOBRANCO || 'Unidade Rio Branco' },
+  { value: 'riobranco', label: import.meta.env.VITE_UNIDADE_RIOBRANCO || 'CIS - Unidade de Rio Branco' },
+  { value: 'foziguacu', label: import.meta.env.VITE_UNIDADE_FOZIGUACU || 'CIS - Unidade de Foz do Iguaçu' },
+  { value: 'fazenda', label: import.meta.env.VITE_UNIDADE_FAZENDA || 'CIS - Unidade de Fazenda' },
+  { value: 'faxinal', label: import.meta.env.VITE_UNIDADE_FAXINAL || 'CIS - Unidade de Faxinal' },
+  { value: 'santamariana', label: import.meta.env.VITE_UNIDADE_SANTAMARIANA || 'CIS - Unidade de Santa Mariana' },
+  { value: 'guarapuava', label: import.meta.env.VITE_UNIDADE_GUARAPUAVA || 'CIS - Unidade de Guarapuava' },
+  { value: 'carlopolis', label: import.meta.env.VITE_UNIDADE_CARLOPOLIS || 'CIS - Unidade de Carlópolis' },
+  { value: 'arapoti', label: import.meta.env.VITE_UNIDADE_ARAPOTI || 'CIS - Unidade de Arapoti' },
 ];
 
 export function Users() {

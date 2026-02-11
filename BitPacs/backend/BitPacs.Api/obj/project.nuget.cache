@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "z/mwRhJObpo=",
+  "dgSpecHash": "b4q+FUV20aM=",
   "success": true,
-  "projectFilePath": "C:\\Users\\BIT049\\documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj",
+  "projectFilePath": "C:\\Users\\BIT049\\Documents\\projetos\\BitPacs\\BitPacs\\backend\\BitPacs.Api\\BitPacs.Api.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\BIT049\\.nuget\\packages\\azure.core\\1.47.1\\azure.core.1.47.1.nupkg.sha512",
     "C:\\Users\\BIT049\\.nuget\\packages\\azure.identity\\1.14.2\\azure.identity.1.14.2.nupkg.sha512",

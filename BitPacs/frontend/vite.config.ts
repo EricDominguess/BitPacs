@@ -9,9 +9,14 @@ export default defineConfig(({ mode }) => {
   console.log('VITE_STORAGE_TOTAL_FAZENDA (build):', env.VITE_STORAGE_TOTAL_FAZENDA);
   
   // URLs das unidades
-  const orthancFazenda = env.VITE_ORTHANC_IP_FAZENDA || 'http://localhost:8042';
   const orthancRioBranco = env.VITE_ORTHANC_IP_RIOBRANCO || 'http://localhost:8042';
   const orthancFozIguacu = env.VITE_ORTHANC_IP_FOZIGUACU || 'http://localhost:8042';
+  const orthancFazenda = env.VITE_ORTHANC_IP_FAZENDA || 'http://localhost:8042';
+  const orthancFaxinal = env.VITE_ORTHANC_IP_FAXINAL || 'http://localhost:8042';
+  const orthancSantaMariana = env.VITE_ORTHANC_IP_SANTAMARIANA || 'http://localhost:8042';
+  const orthancGuarapuava = env.VITE_ORTHANC_IP_GUARAPUAVA || 'http://localhost:8042';
+  const orthancCarlopolis = env.VITE_ORTHANC_IP_CARLOPOLIS || 'http://localhost:8042';
+  const orthancArapoti = env.VITE_ORTHANC_IP_ARAPOTI || 'http://localhost:8042';
   
   // Proxy padrão (Rio Branco como fallback para rotas legadas)
   const orthancUrl = orthancRioBranco;
@@ -23,26 +28,12 @@ export default defineConfig(({ mode }) => {
     secure: false,
   };
 
-  // Configuração do proxy para Fazenda
-  const proxyConfigFazenda = {
-    target: orthancFazenda,
+  // Configuração do proxy para cada unidade
+  const createProxyConfig = (target: string) => ({
+    target,
     changeOrigin: true,
     secure: false,
-  };
-
-  // Configuração do proxy para Rio Branco
-  const proxyConfigRioBranco = {
-    target: orthancRioBranco,
-    changeOrigin: true,
-    secure: false,
-  };
-
-  // Configuração do proxy para Foz do Iguaçu
-  const proxyConfigFozIguacu = {
-    target: orthancFozIguacu,
-    changeOrigin: true,
-    secure: false,
-  };
+  });
 
   return {
     plugins: [react()],
@@ -55,17 +46,37 @@ export default defineConfig(({ mode }) => {
       host: true,
       proxy: {
         // Proxies por unidade
-        '/orthanc-fazenda': {
-          ...proxyConfigFazenda,
-          rewrite: (path) => path.replace(/^\/orthanc-fazenda/, ''),
-        },
         '/orthanc-riobranco': {
-          ...proxyConfigRioBranco,
+          ...createProxyConfig(orthancRioBranco),
           rewrite: (path) => path.replace(/^\/orthanc-riobranco/, ''),
         },
         '/orthanc-foziguacu': {
-          ...proxyConfigFozIguacu,
+          ...createProxyConfig(orthancFozIguacu),
           rewrite: (path) => path.replace(/^\/orthanc-foziguacu/, ''),
+        },
+        '/orthanc-fazenda': {
+          ...createProxyConfig(orthancFazenda),
+          rewrite: (path) => path.replace(/^\/orthanc-fazenda/, ''),
+        },
+        '/orthanc-faxinal': {
+          ...createProxyConfig(orthancFaxinal),
+          rewrite: (path) => path.replace(/^\/orthanc-faxinal/, ''),
+        },
+        '/orthanc-santamariana': {
+          ...createProxyConfig(orthancSantaMariana),
+          rewrite: (path) => path.replace(/^\/orthanc-santamariana/, ''),
+        },
+        '/orthanc-guarapuava': {
+          ...createProxyConfig(orthancGuarapuava),
+          rewrite: (path) => path.replace(/^\/orthanc-guarapuava/, ''),
+        },
+        '/orthanc-carlopolis': {
+          ...createProxyConfig(orthancCarlopolis),
+          rewrite: (path) => path.replace(/^\/orthanc-carlopolis/, ''),
+        },
+        '/orthanc-arapoti': {
+          ...createProxyConfig(orthancArapoti),
+          rewrite: (path) => path.replace(/^\/orthanc-arapoti/, ''),
         },
         
         // 1. Rota Principal legada (HTML do visualizador) - usa Rio Branco como padrão
