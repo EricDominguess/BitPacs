@@ -3,37 +3,19 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig(({ mode }) => {
-  // Ajusta para buscar o .env na raiz do BitPacs
   const env = loadEnv(mode, process.cwd());
-  console.log('Variáveis carregadas pelo loadEnv:', env);
-  console.log('VITE_STORAGE_TOTAL_FAZENDA (build):', env.VITE_STORAGE_TOTAL_FAZENDA);
   
-  // URLs das unidades
-  const orthancRioBranco = env.VITE_ORTHANC_IP_RIOBRANCO || 'http://localhost:8042';
-  const orthancFozIguacu = env.VITE_ORTHANC_IP_FOZIGUACU || 'http://localhost:8042';
-  const orthancFazenda = env.VITE_ORTHANC_IP_FAZENDA || 'http://localhost:8042';
-  const orthancFaxinal = env.VITE_ORTHANC_IP_FAXINAL || 'http://localhost:8042';
-  const orthancSantaMariana = env.VITE_ORTHANC_IP_SANTAMARIANA || 'http://localhost:8042';
-  const orthancGuarapuava = env.VITE_ORTHANC_IP_GUARAPUAVA || 'http://localhost:8042';
-  const orthancCarlopolis = env.VITE_ORTHANC_IP_CARLOPOLIS || 'http://localhost:8042';
-  const orthancArapoti = env.VITE_ORTHANC_IP_ARAPOTI || 'http://localhost:8042';
-  
-  // Proxy padrão (Rio Branco como fallback para rotas legadas)
-  const orthancUrl = orthancRioBranco;
+  // --- AJUSTE DE SEGURANÇA ---
+  // Definimos o IP de fallback (Rio Branco) fixo para o Proxy Local.
+  // Isso evita que o Vite tente usar "/orthanc-riobranco" como URL se o .env mudar.
+  const FALLBACK_ORTHANC_IP = 'http://10.31.0.41:8042'; 
 
   // Configuração padrão do proxy (sem senhas)
   const proxyConfig = {
-    target: orthancUrl,
+    target: FALLBACK_ORTHANC_IP,
     changeOrigin: true,
     secure: false,
   };
-
-  // Configuração do proxy para cada unidade
-  const createProxyConfig = (target: string) => ({
-    target,
-    changeOrigin: true,
-    secure: false,
-  });
 
   return {
     plugins: [react()],
@@ -43,51 +25,59 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      host: true,
+      host: true, // Permite acesso externo (útil se testar do celular/outra máquina)
       proxy: {
-        // Proxies por unidade
+        // --- PROXIES POR UNIDADE (PERFEITO!) ---
         '/orthanc-riobranco': {
-          ...createProxyConfig(orthancRioBranco),
-          rewrite: (path) => path.replace(/^\/orthanc-riobranco/, ''),
+          target: 'http://10.31.0.41:8042',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/orthanc-riobranco/, '')
         },
-        '/orthanc-foziguacu': {
-          ...createProxyConfig(orthancFozIguacu),
-          rewrite: (path) => path.replace(/^\/orthanc-foziguacu/, ''),
+        '/orthanc-foz': {
+          target: 'http://10.31.0.42:8042',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/orthanc-foz/, '')
         },
         '/orthanc-fazenda': {
-          ...createProxyConfig(orthancFazenda),
-          rewrite: (path) => path.replace(/^\/orthanc-fazenda/, ''),
+          target: 'http://10.31.0.43:8042',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/orthanc-fazenda/, '')
         },
         '/orthanc-faxinal': {
-          ...createProxyConfig(orthancFaxinal),
+          target: 'http://10.31.0.45:8042',
+          changeOrigin: true,
           rewrite: (path) => path.replace(/^\/orthanc-faxinal/, ''),
         },
         '/orthanc-santamariana': {
-          ...createProxyConfig(orthancSantaMariana),
+          target: 'http://10.31.0.46:8042',
+          changeOrigin: true,
           rewrite: (path) => path.replace(/^\/orthanc-santamariana/, ''),
         },
         '/orthanc-guarapuava': {
-          ...createProxyConfig(orthancGuarapuava),
+          target: 'http://10.31.0.47:8042',
+          changeOrigin: true,
           rewrite: (path) => path.replace(/^\/orthanc-guarapuava/, ''),
         },
         '/orthanc-carlopolis': {
-          ...createProxyConfig(orthancCarlopolis),
+          target: 'http://10.31.0.48:8042',
+          changeOrigin: true,
           rewrite: (path) => path.replace(/^\/orthanc-carlopolis/, ''),
         },
         '/orthanc-arapoti': {
-          ...createProxyConfig(orthancArapoti),
+          target: 'http://10.31.0.49:8042',
+          changeOrigin: true,
           rewrite: (path) => path.replace(/^\/orthanc-arapoti/, ''),
         },
         
-        // 1. Rota Principal legada (HTML do visualizador) - usa Rio Branco como padrão
+        // --- ROTAS LEGADAS / FALLBACK ---
+        // Usa a constante FALLBACK_ORTHANC_IP definida lá em cima
+        
         '/orthanc': {
           ...proxyConfig,
           rewrite: (path) => path.replace(/^\/orthanc/, ''),
         },
         
-        // 2. Rotas de API que o Stone exige na raiz
-        // NOTA: /studies removido para não conflitar com a rota React /studies
-        // O Stone deve usar /orthanc/studies ou acessar via dicom-web
+        // Rotas que o Stone Webviewer exige na raiz
         '/series': proxyConfig,
         '/instances': proxyConfig,
         '/dicom-web': proxyConfig,
