@@ -5,6 +5,15 @@ interface Study {
   modality: string;
   date: string;
   status: string;
+  MainDicomTags?: {
+    StudyDate?: string;
+    StudyTime?: string;
+    StudyDescription?: string;
+  };
+  PatientMainDicomTags?: {
+    PatientName?: string;
+  };
+  Series?: string[];
 }
 
 interface RecentStudiesTableProps {
@@ -52,13 +61,13 @@ export function RecentStudiesTable({ dados = [], series = [], className = '' }: 
   }
 
   // Formatação de datas
-  const formatarData = (dataString: string) => {
-    if (!dataString || dataString.length !== 8) return dataString;
+  const formatarData = (dataString: string | undefined) => {
+    if (!dataString || dataString.length !== 8) return dataString || '';
     return `${dataString.slice(6,8)}/${dataString.slice(4,6)}/${dataString.slice(0,4)}`;
   }
 
   // Formatação do nome
-  const formatarNome = (nome: string) => (nome || 'Desconhecido').replace(/\^/g, ' ').trim();
+  const formatarNome = (nome: string | undefined) => (nome || 'Desconhecido').replace(/\^/g, ' ').trim();
   
   return (
     <Card title="Estudos Recentes" className={className}>

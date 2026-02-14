@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useContext } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // Intervalo entre atualizações (em ms)
 const INTERVALO_ATUALIZACAO = 15000;
