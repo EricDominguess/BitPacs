@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd());
+  const _env = loadEnv(mode, process.cwd());
   
   // --- AJUSTE DE SEGURANÇA ---
   // Definimos o IP de fallback (Rio Branco) fixo para o Proxy Local.

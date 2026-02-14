@@ -1,0 +1,17 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=bitpacs_db;User Id=postgres;Password=sua_senha_do_postgres;"
+  },
+  "JwtSettings" : {
+    "SecretKey": "BitPacs-Super-Secret-Key-2024-Secure-Token-Generation-Key",
+    "Issuer": "bitpacs-api",
+    "Audience": "bitpacs-front"
+  }
+}
