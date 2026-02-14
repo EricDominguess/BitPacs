@@ -8,7 +8,7 @@ export function useOrthancMonitor(onNewData: () => void) {
     const [isMonitoring, setIsMonitoring] = useState(false);
 
     useEffect(() => {
-        let intervalId: NodeJS.Timeout;
+        let intervalId: ReturnType<typeof setInterval>;
 
         const checkChanges = async () => {
             try {

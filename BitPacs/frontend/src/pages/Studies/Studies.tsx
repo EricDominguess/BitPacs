@@ -132,7 +132,7 @@ export function Studies() {
   };
 
   // 1. Obtém o usuário logado
-  const currentUser = JSON.parse(localStorage.getItem('bitpacs_user') || '{}');
+  // const currentUser = JSON.parse(localStorage.getItem('bitpacs_user') || '{}');
 
   // 2. FUNÇÃO DE LOG (Auditoria) - Envia para o backend
   const registrarLog = async (
