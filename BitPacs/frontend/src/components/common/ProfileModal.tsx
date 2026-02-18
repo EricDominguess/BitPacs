@@ -88,7 +88,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:5151/api/auth/avatar', {
+      const response = await fetch('/api/auth/avatar', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -128,7 +128,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
     try {
       const token = localStorage.getItem('bitpacs_token');
-      const response = await fetch('http://localhost:5151/api/auth/avatar', {
+      const response = await fetch('/api/auth/avatar', {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -166,7 +166,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
     try {
       const token = localStorage.getItem('bitpacs_token');
-      const response = await fetch(`http://localhost:5151/api/auth/users/${storedUser.id}`, {
+      const response = await fetch(`/api/auth/users/${storedUser.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -234,7 +234,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             <div className="relative">
               {avatarUrl ? (
                 <img 
-                  src={`http://localhost:5151${avatarUrl}`}
+                  src={`${avatarUrl}`}
                   alt="Avatar"
                   className="w-16 h-16 rounded-full object-cover shadow-lg"
                 />

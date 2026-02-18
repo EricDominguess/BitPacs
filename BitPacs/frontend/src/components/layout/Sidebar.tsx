@@ -109,7 +109,7 @@ export function Sidebar() {
         >
           {user.avatarUrl ? (
             <img 
-              src={`http://localhost:5151${user.avatarUrl}`}
+              src={`${user.avatarUrl}`}
               alt="Avatar"
               className="w-8 h-8 rounded-full object-cover"
             />

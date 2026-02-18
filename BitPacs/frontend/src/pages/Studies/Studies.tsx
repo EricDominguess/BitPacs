@@ -147,7 +147,7 @@ export function Studies() {
   ) => {
     try {
       const token = localStorage.getItem('bitpacs_token');
-      await fetch('http://localhost:5151/api/studylogs', {
+      await fetch('/api/studylogs', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

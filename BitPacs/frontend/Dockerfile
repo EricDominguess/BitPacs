@@ -13,7 +13,7 @@ RUN npm ci && npm cache clean --force
 COPY . .
 
 # Argumentos de build
-ARG VITE_API_URL=http://localhost:5151
+ARG VITE_API_URL=
 ENV VITE_API_URL=${VITE_API_URL}
 
 # Build da aplicação

@@ -24,7 +24,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
     try {
       const token = localStorage.getItem('bitpacs_token');
       const response = await fetch(
-        `http://localhost:5151/api/studylogs/user/${userId}?page=${page}&pageSize=${ITEMS_PER_PAGE}`,
+        `/api/studylogs/user/${userId}?page=${page}&pageSize=${ITEMS_PER_PAGE}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,

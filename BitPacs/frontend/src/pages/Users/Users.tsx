@@ -94,7 +94,7 @@ export function Users() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('bitpacs_token');
-      const response = await fetch('http://localhost:5151/api/auth/users', {
+      const response = await fetch('/api/auth/users', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -195,8 +195,8 @@ export function Users() {
     try {
       const token = localStorage.getItem('bitpacs_token');
       const url = modalMode === 'create' 
-        ? 'http://localhost:5151/api/auth/register'
-        : `http://localhost:5151/api/auth/users/${editingUser?.id}`;
+        ? '/api/auth/register'
+        : `/api/auth/users/${editingUser?.id}`;
       
       const body = modalMode === 'create'
         ? formData
@@ -232,7 +232,7 @@ export function Users() {
 
     try {
       const token = localStorage.getItem('bitpacs_token');
-      const response = await fetch(`http://localhost:5151/api/auth/users/${userId}`, {
+      const response = await fetch(`/api/auth/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

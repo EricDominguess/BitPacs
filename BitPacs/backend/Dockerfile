@@ -24,12 +24,12 @@ COPY --from=publish /app/publish .
 
 RUN mkdir -p /app/logs && chmod 777 /app/logs
 
-EXPOSE 5151
+EXPOSE 8080
 
-ENV ASPNETCORE_URLS=http://+:5151
+ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD curl -f http://localhost:5151/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
 ENTRYPOINT ["dotnet", "BitPacs.Api.dll"]

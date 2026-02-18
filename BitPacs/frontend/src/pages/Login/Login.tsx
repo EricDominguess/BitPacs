@@ -20,8 +20,8 @@ export function Login() {
 
     try {
       // 1. Conexão real com sua API .NET (que fala com o Postgres)
-      // Ajuste a URL 'http://localhost:5151...' para a porta da sua API C#
-      const response = await fetch('http://localhost:5151/api/auth/login', {
+      // Ajuste a URL '...' para a porta da sua API C#
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
