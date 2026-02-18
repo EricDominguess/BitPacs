@@ -4,29 +4,27 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using BitPacs.Api.Data;
 using BitPacs.Api.Services;
-using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
 
-Env.Load(); // Carrega as variáveis do .env
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// Pegamos as variáveis (com valores padrão caso falhe)
-var dbHost = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
-var dbPort = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432";
-var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? "bitpacs_db";
-var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? "postgres";
-var dbPass = Environment.GetEnvironmentVariable("DB_PASS") ?? "senha_padrao";
-
-// Montamos a string de conexão manualmente
-var connectionString = $"Host={dbHost};Port={dbPort};Database={dbName};User Id={dbUser};Password={dbPass};";
+if (string.IsNullOrEmpty(connectionString))
+{
+    var dbHost = Environment.GetEnvironmentVariable("DB_HOST") ?? "postgres";
+    var dbPort = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432";
+    var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? "bitpacs_db";
+    var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? "postgres";
+    var dbPass = Environment.GetEnvironmentVariable("DB_PASS") ?? "BitFix123Strong!";
+    
+    connectionString = $"Host={dbHost};Port={dbPort};Database={dbName};User Id={dbUser};Password={dbPass};";
+}
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString)); // Conectando ao Postgres
+    options.UseNpgsql(connectionString));
 
-// Registra o serviço que gera os tokens (TokenService.cs)
 builder.Services.AddScoped<TokenService>();
 
-// Pega a chave secreta do appsettings.json (mesma que o TokenService usa)
 var secretKey = builder.Configuration["JwtSettings:SecretKey"] ?? "chave_fallback_para_dev";
 var key = Encoding.ASCII.GetBytes(secretKey);
 
@@ -37,7 +35,7 @@ builder.Services.AddAuthentication(x =>
 })
 .AddJwtBearer(x =>
 {
-    x.RequireHttpsMetadata = false; // Em desenvolvimento (localhost) pode ser false
+    x.RequireHttpsMetadata = false;
     x.SaveToken = true;
     x.TokenValidationParameters = new TokenValidationParameters
     {
@@ -54,9 +52,15 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReact", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:5174") // Portas do Front React
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy.WithOrigins(
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://10.31.0.232:3000",
+            "http://10.31.0.232"
+        )
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
     });
 });
 
@@ -64,9 +68,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
 var app = builder.Build();
 
+// Aplica migrations e seed automaticamente
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -74,15 +78,26 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<AppDbContext>();
         
-        // Inicializa o banco (adiciona colunas faltantes)
+        try
+        {
+            context.Database.Migrate();
+            Console.WriteLine(" ✅ Migrations aplicadas com sucesso!");
+        }
+        catch (Exception migEx)
+        {
+            Console.WriteLine($"⚠️  Aviso de migration: {migEx.Message}");
+            Console.WriteLine(" Continuando memso assim...");
+        }
+
         DbInitializer.Seed(context);
+        DbSeeder.Seed(context);
         
-        // Esta linha cria o Admin se ele não existir
-        DbSeeder.Seed(context); 
+        Console.WriteLine("✅ Database migrated and seeded successfully!");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Erro ao criar usuário Admin: {ex.Message}");
+        Console.WriteLine($"❌ Erro ao inicializar banco: {ex.Message}");
+        Console.WriteLine($"Stack trace: {ex.StackTrace}");
     }
 }
 
@@ -92,15 +107,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// 1º Libera o acesso do React
 app.UseCors("AllowReact");
-
-// 2º Verifica quem é o usuário (Token válido?)
 app.UseAuthentication();
-
-// 3º Verifica o que ele pode fazer (Permissões)
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();

@@ -1,39 +1,45 @@
-using BCrypt.Net;
-using BitPacs.Api.Data;
 using BitPacs.Api.Models;
+using Microsoft.EntityFrameworkCore;
+using BCrypt.Net;
 
-public static class DbSeeder
+namespace BitPacs.Api.Data
 {
-    public static void Seed(AppDbContext context)
+    public static class DbSeeder
     {
-        // Verifica se o banco existe
-        context.Database.EnsureCreated();
-
-        // Atualiza o email do admin antigo se existir (para minúsculo)
-        var adminAntigo = context.Users.FirstOrDefault(u => u.Email == "admin@bitpacs.com" || u.Email == "Master@bitpacs.com");
-        if (adminAntigo != null && adminAntigo.Email != "master@bitpacs.com")
+        public static void Seed(AppDbContext context)
         {
-            adminAntigo.Email = "master@bitpacs.com";
-            context.SaveChanges();
-            Console.WriteLine("Email do admin atualizado para master@bitpacs.com");
-        }
-
-        // Verifica se já existe algum usuário com o email master
-        if (!context.Users.Any(u => u.Email == "master@bitpacs.com"))
-        {
-            var adminSupremo = new User
+            try
             {
-               Nome = "Admin Sistema",
-               Email = "master@bitpacs.com",
-               Role = "Master",
-               // Aqui está o segredo: Gerar o Hash da senha
-               PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123") 
-            };
-
-            context.Users.Add(adminSupremo);
-            context.SaveChanges();
-
-            Console.WriteLine("Admin usuário criado com sucesso.");
+                // Verifica se já existe algum usuário Admin
+                var masterExists = context.Users.Any(u => u.Role == "Master");
+                
+                if (!masterExists)
+                {
+                    var masterUser = new User
+                    {
+                        Nome = "Administrador",
+                        Email = "master@bitpacs.com",
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+                        Role = "Master",
+                    };
+                    
+                    context.Users.Add(masterUser);
+                    context.SaveChanges();
+                    
+                    Console.WriteLine("✅ Usuário Mestre criado com sucesso!");
+                    Console.WriteLine($"   Email: {masterUser.Email}");
+                    Console.WriteLine("   Senha: Admin@123");
+                }
+                else
+                {
+                    Console.WriteLine("ℹ️  Usuário Mestre já existe no banco.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Erro no DbSeeder: {ex.Message}");
+                Console.WriteLine($"Stack: {ex.StackTrace}");
+            }
         }
     }
 }
