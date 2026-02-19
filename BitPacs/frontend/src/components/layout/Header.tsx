@@ -18,7 +18,7 @@ export function Header() {
     localStorage.removeItem('bitpacs-unidade-master'); // Limpa unidade selecionada para Master
 
     // 3. Redireciona para a página de login/home 
-    window.location.href = '/home'; // Redireciona para a home pública (pode ser /login ou / dependendo do fluxo)
+    window.location.href = '/'; // Redireciona para a home pública (pode ser /login ou / dependendo do fluxo)
   };
 
   return (
