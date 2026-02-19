@@ -132,7 +132,7 @@ export function Studies() {
   };
 
   // 1. Obtém o usuário logado
-  // const currentUser = JSON.parse(sessionStorage.getItem('bitpacs_user') || '{}');
+  // const currentUser = JSON.parse((sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user')) || '{}');
 
   // 2. FUNÇÃO DE LOG (Auditoria) - Envia para o backend
   const registrarLog = async (
@@ -146,7 +146,7 @@ export function Studies() {
     }
   ) => {
     try {
-      const token = sessionStorage.getItem('bitpacs_token');
+      const token = (sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token'));
       await fetch('/api/studylogs', {
         method: 'POST',
         headers: {

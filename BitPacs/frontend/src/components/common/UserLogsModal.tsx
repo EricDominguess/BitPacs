@@ -22,7 +22,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
   const fetchLogs = async (page: number) => {
     setIsLoading(true);
     try {
-      const token = sessionStorage.getItem('bitpacs_token');
+      const token = (sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token'));
       const response = await fetch(
         `/api/studylogs/user/${userId}?page=${page}&pageSize=${ITEMS_PER_PAGE}`,
         {
