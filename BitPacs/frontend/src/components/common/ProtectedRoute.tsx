@@ -9,8 +9,8 @@ interface ProtectedRouteProps {
 
 // Verifica se o usuário está autenticado
 function isAuthenticated(): boolean {
-  const token = sessionStorage.getItem('bitpacs_token');
-  const user = sessionStorage.getItem('bitpacs_user');
+  const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
+  const user = sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user');
   return !!(token && user);
 }
 
