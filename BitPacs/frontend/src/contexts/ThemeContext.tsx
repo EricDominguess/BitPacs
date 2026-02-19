@@ -22,7 +22,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   // 1. Lógica do Tema (Mantida igual)
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem('bitpacs-theme');
-    return (stored as Theme) || 'dark';
+    return (stored as Theme) || 'light';
   });
 
   // 2. Lógica das Animações (Nova)

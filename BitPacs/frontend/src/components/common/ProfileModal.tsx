@@ -32,7 +32,7 @@ const getUnidadeLabel = (unidadeKey: string | null | undefined, role: string): s
 export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   // Pega dados do usuário logado
   const [storedUser, setStoredUser] = useState(() => 
-    JSON.parse(localStorage.getItem('bitpacs_user') || '{}')
+    JSON.parse(sessionStorage.getItem('bitpacs_user') || '{}')
   );
   
   // O Nome continua sendo um estado editável
@@ -46,7 +46,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   // Atualiza o nome e avatar quando o modal abre
   useEffect(() => {
     if (isOpen) {
-      const user = JSON.parse(localStorage.getItem('bitpacs_user') || '{}');
+      const user = JSON.parse(sessionStorage.getItem('bitpacs_user') || '{}');
       setStoredUser(user);
       setName(user.nome || 'Usuário');
       setAvatarUrl(user.avatarUrl || null);
@@ -84,7 +84,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     setIsUploading(true);
 
     try {
-      const token = localStorage.getItem('bitpacs_token');
+      const token = sessionStorage.getItem('bitpacs_token');
       const formData = new FormData();
       formData.append('file', file);
 
@@ -127,7 +127,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     setError(null);
 
     try {
-      const token = localStorage.getItem('bitpacs_token');
+      const token = sessionStorage.getItem('bitpacs_token');
       const response = await fetch('/api/auth/avatar', {
         method: 'DELETE',
         headers: {
@@ -165,7 +165,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     setError(null);
 
     try {
-      const token = localStorage.getItem('bitpacs_token');
+      const token = sessionStorage.getItem('bitpacs_token');
       const response = await fetch(`/api/auth/users/${storedUser.id}`, {
         method: 'PUT',
         headers: {

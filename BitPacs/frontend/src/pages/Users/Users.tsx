@@ -55,9 +55,8 @@ const unidades = [
 
 export function Users() {
   const navigate = useNavigate();
-  
   // Usuário logado
-  const currentUser = JSON.parse(localStorage.getItem('bitpacs_user') || '{}');
+  const currentUser = JSON.parse(sessionStorage.getItem('bitpacs_user') || '{}');
   
   // Verificação de permissão (apenas Master e Admin podem acessar)
   useEffect(() => {
@@ -93,7 +92,7 @@ export function Users() {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('bitpacs_token');
+      const token = sessionStorage.getItem('bitpacs_token');
       const response = await fetch('/api/auth/users', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -193,7 +192,7 @@ export function Users() {
 
     setIsSaving(true);
     try {
-      const token = localStorage.getItem('bitpacs_token');
+      const token = sessionStorage.getItem('bitpacs_token');
       const url = modalMode === 'create' 
         ? '/api/auth/register'
         : `/api/auth/users/${editingUser?.id}`;
@@ -231,7 +230,7 @@ export function Users() {
     if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
 
     try {
-      const token = localStorage.getItem('bitpacs_token');
+      const token = sessionStorage.getItem('bitpacs_token');
       const response = await fetch(`/api/auth/users/${userId}`, {
         method: 'DELETE',
         headers: {

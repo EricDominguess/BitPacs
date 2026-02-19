@@ -48,7 +48,7 @@ export function Sidebar() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   
   // Pegando usuário logado dentro do componente para garantir dados atualizados
-  const user = JSON.parse(localStorage.getItem('bitpacs_user') || '{}');
+  const user = JSON.parse(sessionStorage.getItem('bitpacs_user') || '{}');
 
   return (
     <>
