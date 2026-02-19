@@ -81,7 +81,7 @@ interface UnidadeProviderProps {
 export function UnidadeProvider({ children }: UnidadeProviderProps) {
   // Pega o usuário logado
   const [currentUser, setCurrentUser] = useState(() => {
-    const stored = localStorage.getItem('bitpacs_user');
+    const stored = sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user');
     return stored ? JSON.parse(stored) : null;
   });
 
@@ -112,7 +112,7 @@ export function UnidadeProvider({ children }: UnidadeProviderProps) {
   // Atualiza quando o usuário muda
   useEffect(() => {
     const handleStorageChange = () => {
-      const stored = localStorage.getItem('bitpacs_user');
+      const stored = sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user');
       const user = stored ? JSON.parse(stored) : null;
       setCurrentUser(user);
     };
