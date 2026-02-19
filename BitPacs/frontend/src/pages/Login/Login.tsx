@@ -37,9 +37,10 @@ export function Login() {
         const data = await response.json();
         
         // Salva no navegador para manter logado
-        sessionStorage.setItem('token', data.token);
-        sessionStorage.setItem('user', JSON.stringify(data.user));
-        
+        sessionStorage.setItem('bitpacs_token', data.token);
+        sessionStorage.setItem('bitpacs_user', JSON.stringify(data.user));
+        localStorage.setItem('bitpacs-theme', 'light');        
+
         // Redireciona baseado no role do usuário
         // Master e Admin vão para /dashboard, outros vão para /user-dashboard
         const isAdminOrMaster = data.user.role === 'Master' || data.user.role === 'Admin';

@@ -16,7 +16,7 @@ function isAuthenticated(): boolean {
 
 // Pega o usuário atual do sessionStorage
 function getCurrentUser() {
-  const userStr = sessionStorage.getItem('bitpacs_user');
+  const userStr = sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user');
   if (!userStr) return null;
   try {
     return JSON.parse(userStr);
