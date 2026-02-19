@@ -34,7 +34,8 @@ interface UseOrthancDataReturn {
 export function useOrthancData(): UseOrthancDataReturn {
   // Pega a unidade do localStorage/contexto
   const getUnidadeAtual = useCallback(() => {
-    const user = JSON.parse(localStorage.getItem('bitpacs_user') || '{}');
+    const userStorage = sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user');
+    const user = JSON.parse(userStorage || '{}');
     const isMaster = user?.role === 'Master';
     
     if (isMaster) {
