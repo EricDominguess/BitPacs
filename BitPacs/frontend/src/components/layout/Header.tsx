@@ -1,18 +1,24 @@
 import { useState} from 'react';
-import { useNavigate } from 'react-router-dom';
 import { SettingsModal } from '../common';
 import { useUnidade } from '../../contexts';
 
 export function Header() {
   const [showSettings, setShowSettings] = useState(false);
-  const navigate = useNavigate();
   const { unidadeLabel, isUnidadeSelected } = useUnidade();
 
   // Função de logout
   const handleLogout = () => {
+    // 1. Limpa a gaveta da Sessão
+    sessionStorage.removeItem('bitpacs_token');
+    sessionStorage.removeItem('bitpacs_user');
+
+    // 2. Limpa a gaveta Local
     localStorage.removeItem('bitpacs_token');
     localStorage.removeItem('bitpacs_user');
-    navigate('/');
+    localStorage.removeItem('bitpacs-unidade-master'); // Limpa unidade selecionada para Master
+
+    // 3. Redireciona para a página de login/home 
+    window.location.href = '/home'; // Redireciona para a home pública (pode ser /login ou / dependendo do fluxo)
   };
 
   return (
