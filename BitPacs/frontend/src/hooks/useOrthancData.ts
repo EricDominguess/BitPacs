@@ -22,6 +22,7 @@ interface UseOrthancDataReturn {
   error: string | null;
   refetch: () => void;
   unidadeAtual: string;
+  carregarSeriesDoEstudo: (studyId: string) => Promise<any[]>;
 }
 
 /**
@@ -82,7 +83,7 @@ export function useOrthancData(): UseOrthancDataReturn {
         try {
           // 🚀 MUDANÇA 1: Busca Estudos, Estatísticas e PACIENTES tudo ao mesmo tempo!
           const [estudosRes, statsRes, pacientesRes] = await Promise.all([
-            fetch(`${proxyPrefix}/studies?expand&_t=${timestamp}`),
+            fetch(`${proxyPrefix}/studies?expand&since=0&limit=100&_t=${timestamp}`),
             fetch(`${proxyPrefix}/statistics?_t=${timestamp}`),
             fetch(`${proxyPrefix}/patients?_t=${timestamp}`) // Passamos pra cá!
           ]);
@@ -166,6 +167,19 @@ export function useOrthancData(): UseOrthancDataReturn {
     }
   }, [carregarTudo, getProxyPrefix]);
 
+  const carregarSeriesDoEstudo = async (studyId: string) => {
+    const proxyPrefix = getProxyPrefix();
+    try {
+      const res = await fetch(`${proxyPrefix}/studies/${studyId}/series?expand`);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.error(`Erro ao carregar séries do estudo ${studyId}:`, e);
+    }
+    return [];
+  };
+
   // Efeito para detectar mudanças de unidade (via storage event)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -216,7 +230,7 @@ export function useOrthancData(): UseOrthancDataReturn {
       clearInterval(intervalId);
       console.log("🛑 Monitor parado");
     };
-  }, [carregarTudo, checkChanges, unidadeAtual]);
+  }, [carregarTudo, checkChanges, unidadeAtual,]);
 
   return {
     pacientes,
@@ -228,7 +242,8 @@ export function useOrthancData(): UseOrthancDataReturn {
     isMonitoring,
     error,
     refetch: carregarTudo,
-    unidadeAtual
+    unidadeAtual,
+    carregarSeriesDoEstudo,
   };
 }
 
