@@ -13,7 +13,7 @@ export function Dashboard() {
     { label: 'Estudos Hoje', value: estudosHoje.toString() },
     { label: 'Pacientes Ativos', value: totalPacientes.toString() },
     { label: 'Total de Estudos', value: estudos.length.toString() },
-    { label: 'Total de Séries', value: series.length.toString() },
+    { label: 'Total de Séries', value: status?.TotalSeries.toString() || '0' },
   ];
 
   console.log(`📊 Dashboard Admin: ${isLoading ? 'Carregando...' : 'Dados prontos'} | Monitorando: ${isMonitoring}`);
