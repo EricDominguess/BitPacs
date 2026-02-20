@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'; // <--- Adicione useEffect
+import { useState, useMemo, useEffect, useRef } from 'react'; // <--- Adicione useEffect
 import { Link } from 'react-router-dom';
 import { MainLayout } from '../../components/layout';
 import { Card, Button, Input } from '../../components/common';
@@ -21,7 +21,7 @@ const ITEMS_PER_PAGE = 8;
 
 export function Studies() {
   // Usa o índice de séries por estudo para busca O(1)
-  const { estudos, seriesByStudy, isLoading } = useOrthancData();
+  const { estudos, isLoading, carregarSeriesDoEstudo } = useOrthancData();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedModality, setSelectedModality] = useState<string>('all');
@@ -33,6 +33,9 @@ export function Studies() {
   
   // 1. Estado para controlar a página atual
   const [currentPage, setCurrentPage] = useState(1);
+
+  const [detailsCache, setDetailsCache] = useState<Record<string, any>>({});
+  const fetchingRef = useRef<Set<string>>(new Set());
 
   // Filtra estudos pelo período selecionado
   const { estudosFiltrados: estudosPorPeriodo } = useFilteredStudies(
@@ -61,10 +64,6 @@ export function Studies() {
       const modalidadeBruta = estudo.MainDicomTags?.ModalitiesInStudy || 'OT';
       const mainModality = modalidadeBruta.split('\\')[0] || 'OT';
 
-      // OTIMIZADO: Usa o índice para busca O(1) em vez de filtrar O(n)
-      const seriesDoEstudo = seriesByStudy.get(estudo.ID) || [];
-      const totalInstances = seriesDoEstudo.reduce((acc: number, s: any) => acc + (s.Instances?.length || 0), 0);
-
       // Formata nome do paciente (remove ^ e substitui por espaço)
       const rawPatientName = estudo.PatientMainDicomTags?.PatientName || 'Sem Nome';
       const formattedPatientName = rawPatientName.replace(/\^/g, ' ').trim();
@@ -75,23 +74,19 @@ export function Studies() {
         ? `${rawBirthDate.substring(6, 8)}/${rawBirthDate.substring(4, 6)}/${rawBirthDate.substring(0, 4)}`
         : 'N/A';
 
-      // Pega a modalidade correta da primeira série se disponível
-      let realModality = mainModality;
-      if (seriesDoEstudo.length > 0 && seriesDoEstudo[0].MainDicomTags?.Modality) {
-        realModality = seriesDoEstudo[0].MainDicomTags.Modality;
-      }
+      const cached = detailsCache[estudo.ID];
 
       return {
         id: estudo.ID,
         studyInstanceUID: estudo.MainDicomTags?.StudyInstanceUID || estudo.ID,
         patient: formattedPatientName,
         birthDate: formattedBirthDate,
-        modality: realModality,
+        modality: cached ? cached.modality : mainModality,
         description: estudo.MainDicomTags?.StudyDescription || 'Sem Descrição',
         date: displayDate,
         rawDate: rawDate + rawTime, // Guardamos isso escondido para ordenar
-        seriesCount: estudo.Series ? estudo.Series.length : 0,
-        imagesCount: totalInstances
+        seriesCount: cached ? cached.seriesCount : (estudo.Series ? estudo.Series.length : 0),
+        imagesCount: cached ? cached.imagesCount : 0
       };
     });
 
@@ -102,7 +97,7 @@ export function Studies() {
       return 0;
     });
 
-  }, [estudosPorPeriodo, seriesByStudy]);
+  }, [estudosPorPeriodo, detailsCache]);
 
   const filteredStudies = studiesFormatted.filter(study => {
     const matchesSearch = study.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -121,6 +116,37 @@ export function Studies() {
   const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
   const currentItems = filteredStudies.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredStudies.length / ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    currentItems.forEach(study => {
+      // Se não tem no cache e ninguém mandou buscar ainda...
+      if (!detailsCache[study.id] && !fetchingRef.current.has(study.id)) {
+        fetchingRef.current.add(study.id); // tranca para não buscar duas vezes
+
+        carregarSeriesDoEstudo(study.id).then((seriesData: any[]) => {
+          let totalInstances = 0;
+          let realModality = study.modality;
+
+          if (seriesData && seriesData.length > 0) {
+            totalInstances = seriesData.reduce((acc: number, s: any) => acc + (s.Instances?.length || 0), 0);
+            if (seriesData[0].MainDicomTags?.Modality) {
+              realModality = seriesData[0].MainDicomTags.Modality;
+            }
+          }
+
+          // Guarda no cofre! O React vai atualizar os números da tabela na mesma hora.
+          setDetailsCache(prev => ({
+            ... prev,
+            [study.id]: {
+              modality: realModality,
+              seriesCount: seriesData ? seriesData.length : 0,
+              imagesCount: totalInstances
+            }
+          }));
+        });
+      }
+    });
+  }, [currentItems, carregarSeriesDoEstudo]); 
 
   // Handlers dos botões
   const handleNextPage = () => {
