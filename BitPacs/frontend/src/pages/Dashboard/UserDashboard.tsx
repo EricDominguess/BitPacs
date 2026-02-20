@@ -4,7 +4,7 @@ import { useOrthancData, useOrthancStats } from '../../hooks';
 
 export function UserDashboard() {
   // Super hook: fetch + monitoramento em tempo real
-  const { pacientes, estudos, series, isLoading, isMonitoring } = useOrthancData();
+  const { pacientes, estudos, isLoading, isMonitoring } = useOrthancData();
   
   // Hook de estatísticas derivadas
   const { estudosHoje, totalPacientes } = useOrthancStats(estudos, pacientes);
@@ -37,10 +37,10 @@ export function UserDashboard() {
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Recent Studies */}
-          <RecentStudiesTable dados={estudos} series={series} className="lg:col-span-2" />
+          <RecentStudiesTable dados={estudos} className="lg:col-span-2" />
 
           {/* Modalidades */}
-          <ModalityStats estudos={series} />
+          <ModalityStats estudos={estudos} />
         </div>
       </div>
     </MainLayout>
