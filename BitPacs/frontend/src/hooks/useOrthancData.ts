@@ -83,7 +83,7 @@ export function useOrthancData(): UseOrthancDataReturn {
         try {
           // 🚀 MUDANÇA 1: Busca Estudos, Estatísticas e PACIENTES tudo ao mesmo tempo!
           const [estudosRes, statsRes, pacientesRes] = await Promise.all([
-            fetch(`${proxyPrefix}/studies?expand&since=0&limit=100&_t=${timestamp}`),
+            fetch(`${proxyPrefix}/studies?expand&_t=${timestamp}`),
             fetch(`${proxyPrefix}/statistics?_t=${timestamp}`),
             fetch(`${proxyPrefix}/patients?_t=${timestamp}`) // Passamos pra cá!
           ]);
