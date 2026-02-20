@@ -71,79 +71,59 @@ export function useOrthancData(): UseOrthancDataReturn {
   /**
    * Carrega todos os dados do Orthanc
    */
-  const carregarTudo = useCallback(async () => {
-    // Evita múltiplas requisições simultâneas
-    if (isLoadingRef.current) {
-      console.log("⏳ Já está carregando, ignorando...");
-      return;
-    }
-
-    isLoadingRef.current = true;
-    const timestamp = Date.now();
-    const proxyPrefix = getProxyPrefix();
-    console.log(`🔄 Carregando tudo do Orthanc (${unidadeAtual})... Proxy: ${proxyPrefix}`);
-    setError(null);
-    
-    try {
-      // Carrega estudos e estatísticas primeiro (mais importantes)
-      const [estudosRes, statsRes] = await Promise.all([
-        fetch(`${proxyPrefix}/studies?expand&_t=${timestamp}`),
-        fetch(`${proxyPrefix}/statistics?_t=${timestamp}`)
-      ]);
-
-      if (!estudosRes.ok || !statsRes.ok) {
-        throw new Error('Falha ao carregar dados do Orthanc');
-      }
-
-      const [estudosData, statsData] = await Promise.all([
-        estudosRes.json(),
-        statsRes.json()
-      ]);
-
-      // Atualiza estudos e status imediatamente para UI responsiva
-      setEstudos(estudosData);
-      setStatus(statsData);
-      setIsLoading(false);
-
-      // Carrega séries em paralelo
-      console.log(`🛡️ Buscando séries via Cache do C# para a unidade: ${unidadeAtual}`);
-      const seriesRes = await fetch(`/api/dashboard/series/${unidadeAtual}`);
-      if (seriesRes.ok) {
-        const seriesData = await seriesRes.json();
+    const carregarTudo = useCallback(async () => {
+        if (isLoadingRef.current) return;
+        isLoadingRef.current = true;
         
-        // Cria índice de séries por estudo para busca O(1)
-        const seriesMap = new Map<string, any[]>();
-        seriesData.forEach((serie: any) => {
-          const studyId = serie.ParentStudy;
-          if (!seriesMap.has(studyId)) {
-            seriesMap.set(studyId, []);
+        const timestamp = Date.now();
+        const proxyPrefix = getProxyPrefix();
+        setError(null);
+        
+        try {
+          // 🚀 MUDANÇA 1: Busca Estudos, Estatísticas e PACIENTES tudo ao mesmo tempo!
+          const [estudosRes, statsRes, pacientesRes] = await Promise.all([
+            fetch(`${proxyPrefix}/studies?expand&_t=${timestamp}`),
+            fetch(`${proxyPrefix}/statistics?_t=${timestamp}`),
+            fetch(`${proxyPrefix}/patients?_t=${timestamp}`) // Passamos pra cá!
+          ]);
+
+          if (!estudosRes.ok || !statsRes.ok) throw new Error('Falha ao carregar dados principais');
+
+          const [estudosData, statsData, pacientesData] = await Promise.all([
+            estudosRes.json(),
+            statsRes.json(),
+            pacientesRes.ok ? pacientesRes.json() : []
+          ]);
+
+          // Atualiza a tela imediatamente (Os pacientes vão aparecer na hora!)
+          setEstudos(estudosData);
+          setStatus(statsData);
+          setPacientes(pacientesData);
+          setIsLoading(false);
+
+          // 🛡️ MUDANÇA 2: Busca as séries silenciosamente via C#
+          console.log(`Buscando séries no C# para a unidade: ${unidadeAtual}`);
+          const seriesRes = await fetch(`/api/dashboard/series/${unidadeAtual}`);
+          
+          if (seriesRes.ok) {
+            const seriesData = await seriesRes.json();
+            const seriesMap = new Map<string, any[]>();
+            seriesData.forEach((serie: any) => {
+              const studyId = serie.ParentStudy;
+              if (!seriesMap.has(studyId)) seriesMap.set(studyId, []);
+              seriesMap.get(studyId)!.push(serie);
+            });
+            
+            setSeries(seriesData);
+            setSeriesByStudy(seriesMap);
           }
-          seriesMap.get(studyId)!.push(serie);
-        });
-        
-        setSeries(seriesData);
-        setSeriesByStudy(seriesMap);
-      } else {
-        console.warn(`⚠️ Falha ao carregar séries do Cache do C#. Status: ${seriesRes.status}`);
-      }
-
-      // Carrega pacientes
-      const pacientesRes = await fetch(`${proxyPrefix}/patients?_t=${timestamp}`);
-      if (pacientesRes.ok) {
-        const pacientesData = await pacientesRes.json();
-        setPacientes(pacientesData);
-      }
-
-      console.log(`✅ Dados carregados: ${estudosData.length} estudos`);
-      
-    } catch (erro) {
-      console.error("❌ Erro ao carregar dados:", erro);
-      setError(erro instanceof Error ? erro.message : 'Erro desconhecido');
-      setIsLoading(false);
-    } finally {
-      isLoadingRef.current = false;
-    }
-  }, [getProxyPrefix, unidadeAtual]);
+        } catch (erro) {
+          setError(erro instanceof Error ? erro.message : 'Erro desconhecido');
+          setIsLoading(false);
+        } finally {
+          isLoadingRef.current = false;
+        }
+    }, [getProxyPrefix, unidadeAtual]);
 
   /**
    * Verifica mudanças no Orthanc e recarrega se necessário
