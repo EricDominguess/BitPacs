@@ -102,6 +102,7 @@ export function Users() {
       
       if (response.ok) {
         const data = await response.json();
+        console.log("DADOS DOS USUÁRIOS QUE VIERAM DO BACKEND:", data);
         setUsers(data);
       } else {
         console.error('Erro ao carregar usuários');
