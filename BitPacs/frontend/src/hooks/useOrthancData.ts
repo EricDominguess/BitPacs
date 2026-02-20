@@ -24,6 +24,7 @@ interface UseOrthancDataReturn {
   unidadeAtual: string;
   carregarSeriesDoEstudo: (studyId: string) => Promise<any[]>;
   buscarEstudosNoServidor: (termo: string) => Promise<any[]>;
+  buscarModalidadeNoServidor: (modality: string) => Promise<any[]>;
 }
 
 /**
@@ -208,6 +209,21 @@ export function useOrthancData(): UseOrthancDataReturn {
       }
   };
 
+  const buscarModalidadeNoServidor = async (modality: string) => {
+    const proxyPrefix = getProxyPrefix();
+    try {
+      // O Orthanc permite buscar direto pela tag ModalitiesInStudy!
+      const payload = { Level: "Study", Query: { ModalitiesInStudy: modality }, Expand: true, Limit: 100 };
+      const res = await fetch(`${proxyPrefix}/tools/find`, { method: 'POST', body: JSON.stringify(payload) });
+      const data = res.ok ? await res.json() : [];
+      
+      // Remove duplicatas por segurança
+      return Array.from(new Map(data.map((e: any) => [e.ID, e])).values());
+    } catch (e) {
+      console.error("Erro na busca de modalidade:", e);
+      return [];
+    }
+  };
 
   // Efeito para detectar mudanças de unidade (via storage event)
   useEffect(() => {
@@ -215,10 +231,9 @@ export function useOrthancData(): UseOrthancDataReturn {
       if (e.key === 'bitpacs-unidade-master' || e.key === 'bitpacs_user') {
         const novaUnidade = getUnidadeAtual();
         if (novaUnidade !== unidadeAtual) {
-          console.log(`🔄 Unidade alterada: ${unidadeAtual} -> ${novaUnidade}`);
-          setUnidadeAtual(novaUnidade);
-          lastSequenceRef.current = 0; // Reset do monitor
-          setIsLoading(true);
+          console.log(`🔄 Unidade alterada (Storage): ${unidadeAtual} -> ${novaUnidade}. Forçando recarregamento...`);
+          setUnidadeAtual(novaUnidade); // <-- Devolvemos isso para matar a linha amarela!
+          window.location.reload(); // Dá um F5 automático na página inteira!
         }
       }
     };
@@ -227,10 +242,9 @@ export function useOrthancData(): UseOrthancDataReturn {
     const checkUnidade = () => {
       const novaUnidade = getUnidadeAtual();
       if (novaUnidade !== unidadeAtual) {
-        console.log(`🔄 Unidade alterada: ${unidadeAtual} -> ${novaUnidade}`);
-        setUnidadeAtual(novaUnidade);
-        lastSequenceRef.current = 0;
-        setIsLoading(true);
+        console.log(`🔄 Unidade alterada (Aba local): ${unidadeAtual} -> ${novaUnidade}. Forçando recarregamento...`);
+        setUnidadeAtual(novaUnidade); // <-- Devolvemos isso para matar a linha amarela!
+        window.location.reload(); // Dá um F5 automático na página inteira!
       }
     };
 
@@ -274,6 +288,7 @@ export function useOrthancData(): UseOrthancDataReturn {
     unidadeAtual,
     carregarSeriesDoEstudo,
     buscarEstudosNoServidor,
+    buscarModalidadeNoServidor,
   };
 }
 

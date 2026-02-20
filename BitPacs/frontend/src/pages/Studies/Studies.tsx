@@ -21,7 +21,7 @@ const ITEMS_PER_PAGE = 8;
 
 export function Studies() {
   // Usa o índice de séries por estudo para busca O(1)
-  const { estudos, isLoading, carregarSeriesDoEstudo, buscarEstudosNoServidor } = useOrthancData();
+  const { estudos, isLoading, carregarSeriesDoEstudo, buscarEstudosNoServidor, buscarModalidadeNoServidor } = useOrthancData();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedModality, setSelectedModality] = useState<string>('all');
@@ -125,22 +125,45 @@ export function Studies() {
 
   }, [estudosPorPeriodo, serverSearchResults, detailsCache]);
 
-  const filteredStudies = studiesFormatted.filter(study => {
-    // 1. Regra da Busca por Texto
-    const matchesSearch = serverSearchResults !== null 
-      ? true // Se o servidor já buscou, não filtramos o texto de novo
-      : (
-          study.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          study.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          study.id.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-
-    // 2. Regra da Modalidade (Blindada)
-    const studyMod = (study.modality || '').trim().toUpperCase();
-    const selectedMod = (selectedModality || '').trim().toUpperCase();
+  // O cérebro dos botões de modalidade
+  const handleModalityClick = async (mod: string) => {
+    setSelectedModality(mod);
     
-    // Se estiver no "ALL" (Todos), passa direto. Se não, tem que ser igual ao botão clicado.
-    const matchesModality = selectedMod === 'ALL' || studyMod === selectedMod;
+    if (mod === 'all') {
+      // Se voltou para "Todos" e tem algo escrito na barra, pesquisa o texto de novo!
+      if (searchTerm.length >= 2) {
+        setIsSearchingServer(true);
+        const res = await buscarEstudosNoServidor(searchTerm);
+        setServerSearchResults(res);
+        setIsSearchingServer(false);
+      } else {
+        setServerSearchResults(null);
+      }
+      setCurrentPage(1);
+      return;
+    }
+    
+    // Se clicou em uma modalidade específica, vai buscar no Orthanc
+    setIsSearchingServer(true);
+    const resultados = await buscarModalidadeNoServidor(mod);
+    setServerSearchResults(resultados);
+    setIsSearchingServer(false);
+    setCurrentPage(1);
+  };
+
+  const filteredStudies = studiesFormatted.filter(study => {
+    // A busca de texto SEMPRE funciona localmente refinando os resultados da tela
+    const matchesSearch = searchTerm.length < 2 ? true : (
+      study.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      study.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      study.id.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Como o servidor já filtrou a modalidade e nos entregou pronto, 
+    // nós só usamos o filtro local de modalidade se não houver busca no servidor.
+    const matchesModality = selectedModality === 'all' || serverSearchResults !== null 
+      ? true 
+      : (study.modality || '').trim().toUpperCase() === selectedModality.toUpperCase();
     
     return matchesSearch && matchesModality;
   });
@@ -299,7 +322,7 @@ export function Studies() {
               {['all', 'CT', 'MR', 'CR', 'US', 'DR', 'DX', 'OT'].map((mod) => (
                 <button
                   key={mod}
-                  onClick={() => setSelectedModality(mod)}
+                  onClick={() => handleModalityClick(mod)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     selectedModality === mod
                       ? 'bg-nautico text-white'
