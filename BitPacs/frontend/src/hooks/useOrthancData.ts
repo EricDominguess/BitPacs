@@ -23,6 +23,7 @@ interface UseOrthancDataReturn {
   refetch: () => void;
   unidadeAtual: string;
   carregarSeriesDoEstudo: (studyId: string) => Promise<any[]>;
+  buscarEstudosNoServidor: (termo: string) => Promise<any[]>;
 }
 
 /**
@@ -180,6 +181,34 @@ export function useOrthancData(): UseOrthancDataReturn {
     return [];
   };
 
+  const buscarEstudosNoServidor = async (termo: string) => {
+      const proxyPrefix = getProxyPrefix();
+      try {
+        // O Orthanc exige o * (asterisco) para fazer busca parcial (ex: *JOAO*)
+        const payloadNome = { Level: "Study", Query: { PatientName: `*${termo}*` }, Expand: true, Limit: 50 };
+        const payloadId = { Level: "Study", Query: { PatientID: `*${termo}*` }, Expand: true, Limit: 50 };
+
+        // Fazemos as duas buscas ao mesmo tempo para o médico não ter que escolher entre buscar por nome ou ID
+        const [resNome, resId] = await Promise.all([
+          fetch(`${proxyPrefix}/tools/find`, { method: 'POST', body: JSON.stringify(payloadNome) }),
+          fetch(`${proxyPrefix}/tools/find`, { method: 'POST', body: JSON.stringify(payloadId) })
+        ]);
+
+        const estudosNome = resNome.ok ? await resNome.json() : [];
+        const estudosId = resId.ok ? await resId.json() : [];
+
+        // Junta tudo e remove duplicatas (caso o termo bata no nome e no ID do mesmo paciente)
+        const todos = [...estudosNome, ...estudosId];
+        const unicos = Array.from(new Map(todos.map((e: any) => [e.ID, e])).values());
+
+        return unicos;
+      } catch (e) {
+        console.error("Erro na busca universal:", e);
+        return [];
+      }
+  };
+
+
   // Efeito para detectar mudanças de unidade (via storage event)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -244,6 +273,7 @@ export function useOrthancData(): UseOrthancDataReturn {
     refetch: carregarTudo,
     unidadeAtual,
     carregarSeriesDoEstudo,
+    buscarEstudosNoServidor,
   };
 }
 

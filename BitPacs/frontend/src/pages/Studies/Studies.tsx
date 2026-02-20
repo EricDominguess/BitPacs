@@ -21,7 +21,7 @@ const ITEMS_PER_PAGE = 8;
 
 export function Studies() {
   // Usa o índice de séries por estudo para busca O(1)
-  const { estudos, isLoading, carregarSeriesDoEstudo } = useOrthancData();
+  const { estudos, isLoading, carregarSeriesDoEstudo, buscarEstudosNoServidor } = useOrthancData();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedModality, setSelectedModality] = useState<string>('all');
@@ -37,6 +37,29 @@ export function Studies() {
   const [detailsCache, setDetailsCache] = useState<Record<string, any>>({});
   const fetchingRef = useRef<Set<string>>(new Set());
 
+  const [serverSearchResults, setServerSearchResults] = useState<any[] | null>(null);
+  const [isSearchingServer, setIsSearchingServer] = useState(false);
+
+  // Função que o botão vai chamar
+  const handleServerSearch = async () => {
+    if (!searchTerm || searchTerm.length < 2) {
+      setServerSearchResults(null); // volta a mostrar os exames recentes
+      return;
+    }
+    setIsSearchingServer(true);
+    const resultados = await buscarEstudosNoServidor(searchTerm);
+    setServerSearchResults(resultados);
+    setIsSearchingServer(false);
+    setCurrentPage(1); // Reseta para a primeira página dos resultados
+  };
+
+  // Se o usuário apagar o campo de texto, nós limpamos a busca do servidor automaticamente
+  useEffect(() => {
+    if (searchTerm === '') {
+      setServerSearchResults(null);
+    }
+  }, [searchTerm]);
+
   // Filtra estudos pelo período selecionado
   const { estudosFiltrados: estudosPorPeriodo } = useFilteredStudies(
     estudos,
@@ -48,10 +71,13 @@ export function Studies() {
   // Formatação dos dados OTIMIZADA
   // 3. Transformando E ORDENANDO os dados
   const studiesFormatted = useMemo(() => {
-    if (!estudosPorPeriodo) return [];
+    // A MÁGICA: Se fizemos uma busca no servidor, desenha ela. Se não, desenha o periodo normal
+    const fonteDeDados = serverSearchResults !== null ? serverSearchResults : estudosPorPeriodo;
+    
+    if (!fonteDeDados) return [];
 
     // Primeiro fazemos o map para formatar
-    const formatted = estudosPorPeriodo.map(estudo => {
+    const formatted = fonteDeDados.map(estudo => {
       // Data crua para ordenação (ex: 20260124)
       const rawDate = estudo.MainDicomTags?.StudyDate || '';
       const rawTime = estudo.MainDicomTags?.StudyTime || ''; // Hora também ajuda no desempate!
@@ -97,12 +123,22 @@ export function Studies() {
       return 0;
     });
 
-  }, [estudosPorPeriodo, detailsCache]);
+  }, [estudosPorPeriodo, serverSearchResults, detailsCache]);
 
   const filteredStudies = studiesFormatted.filter(study => {
-    const matchesSearch = study.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          study.description.toLowerCase().includes(searchTerm.toLowerCase());
+    // Se a busca veio do servidor, nós ignoramos o filtro de texto local (pois o servidor já fez o trabalho)
+    // Se não veio, fazemos a busca local por nome, descrição ou ID
+    const matchesSearch = serverSearchResults !== null 
+      ? true 
+      : (
+          study.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          study.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          study.id.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+    // O filtro de modalidade continua funcionando para os dois casos!
     const matchesModality = selectedModality === 'all' || study.modality === selectedModality;
+    
     return matchesSearch && matchesModality;
   });
 
@@ -244,15 +280,21 @@ export function Studies() {
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <Input
-                placeholder="Buscar por paciente ou ID..."
+                placeholder="Buscar por paciente ou ID... (Aperte Enter para buscar no servidor)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleServerSearch()}
                 icon={
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 }
               />
+              <button
+                onClick={handleServerSearch}
+                disabled={isSearchingServer || searchTerm.length < 2}
+                className="bg-nautico text-white hover:bg-nautico/90 whitespace-nowrap"
+              > {isSearchingServer ? 'Buscando...' : 'Pesquisa Global'}</button>
             </div>
             <div className="flex gap-2 flex-wrap">
               {['all', 'CT', 'MR', 'CR', 'US', 'DR', 'DX', 'OT'].map((mod) => (
