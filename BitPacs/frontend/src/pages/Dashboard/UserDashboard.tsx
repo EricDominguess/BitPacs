@@ -40,7 +40,7 @@ export function UserDashboard() {
           <RecentStudiesTable dados={estudos} className="lg:col-span-2" />
 
           {/* Modalidades */}
-          <ModalityStats estudos={estudos} />
+          <ModalityStats />
         </div>
       </div>
     </MainLayout>

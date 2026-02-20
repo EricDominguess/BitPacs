@@ -1,10 +1,13 @@
+import { useState, useEffect, useRef } from 'react';
 import { Card, Badge } from '../../common';
+import { useOrthancData } from '../../../hooks'; // <-- Importamos nosso hook mágico!
 
 interface Study {
-  patient: string;
-  modality: string;
-  date: string;
-  status: string;
+  ID: string; // <-- Garantimos o ID do Orthanc aqui
+  patient?: string;
+  modality?: string;
+  date?: string;
+  status?: string;
   MainDicomTags?: {
     StudyDate?: string;
     StudyTime?: string;
@@ -21,43 +24,48 @@ interface RecentStudiesTableProps {
 }
 
 export function RecentStudiesTable({ dados = [], className = '' }: RecentStudiesTableProps) {
-  
-  console.log("A tabela de estudos recentes foi renderizada com dados:", dados);
+  // 1. Trazemos a função de Lazy Loading
+  const { carregarSeriesDoEstudo } = useOrthancData();
+
+  // 2. Cofre de memória para as modalidades
+  const [modalidadesCache, setModalidadesCache] = useState<Record<string, string>>({});
+  const fetchingRef = useRef<Set<string>>(new Set());
 
   // Processamento dos dados para pegar os 5 estudos mais recentes
   const estudosProcessados = [...dados]
     .sort((a, b) => {
-      // Compara as datas (YYYYMMDD) para ordenar decescente
       const dataA = a.MainDicomTags?.StudyDate || '';
       const dataB = b.MainDicomTags?.StudyDate || '';
-
-      const timeA = (a.MainDicomTags?.StudyTime || '').split('.')[0]; // Remove fração de segundos
+      const timeA = (a.MainDicomTags?.StudyTime || '').split('.')[0];
       const timeB = (b.MainDicomTags?.StudyTime || '').split('.')[0];
-
-      const fullDateTimeA = dataA + timeA;
-      const fullDateTimeB = dataB + timeB;
-      
-      return fullDateTimeB.localeCompare(fullDateTimeA);
+      return (dataB + timeB).localeCompare(dataA + timeA);
     })
-    .slice(0, 5); // Pega os 5 mais recentes
-  
-  // Função para modalidade
-  const obterModalidade = (estudo: any) => {
-    const modalidadeBruta = estudo.MainDicomTags?.ModalitiesInStudy;
-    if (modalidadeBruta) {
-      // pega o ID da primeira série desse estudo
-      return modalidadeBruta.split('\\')[0] || 'OT';
-    }
-    return '?';
-  }
+    .slice(0, 5);
 
-  // Formatação de datas
+  // 3. O MOTOR: Busca a modalidade silenciosamente só desses 5 caras!
+  useEffect(() => {
+    estudosProcessados.forEach(estudo => {
+      if (estudo.ID && !modalidadesCache[estudo.ID] && !fetchingRef.current.has(estudo.ID)) {
+        fetchingRef.current.add(estudo.ID);
+
+        carregarSeriesDoEstudo(estudo.ID).then((seriesData: any[]) => {
+          let realModality = 'OT';
+          // Se achar a série, puxa a modalidade verdadeira dela
+          if (seriesData && seriesData.length > 0 && seriesData[0].MainDicomTags?.Modality) {
+            realModality = seriesData[0].MainDicomTags.Modality;
+          }
+          // Salva no cofre e atualiza a linha da tabela na mesma hora!
+          setModalidadesCache(prev => ({ ...prev, [estudo.ID]: realModality }));
+        });
+      }
+    });
+  }, [estudosProcessados, carregarSeriesDoEstudo]);
+
   const formatarData = (dataString: string | undefined) => {
     if (!dataString || dataString.length !== 8) return dataString || '';
     return `${dataString.slice(6,8)}/${dataString.slice(4,6)}/${dataString.slice(0,4)}`;
   }
 
-  // Formatação do nome
   const formatarNome = (nome: string | undefined) => (nome || 'Desconhecido').replace(/\^/g, ' ').trim();
   
   return (
@@ -76,9 +84,8 @@ export function RecentStudiesTable({ dados = [], className = '' }: RecentStudies
             {estudosProcessados.length === 0 ? (
                <tr><td colSpan={4} className="py-4 text-center text-gray-400">Nenhum exame recente.</td></tr>
             ) : (
-              // Agora usamos 'estudosProcessados' em vez de 'studies'
               estudosProcessados.map((estudo, i) => (
-                <tr key={i} className="hover:bg-nautico/10 transition-colors">
+                <tr key={estudo.ID || i} className="hover:bg-nautico/10 transition-colors">
                   <td className="py-3">
                     <span className="text-theme-primary font-medium">
                       {formatarNome(estudo.PatientMainDicomTags?.PatientName)}
@@ -88,7 +95,8 @@ export function RecentStudiesTable({ dados = [], className = '' }: RecentStudies
                     {estudo.MainDicomTags?.StudyDescription || '-'}
                   </td>
                   <td className="py-3">
-                    <Badge>{obterModalidade(estudo)}</Badge>
+                    {/* Exibe a modalidade se já baixou, senão mostra '...' */}
+                    <Badge>{modalidadesCache[estudo.ID] || '...'}</Badge>
                   </td>
                   <td className="py-3 text-theme-secondary">
                     {formatarData(estudo.MainDicomTags?.StudyDate)}
