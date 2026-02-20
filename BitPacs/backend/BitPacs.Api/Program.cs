@@ -68,6 +68,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<BitPacs.API.Services.OrthancDashboardService>();
+
 var app = builder.Build();
 
 // Aplica migrations e seed automaticamente
