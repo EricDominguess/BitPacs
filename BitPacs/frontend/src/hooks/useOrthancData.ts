@@ -106,7 +106,8 @@ export function useOrthancData(): UseOrthancDataReturn {
       setIsLoading(false);
 
       // Carrega séries em paralelo
-      const seriesRes = await fetch(`${proxyPrefix}/series?expand&_t=${timestamp}`);
+      console.log(`🛡️ Buscando séries via Cache do C# para a unidade: ${unidadeAtual}`);
+      const seriesRes = await fetch(`/api/dashboard/series/${unidadeAtual}`);
       if (seriesRes.ok) {
         const seriesData = await seriesRes.json();
         
@@ -122,6 +123,8 @@ export function useOrthancData(): UseOrthancDataReturn {
         
         setSeries(seriesData);
         setSeriesByStudy(seriesMap);
+      } else {
+        console.warn(`⚠️ Falha ao carregar séries do Cache do C#. Status: ${seriesRes.status}`);
       }
 
       // Carrega pacientes
