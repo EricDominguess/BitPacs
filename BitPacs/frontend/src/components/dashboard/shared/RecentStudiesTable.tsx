@@ -13,16 +13,14 @@ interface Study {
   PatientMainDicomTags?: {
     PatientName?: string;
   };
-  Series?: string[];
 }
 
 interface RecentStudiesTableProps {
   dados?: Study[];
-  series?: any[];
   className?: string;
 }
 
-export function RecentStudiesTable({ dados = [], series = [], className = '' }: RecentStudiesTableProps) {
+export function RecentStudiesTable({ dados = [], className = '' }: RecentStudiesTableProps) {
   
   console.log("A tabela de estudos recentes foi renderizada com dados:", dados);
 
@@ -45,17 +43,10 @@ export function RecentStudiesTable({ dados = [], series = [], className = '' }: 
   
   // Função para modalidade
   const obterModalidade = (estudo: any) => {
-    if (estudo.Series && estudo.Series.length > 0) {
+    const modalidadeBruta = estudo.MainDicomTags?.ModalitiesInStudy;
+    if (modalidadeBruta) {
       // pega o ID da primeira série desse estudo
-      const idDaPrimeiraSerie = estudo.Series[0];
-      
-      // procura a série correspondente na lista de séries
-      const serieEncontrada = series.find( s => s.ID === idDaPrimeiraSerie );
-
-      // se achou, retorna a modalidade
-      if (serieEncontrada) {
-        return serieEncontrada.MainDicomTags?.Modality || '?';
-      }
+      return modalidadeBruta.split('\\')[0] || 'OT';
     }
     return '?';
   }

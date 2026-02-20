@@ -39,7 +39,7 @@ export function Dashboard() {
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Recent Studies */}
-          <RecentStudiesTable dados={estudos} series={estudos} className="lg:col-span-2" />
+          <RecentStudiesTable dados={estudos} className="lg:col-span-2" />
 
           {/* Quick Stats */}
           <div className="space-y-6">
