@@ -44,7 +44,7 @@ export function Dashboard() {
           {/* Quick Stats */}
           <div className="space-y-6">
             <StorageCard stats={status} />
-            <ModalityStats />
+            <ModalityStats estudos={estudos} />
           </div>
         </div>
       </div>
