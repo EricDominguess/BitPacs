@@ -10,6 +10,7 @@ interface User {
   email: string;
   role: 'Master' | 'Admin' | 'Medico' | 'Enfermeiro';
   unidade?: string;
+  unidadeId?: string;
   createdAt?: string;
   isActive?: boolean;
 }
@@ -164,7 +165,7 @@ export function Users() {
   const handleEdit = (user: User) => {
     setModalMode('edit');
     setEditingUser(user);
-    setFormData({ nome: user.nome, email: user.email, password: '', role: user.role, unidade: user.unidade || '' });
+    setFormData({ nome: user.nome, email: user.email, password: '', role: user.role, unidade: user.unidadeId || '' });
     setFormError('');
     setShowModal(true);
   };
@@ -198,9 +199,17 @@ export function Users() {
         ? '/api/auth/register'
         : `/api/auth/users/${editingUser?.id}`;
       
-      const body = modalMode === 'create'
-        ? formData
-        : { ...formData, password: formData.password || undefined };
+      const payload: any = {
+        nome: formData.nome,
+        email: formData.email,
+        role: formData.role,
+        unidadeId: formData.unidade || null, // O Backend exige "unidadeId"!
+      };
+
+      // Só manda a senha se o usuário digitou alguma coisa
+      if (formData.password) {
+        payload.password = formData.password;
+      }
 
       const response = await fetch(url, {
         method: modalMode === 'create' ? 'POST' : 'PUT',
@@ -208,7 +217,7 @@ export function Users() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(payload), // Mandamos o pacote traduzido!
       });
 
       if (response.ok) {
@@ -359,7 +368,7 @@ export function Users() {
                         <span className="text-theme-muted text-sm">
                           {user.role === 'Master' 
                             ? <span className="text-nautico font-medium">Todas (Acesso Global)</span>
-                            : unidades.find(u => u.value === user.unidade)?.label || user.unidade || <span className="opacity-50">Não atribuída</span>
+                            : unidades.find(u => u.value === user.unidadeId)?.label || <span className="opacity-50">Não atribuída</span>
                           }
                         </span>
                       </td>
