@@ -313,13 +313,14 @@ export function Users() {
                   <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Nome</th>
                   <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">E-mail</th>
                   <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Função</th>
+                  <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Unidade</th>
                   <th className="text-right text-sm font-semibold text-theme-secondary px-6 py-4">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme-light">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-8 text-center text-theme-muted">
+                    <td colSpan={5} className="px-6 py-8 text-center text-theme-muted">
                       <div className="flex items-center justify-center gap-3">
                         <div className="w-5 h-5 border-2 border-nautico border-t-transparent rounded-full animate-spin" />
                         Carregando usuários...
@@ -328,7 +329,7 @@ export function Users() {
                   </tr>
                 ) : filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-8 text-center text-theme-muted">
+                    <td colSpan={5} className="px-6 py-8 text-center text-theme-muted">
                       Nenhum usuário encontrado.
                     </td>
                   </tr>
@@ -352,6 +353,14 @@ export function Users() {
                         <Badge variant={roleColors[user.role]?.badge || 'default'}>
                           {roleColors[user.role]?.label || user.role}
                         </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-theme-muted text-sm">
+                          {user.role === 'Master' 
+                            ? <span className="text-nautico font-medium">Todas (Acesso Global)</span>
+                            : unidades.find(u => u.value === user.unidade)?.label || user.unidade || <span className="opacity-50">Não atribuída</span>
+                          }
+                        </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
