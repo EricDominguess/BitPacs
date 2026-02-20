@@ -10,7 +10,7 @@ interface User {
   email: string;
   role: 'Master' | 'Admin' | 'Medico' | 'Enfermeiro';
   unidade?: string;
-  unidadeId?: string;
+  unidadeId?: number;
   createdAt?: string;
   isActive?: boolean;
 }
@@ -44,14 +44,14 @@ const ITEMS_PER_PAGE = 8;
 
 // Lista de unidades do .env
 const unidades = [
-  { value: 'riobranco', label: import.meta.env.VITE_UNIDADE_RIOBRANCO || 'CIS - Unidade de Rio Branco' },
-  { value: 'foziguacu', label: import.meta.env.VITE_UNIDADE_FOZIGUACU || 'CIS - Unidade de Foz do Iguaçu' },
-  { value: 'fazenda', label: import.meta.env.VITE_UNIDADE_FAZENDA || 'CIS - Unidade de Fazenda' },
-  { value: 'faxinal', label: import.meta.env.VITE_UNIDADE_FAXINAL || 'CIS - Unidade de Faxinal' },
-  { value: 'santamariana', label: import.meta.env.VITE_UNIDADE_SANTAMARIANA || 'CIS - Unidade de Santa Mariana' },
-  { value: 'guarapuava', label: import.meta.env.VITE_UNIDADE_GUARAPUAVA || 'CIS - Unidade de Guarapuava' },
-  { value: 'carlopolis', label: import.meta.env.VITE_UNIDADE_CARLOPOLIS || 'CIS - Unidade de Carlópolis' },
-  { value: 'arapoti', label: import.meta.env.VITE_UNIDADE_ARAPOTI || 'CIS - Unidade de Arapoti' },
+  { value: '1', label: import.meta.env.VITE_UNIDADE_RIOBRANCO || 'CIS - Unidade de Rio Branco' },
+  { value: '2', label: import.meta.env.VITE_UNIDADE_FOZIGUACU || 'CIS - Unidade de Foz do Iguaçu' },
+  { value: '3', label: import.meta.env.VITE_UNIDADE_FAZENDA || 'CIS - Unidade de Fazenda' },
+  { value: '4', label: import.meta.env.VITE_UNIDADE_FAXINAL || 'CIS - Unidade de Faxinal' },
+  { value: '5', label: import.meta.env.VITE_UNIDADE_SANTAMARIANA || 'CIS - Unidade de Santa Mariana' },
+  { value: '6', label: import.meta.env.VITE_UNIDADE_GUARAPUAVA || 'CIS - Unidade de Guarapuava' },
+  { value: '7', label: import.meta.env.VITE_UNIDADE_CARLOPOLIS || 'CIS - Unidade de Carlópolis' },
+  { value: '8', label: import.meta.env.VITE_UNIDADE_ARAPOTI || 'CIS - Unidade de Arapoti' },
 ];
 
 export function Users() {
@@ -165,7 +165,7 @@ export function Users() {
   const handleEdit = (user: User) => {
     setModalMode('edit');
     setEditingUser(user);
-    setFormData({ nome: user.nome, email: user.email, password: '', role: user.role, unidade: user.unidadeId || '' });
+    setFormData({ nome: user.nome, email: user.email, password: '', role: user.role, unidade: user.unidadeId ? user.unidadeId.toString() : ''});
     setFormError('');
     setShowModal(true);
   };
@@ -203,7 +203,7 @@ export function Users() {
         nome: formData.nome,
         email: formData.email,
         role: formData.role,
-        unidadeId: formData.unidade || null, // O Backend exige "unidadeId"!
+        unidadeId: formData.unidade ? parseInt(formData.unidade) : null,
       };
 
       // Só manda a senha se o usuário digitou alguma coisa
@@ -368,7 +368,7 @@ export function Users() {
                         <span className="text-theme-muted text-sm">
                           {user.role === 'Master' 
                             ? <span className="text-nautico font-medium">Todas (Acesso Global)</span>
-                            : unidades.find(u => u.value === user.unidadeId)?.label || <span className="opacity-50">Não atribuída</span>
+                            : unidades.find(u => u.value === user.unidadeId?.toString())?.label || <span className="opacity-50">Não atribuída</span>
                           }
                         </span>
                       </td>
