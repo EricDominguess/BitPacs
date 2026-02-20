@@ -23,24 +23,35 @@ namespace BitPacs.API.Services
             // Verifica se os dados já estão salvos na memória RAM do C#
             if (!_cache.TryGetValue(cacheKey, out string cachedData))
             {
-                // Se não tiver, vai lá no Orthanc buscar (mas sem derrubar ele)
-                var client = _httpClientFactory.CreateClient();
-                var response = await client.GetAsync($"{orthancUrl}{endpoint}");
-                
-                if (response.IsSuccessStatusCode)
+                try
                 {
-                    cachedData = await response.Content.ReadAsStringAsync();
+                    var client = _httpClientFactory.CreateClient();
+
+                    client.Timeout = TimeSpan.FromSeconds(15); // Timeout de 15 segundos para evitar travar o React
+
+                    var authString = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes("admin:@BitFix123"));
+                    client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authString);
+
+                    var response = await client.GetAsync($"{orthancUrl}{endpoint}");
                     
-                    // Salva a resposta no cache por 5 minutos
-                    var cacheOptions = new MemoryCacheEntryOptions()
-                        .SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
+                    if (response.IsSuccessStatusCode)
+                    {
+                        cachedData = await response.Content.ReadAsStringAsync();
                         
-                    _cache.Set(cacheKey, cachedData, cacheOptions);
+                        // Salva a resposta no cache por 5 minutos
+                        _cache.Set(cacheKey, cachedData, new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromMinutes(5)));
+                    }
+                    else
+                    {
+                        return $"[{{\"ParentStudy\": \"ERRO_ORTHANC\", \"error_status\": \"{response.StatusCode}\"}}]";
+                        // Se não tiver, vai lá no Orthanc buscar (mas sem derrubar ele)
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    return "[]"; // Retorna array vazio em caso de falha para não quebrar o React
-                }
+                    // Em caso de erro (ex: timeout, Orthanc offline), retorna um JSON indicando o erro
+                    return $"[{{\"ParentStudy\": \"ERRO_ORTHANC\", \"error_message\": \"{ex.Message}\"}}]";
+                }               
             }
 
             return cachedData;
