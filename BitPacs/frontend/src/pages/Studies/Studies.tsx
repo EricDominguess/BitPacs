@@ -21,7 +21,7 @@ const ITEMS_PER_PAGE = 8;
 
 export function Studies() {
   // Usa o índice de séries por estudo para busca O(1)
-  const { estudos, isLoading, carregarSeriesDoEstudo, buscarEstudosNoServidor, buscarModalidadeNoServidor } = useOrthancData();
+  const { estudos, isLoading, unidadeAtual, carregarSeriesDoEstudo, buscarEstudosNoServidor, buscarModalidadeNoServidor } = useOrthancData();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedModality, setSelectedModality] = useState<string>('all');
@@ -223,19 +223,20 @@ export function Studies() {
   // const currentUser = JSON.parse((sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user')) || '{}');
 
   // 2. FUNÇÃO DE LOG (Auditoria) - Envia para o backend
-  const registrarLog = async (
-    actionType: 'VIEW' | 'DOWNLOAD',
-    study: {
-      id: string;
-      studyInstanceUID: string;
-      patient: string;
-      description: string;
-      modality: string;
-    }
-  ) => {
+  const registrarLog = async (actionType: 'VIEW' | 'DOWNLOAD', study: any) => {
     try {
+      // 🗺️ Tradutor de IDs para Nomes Amigáveis
+      const nomesUnidades: Record<string, string> = {
+        '1': 'Rio Branco', '2': 'Foz do Iguaçu', '3': 'Fazenda', 
+        '4': 'Faxinal', '5': 'Santa Mariana', '6': 'Guarapuava', 
+        '7': 'Carlópolis', '8': 'Arapoti', 'riobranco': 'Rio Branco',
+        'foziguacu': 'Foz do Iguaçu', 'fazenda': 'Fazenda', 'faxinal': 'Faxinal'
+      };
+
+      const nomeDaUnidade = nomesUnidades[unidadeAtual] || 'Rio Branco';
+
       const token = (sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token'));
-      const unidadeLabel = document.querySelector('[role="combobox"]')?.textContent || 'Não identificado';
+      
       await fetch('/api/studylogs', {
         method: 'POST',
         headers: {
@@ -244,7 +245,7 @@ export function Studies() {
         },
         body: JSON.stringify({
           actionType,
-          unidadeNome: unidadeLabel,
+          unidadeNome: nomeDaUnidade, // 👈 Agora enviamos o nome certinho!
           studyId: study.id,
           studyInstanceUID: study.studyInstanceUID,
           patientName: study.patient,

@@ -181,8 +181,8 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-xs font-medium text-nautico bg-nautico/10 px-2 py-1 rounded">
-                          {log.unidadeNome || 'Não identificada'}
+                        <span className="text-sm text-theme-primary font-medium truncate max-w-[150px] block">
+                          {(log as any).unidadeNome || (log as any).UnidadeNome || 'Não identificado'}
                         </span>
                       </td>
                       <td className="px-4 py-3">
