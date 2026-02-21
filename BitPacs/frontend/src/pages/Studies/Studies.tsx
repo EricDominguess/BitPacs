@@ -255,16 +255,25 @@ export function Studies() {
     }
   };
 
-  // 3. FUNÇÃO DE DOWNLOAD ATUALIZADA
+  // 3. FUNÇÃO DE DOWNLOAD ATUALIZADA (E Blindada para Multi-Unidades)
   const handleDownload = (study: typeof studiesFormatted[0]) => {
     const filename = `estudo-${study.id}.zip`;
     
     // Registra o download no backend
     registrarLog('DOWNLOAD', study);
 
+    // Descobre em qual unidade estamos agora
+    const unidadeMaster = localStorage.getItem('bitpacs-unidade-master');
+    const user = JSON.parse(sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user') || '{}');
+    // Usa a seleção do master, ou a unidade fixa do usuário comum, ou cai no padrão
+    const unidadeAtual = unidadeMaster || user.unidade || 'riobranco';
+    
+    // Constrói a rota blindada do Nginx (ex: /orthanc-fazenda/studies/...)
+    const prefixoProxy = `/orthanc-${unidadeAtual}`;
+
     // Executa o download (Técnica do Link Fantasma)
     const link = document.createElement('a');
-    link.href = `/orthanc/studies/${study.id}/archive`;
+    link.href = `${prefixoProxy}/studies/${study.id}/archive`;
     link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();

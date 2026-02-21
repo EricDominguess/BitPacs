@@ -4,15 +4,26 @@ import { useUnidade } from '../../contexts';
 
 // Configuração dos proxies por unidade (deve corresponder ao vite.config.ts)
 const UNIDADE_PROXY: Record<string, string> = {
-  localhost: '/orthanc',
-  riobranco: '/orthanc-riobranco',
-  foziguacu: '/orthanc-foziguacu',
-  fazenda: '/orthanc-fazenda',
-  faxinal: '/orthanc-faxinal',
-  santamariana: '/orthanc-santamariana',
-  guarapuava: '/orthanc-guarapuava',
-  carlopolis: '/orthanc-carlopolis',
-  arapoti: '/orthanc-arapoti',
+  // IDs Numéricos (Novo padrão do banco de dados)
+  '1': '/orthanc-riobranco',
+  '2': '/orthanc-foziguacu',
+  '3': '/orthanc-fazenda',
+  '4': '/orthanc-faxinal',
+  '5': '/orthanc-santamariana',
+  '6': '/orthanc-guarapuava',
+  '7': '/orthanc-carlopolis',
+  '8': '/orthanc-arapoti',
+  
+  // Textos legados (Mantidos como salva-vidas)
+  'localhost': '/orthanc',
+  'riobranco': '/orthanc-riobranco',
+  'foziguacu': '/orthanc-foziguacu',
+  'fazenda': '/orthanc-fazenda',
+  'faxinal': '/orthanc-faxinal',
+  'santamariana': '/orthanc-santamariana',
+  'guarapuava': '/orthanc-guarapuava',
+  'carlopolis': '/orthanc-carlopolis',
+  'arapoti': '/orthanc-arapoti',
 };
 
 export function Viewer() {

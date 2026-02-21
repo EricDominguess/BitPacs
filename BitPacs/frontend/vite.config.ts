@@ -32,10 +32,10 @@ export default defineConfig(() => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/orthanc-riobranco/, '')
         },
-        '/orthanc-foz': {
+        '/orthanc-foziguacu': {
           target: 'http://10.31.0.42:8042',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/orthanc-foz/, '')
+          rewrite: (path) => path.replace(/^\/orthanc-foziguacu/, '')
         },
         '/orthanc-fazenda': {
           target: 'http://10.31.0.43:8042',
