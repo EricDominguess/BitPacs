@@ -5,10 +5,20 @@ const INTERVALO_ATUALIZACAO = 15000;
 
 // Configuração das unidades
 const UNIDADES_CONFIG: Record<string, { orthancProxy: string }> = {
-  localhost: { orthancProxy: '/orthanc' }, // Localhost usa o proxy padrão
-  fazenda: { orthancProxy: '/orthanc-fazenda' },
-  riobranco: { orthancProxy: '/orthanc-riobranco' },
-  foziguacu: { orthancProxy: '/orthanc-foziguacu' },
+  'localhost': { orthancProxy: '/orthanc' },
+  '1': { orthancProxy: '/orthanc-riobranco' }, // Usando IDs para bater com o C#
+  '2': { orthancProxy: '/orthanc-foziguacu' },
+  '3': { orthancProxy: '/orthanc-fazenda' },
+  '4': { orthancProxy: '/orthanc-faxinal' },
+  '5': { orthancProxy: '/orthanc-santamariana' },
+  '6': { orthancProxy: '/orthanc-guarapuava' },
+  '7': { orthancProxy: '/orthanc-carlopolis' },
+  '8': { orthancProxy: '/orthanc-arapoti' },
+  // Mantendo nomes para retrocompatibilidade
+  'riobranco': { orthancProxy: '/orthanc-riobranco' },
+  'foziguacu': { orthancProxy: '/orthanc-foziguacu' },
+  'fazenda': { orthancProxy: '/orthanc-fazenda' },
+  'faxinal': { orthancProxy: '/orthanc-faxinal' },
 };
 
 interface UseOrthancDataReturn {

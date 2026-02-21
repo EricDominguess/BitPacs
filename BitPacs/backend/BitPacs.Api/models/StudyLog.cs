@@ -31,6 +31,9 @@ namespace BitPacs.Api.Models
         // Modalidade do estudo (CT, MR, etc)
         public string? Modality { get; set; }
         
+        // Unidade de origem do estudo (Foz, Fazenda, etc)
+        public string? UnidadeNome { get; set; }
+
         // Data e hora da ação
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
         

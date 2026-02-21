@@ -118,6 +118,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                   <th className="text-left text-xs font-semibold text-theme-secondary px-4 py-3">Paciente</th>
                   <th className="text-left text-xs font-semibold text-theme-secondary px-4 py-3">Descrição</th>
                   <th className="text-left text-xs font-semibold text-theme-secondary px-4 py-3">Mod.</th>
+                  <th className="text-left text-xs font-semibold text-theme-secondary px-4 py-3">Unidade</th>
                   <th className="text-left text-xs font-semibold text-theme-secondary px-4 py-3">Data/Hora</th>
                 </tr>
               </thead>
@@ -148,7 +149,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold ${
                           log.actionType === 'DOWNLOAD' 
-                            ? 'bg-green-aqua/20 text-green-aqua border border-green-aqua/30' 
+                            ? 'bg-green-600/10 text-green-700 border-green-600/30 dark:bg-green-aqua/20 dark:text-green-aqua dark:border-green-aqua/30' 
                             : 'bg-nautico/20 text-nautico border border-nautico/30'
                         }`}>
                           {log.actionType === 'DOWNLOAD' ? (
@@ -177,6 +178,11 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                       <td className="px-4 py-3">
                         <span className="text-xs font-semibold text-theme-secondary bg-theme-secondary/50 px-2 py-1 rounded">
                           {log.modality || '-'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs font-medium text-nautico bg-nautico/10 px-2 py-1 rounded">
+                          {log.unidadeNome || 'Não identificada'}
                         </span>
                       </td>
                       <td className="px-4 py-3">

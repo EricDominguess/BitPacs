@@ -30,6 +30,7 @@ export interface StudyLog {
   studyInstanceUID?: string;
   patientName?: string;
   studyDescription?: string;
+  unidadeNome?: string;
   modality?: string;
   timestamp: string;
   ipAddress?: string;

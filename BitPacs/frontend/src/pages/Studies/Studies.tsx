@@ -235,6 +235,7 @@ export function Studies() {
   ) => {
     try {
       const token = (sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token'));
+      const unidadeLabel = document.querySelector('[role="combobox"]')?.textContent || 'Não identificado';
       await fetch('/api/studylogs', {
         method: 'POST',
         headers: {
@@ -243,6 +244,7 @@ export function Studies() {
         },
         body: JSON.stringify({
           actionType,
+          unidadeNome: unidadeLabel,
           studyId: study.id,
           studyInstanceUID: study.studyInstanceUID,
           patientName: study.patient,
