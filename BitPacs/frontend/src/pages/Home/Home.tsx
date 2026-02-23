@@ -67,7 +67,7 @@ export function Home() {
               {/* Stats */}
               <div className="flex items-center gap-8 pt-8 border-t border-purple/20">
                 <div>
-                  <p className="text-3xl font-bold text-ultra">3K+</p>
+                  <p className="text-3xl font-bold text-ultra">5K+</p>
                   <p className="text-sm text-white/50">Estudos Processados</p>
                 </div>
                 <div>
