@@ -45,6 +45,7 @@ namespace BitPacs.Api.Controllers
                 StudyDescription = request.StudyDescription,
                 Modality = request.Modality,
                 Timestamp = DateTime.UtcNow,
+                UnidadeNome = request.UnidadeNome,
                 IpAddress = ipAddress
             };
 
@@ -169,5 +170,6 @@ namespace BitPacs.Api.Controllers
         public string? PatientName { get; set; }
         public string? StudyDescription { get; set; }
         public string? Modality { get; set; }
+        public string? UnidadeNome { get; set; }
     }
 }
