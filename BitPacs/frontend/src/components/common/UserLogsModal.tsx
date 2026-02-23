@@ -150,7 +150,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                         <span 
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold border transition-colors shadow-sm ${
                             log.actionType === 'DOWNLOAD' 
-                              ? 'bg-emerald-100 border-emerald-300 text-emerald-900 dark:bg-[#00ffd5]/10 dark:border-[#00ffd5]/30 dark:text-[#a7f3d0]' 
+                              ? 'bg-[#dcfce7] border-[#86efac] text-[#14532d] dark:bg-[#00ffd5]/10 dark:border-[#00ffd5]/30 dark:text-[#a7f3d0]' 
                               : 'bg-nautico/10 border-nautico/20 text-nautico'
                           }`}
                         >
