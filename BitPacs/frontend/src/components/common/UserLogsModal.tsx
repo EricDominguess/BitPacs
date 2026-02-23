@@ -149,7 +149,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold border transition-colors ${
                           log.actionType === 'DOWNLOAD' 
-                            ? 'bg-green-100 text-green-900 border-green-200 dark:text-[#00ffd5] dark:bg-green-aqua/20 dark:border-green-aqua/30' 
+                            ? 'bg-green-100 text-green-800 border-green-200 dark:text-[#00ffd5] dark:bg-green-aqua/20 dark:border-green-aqua/30' 
                             : 'bg-nautico/10 text-nautico border-nautico/20'
                         }`}>
                           {log.actionType === 'DOWNLOAD' ? (
