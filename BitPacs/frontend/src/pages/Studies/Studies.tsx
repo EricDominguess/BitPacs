@@ -225,7 +225,7 @@ export function Studies() {
   // 2. FUNÇÃO DE LOG (Auditoria) - Envia para o backend
   const registrarLog = async (actionType: 'VIEW' | 'DOWNLOAD', study: any) => {
     try {
-      // 1. Mapeamento de IDs/Nomes para o formato do Log
+      // 1. Mapeamento para nomes amigáveis (ajuste conforme suas unidades)
       const nomesUnidades: Record<string, string> = {
         '1': 'Rio Branco', '2': 'Foz do Iguaçu', '3': 'Fazenda', 
         '4': 'Faxinal', '5': 'Santa Mariana', '6': 'Guarapuava', 
@@ -233,8 +233,8 @@ export function Studies() {
         'foziguacu': 'Foz do Iguaçu', 'fazenda': 'Fazenda', 'faxinal': 'Faxinal'
       };
 
-      // 2. Pega a unidade que o hook useOrthancData está usando (a mesma do header)
-      const nomeUnidadeLog = nomesUnidades[unidadeAtual] || 'Rio Branco';
+      // 2. Pega a unidadeAtual que já vem do seu hook useOrthancData()
+      const nomeUnidadeLog = nomesUnidades[unidadeAtual] || 'Unidade Geral';
 
       const token = (sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token'));
       
@@ -246,7 +246,7 @@ export function Studies() {
         },
         body: JSON.stringify({
           actionType,
-          unidadeNome: nomeUnidadeLog, // 👈 Agora ele envia o nome certo!
+          unidadeNome: nomeUnidadeLog, // 👈 Agora o dado vai para o C#
           studyId: study.id,
           studyInstanceUID: study.studyInstanceUID,
           patientName: study.patient,
