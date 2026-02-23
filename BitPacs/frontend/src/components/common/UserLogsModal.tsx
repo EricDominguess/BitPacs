@@ -150,10 +150,9 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                         <span 
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold border transition-colors shadow-sm ${
                             log.actionType === 'DOWNLOAD' 
-                              ? 'bg-green-100 border-green-300 dark:bg-[#00ffd5]/10 dark:border-[#00ffd5]/30' 
+                              ? 'bg-green-100 border-green-300 text-[#065f46] dark:bg-[#00ffd5]/10 dark:border-[#00ffd5]/30 dark:text-[#00ffd5]' 
                               : 'bg-nautico/10 border-nautico/20 text-nautico'
                           }`}
-                          style={log.actionType === 'DOWNLOAD' ? { color: 'var(--text-download, #065f46)' } : {}}
                         >
                           {log.actionType === 'DOWNLOAD' ? (
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeWidth: '3px' }}>

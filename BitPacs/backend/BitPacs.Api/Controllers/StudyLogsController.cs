@@ -92,7 +92,8 @@ namespace BitPacs.Api.Controllers
                     l.StudyDescription,
                     l.Modality,
                     l.Timestamp,
-                    l.IpAddress
+                    l.IpAddress,
+                    l.UnidadeNome
                 })
                 .ToList();
 
@@ -138,6 +139,7 @@ namespace BitPacs.Api.Controllers
                     l.Modality,
                     l.Timestamp,
                     l.IpAddress,
+                    l.UnidadeNome,
                     User = new
                     {
                         l.User!.Id,
