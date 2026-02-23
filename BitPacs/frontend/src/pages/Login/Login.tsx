@@ -230,8 +230,8 @@ export function Login() {
               <p className="text-sm text-white/70">Uptime</p>
             </div>
             <div className="p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
-              <p className="text-2xl font-bold text-white">100% Web</p>
-              <p className="text-sm text-white/70">Zero Instalação</p>
+              <p className="text-2xl font-bold text-white">8+</p>
+              <p className="text-sm text-white/70">Unidades</p>
             </div>
           </div>
         </div>
