@@ -149,8 +149,8 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold border transition-colors ${
                           log.actionType === 'DOWNLOAD' 
-                            ? 'bg-green-600 text-green-800 border-green-200 dark:text-[#00ffd5] dark:bg-green-aqua/20 dark:border-green-aqua/30' 
-                            : 'bg-nautico/10 text-nautico border-nautico/20'
+                            ? 'bg-[#dcfce7] text-[#065f46] border-[#bbf7d0] dark:bg-[#00ffd5]/20 dark:text-[#00ffd5] dark:border-[#00ffd5]/30' 
+                            : 'bg-[#1e293b]/10 text-[#1e293b] border-[#1e293b]/20'
                         }`}>
                           {log.actionType === 'DOWNLOAD' ? (
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeWidth: '3px' }}>
