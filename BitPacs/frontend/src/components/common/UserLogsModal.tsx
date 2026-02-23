@@ -87,7 +87,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-      <div className="bg-theme-card border border-theme-border rounded-xl w-full max-w-3xl mx-4 shadow-2xl animate-scale-up max-h-[90vh] flex flex-col">
+      <div className="bg-theme-card border border-theme-border rounded-xl overflow-hidden w-full max-w-3xl mx-4 shadow-2xl animate-scale-up max-h-[90vh] flex flex-col">
         {/* Header do Modal */}
         <div className="flex items-center justify-between p-6 border-b border-theme-border flex-shrink-0">
           <div>
@@ -150,7 +150,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                         <span 
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold border transition-colors shadow-sm ${
                             log.actionType === 'DOWNLOAD' 
-                              ? 'bg-green-100 border-green-300 text-[#065f46] dark:bg-[#00ffd5]/10 dark:border-[#00ffd5]/30 dark:text-[#00ffd5]' 
+                              ? 'bg-emerald-100 border-emerald-300 text-emerald-900 dark:bg-[#00ffd5]/10 dark:border-[#00ffd5]/30 dark:text-[#a7f3d0]' 
                               : 'bg-nautico/10 border-nautico/20 text-nautico'
                           }`}
                         >
