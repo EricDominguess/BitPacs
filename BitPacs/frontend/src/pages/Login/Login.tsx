@@ -222,7 +222,7 @@ export function Login() {
           </p>
           <div className="grid grid-cols-3 gap-4">
             <div className="p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
-              <p className="text-2xl font-bold text-white">50K+</p>
+              <p className="text-2xl font-bold text-white">3K+</p>
               <p className="text-sm text-white/70">Estudos</p>
             </div>
             <div className="p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
@@ -230,8 +230,8 @@ export function Login() {
               <p className="text-sm text-white/70">Uptime</p>
             </div>
             <div className="p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
-              <p className="text-2xl font-bold text-white">24/7</p>
-              <p className="text-sm text-white/70">Suporte</p>
+              <p className="text-2xl font-bold text-white">100% Web</p>
+              <p className="text-sm text-white/70">Zero Instalação</p>
             </div>
           </div>
         </div>
