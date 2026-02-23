@@ -147,10 +147,10 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                   logs.map((log) => (
                     <tr key={log.id} className="hover:bg-nautico/5 transition-colors">
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold border transition-colors shadow-sm ${
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold border transition-colors ${
                           log.actionType === 'DOWNLOAD' 
-                            ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-aqua/20 dark:text-green-aqua dark:border-green-aqua/30' 
-                            : 'bg-nautico/10 text-nautico border-nautico/20'
+                            ? 'bg-green-500/10 text-green-600 dark:text-[#00ffd5] border-green-500/20' 
+                            : 'bg-nautico/20 text-nautico border-nautico/30'
                         }`}>
                           {log.actionType === 'DOWNLOAD' ? (
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeWidth: '3px' }}>
@@ -182,7 +182,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-theme-secondary bg-theme-secondary/20 px-2 py-0.5 rounded border border-theme-border">
-                          {/* Tenta ler 'unidadeNome' ou 'UnidadeNome' ou 'unidade' */}
+                          {/* Tenta ler todas as variações possíveis para evitar o "Não identificado" */}
                           {(log as any).unidadeNome || (log as any).UnidadeNome || (log as any).unidade || 'Não identificado'}
                         </span>
                       </td>
