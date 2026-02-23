@@ -147,22 +147,22 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                   logs.map((log) => (
                     <tr key={log.id} className="hover:bg-nautico/5 transition-colors">
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold border transition-colors ${
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold border transition-colors shadow-sm ${
                           log.actionType === 'DOWNLOAD' 
                             ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-aqua/20 dark:text-green-aqua dark:border-green-aqua/30' 
                             : 'bg-nautico/10 text-nautico border-nautico/20'
                         }`}>
                           {log.actionType === 'DOWNLOAD' ? (
-                            <svg className="w-3.5 h-3.5 stroke-[2.5px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeWidth: '3px' }}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
                           ) : (
-                            <svg className="w-3.5 h-3.5 stroke-[2.5px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeWidth: '3px' }}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                           )}
-                          {log.actionType === 'DOWNLOAD' ? 'Download' : 'Visualização'}
+                          {log.actionType === 'DOWNLOAD' ? 'DOWNLOAD' : 'VISUALIZAÇÃO'}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -181,8 +181,9 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-sm text-theme-primary font-medium truncate max-w-[150px] block">
-                          {(log as any).unidadeNome || (log as any).UnidadeNome || 'Não identificado'}
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-theme-secondary bg-theme-secondary/20 px-2 py-0.5 rounded border border-theme-border">
+                          {/* Tenta ler 'unidadeNome' ou 'UnidadeNome' ou 'unidade' */}
+                          {(log as any).unidadeNome || (log as any).UnidadeNome || (log as any).unidade || 'Não identificado'}
                         </span>
                       </td>
                       <td className="px-4 py-3">
