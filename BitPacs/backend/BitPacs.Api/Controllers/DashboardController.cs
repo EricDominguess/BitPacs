@@ -38,9 +38,14 @@ namespace BitPacs.API.Controllers
             // Ajuste os IPs abaixo para os IPs reais dos seus containers/servidores Orthanc!
             return unidade.ToLower() switch
             {
-                "foziguacu" => "http://10.31.0.42:8042", // Exemplo: coloque o IP real de Foz aqui
-                "fazenda" => "http://10.31.0.43:8042",   // Exemplo: coloque o IP real de Fazenda aqui
-                "riobranco" => "http://10.31.0.44:8042", // Adicione as outras unidades...
+                "foziguacu" => "http://10.31.0.39:8042", 
+                "fazenda" => "http://10.31.0.38:8042",   
+                "riobranco" => "http://10.31.0.36:8042",
+                "faxinal" => "http://10.31.0.37:8042",
+                "santamariana" => "http://10.31.0.46:8042",
+                "guarapuava" => "http://10.31.0.47:8042",
+                "carlopolis" => "http://10.31.0.48:8042",
+                "arapoti" => "http://10.31.0.49:8042",
                 _ => "http://localhost:8042" // Padrão
             };
         }

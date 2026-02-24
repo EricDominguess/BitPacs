@@ -7,7 +7,7 @@ export default defineConfig(() => {
   // --- AJUSTE DE SEGURANÇA ---
   // Definimos o IP de fallback (Rio Branco) fixo para o Proxy Local.
   // Isso evita que o Vite tente usar "/orthanc-riobranco" como URL se o .env mudar.
-  const FALLBACK_ORTHANC_IP = 'http://10.31.0.41:8042'; 
+  const FALLBACK_ORTHANC_IP = 'http://10.31.0.36:8042'; 
 
   // Configuração padrão do proxy (sem senhas)
   const proxyConfig = {
@@ -28,22 +28,22 @@ export default defineConfig(() => {
       proxy: {
         // --- PROXIES POR UNIDADE (PERFEITO!) ---
         '/orthanc-riobranco': {
-          target: 'http://10.31.0.41:8042',
+          target: 'http://10.31.0.36:8042',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/orthanc-riobranco/, '')
         },
         '/orthanc-foziguacu': {
-          target: 'http://10.31.0.42:8042',
+          target: 'http://10.31.0.39:8042',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/orthanc-foziguacu/, '')
         },
         '/orthanc-fazenda': {
-          target: 'http://10.31.0.43:8042',
+          target: 'http://10.31.0.38:8042',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/orthanc-fazenda/, '')
         },
         '/orthanc-faxinal': {
-          target: 'http://10.31.0.45:8042',
+          target: 'http://10.31.0.37:8042',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/orthanc-faxinal/, ''),
         },
