@@ -15,14 +15,7 @@ const UNIDADES_CONFIG: Record<string, { orthancProxy: string }> = {
   '7': { orthancProxy: '/orthanc-carlopolis' },
   '8': { orthancProxy: '/orthanc-arapoti' },
   // Mantendo nomes para retrocompatibilidade
-  'riobranco': { orthancProxy: '/orthanc-riobranco' },
-  'foziguacu': { orthancProxy: '/orthanc-foziguacu' },
-  'fazenda': { orthancProxy: '/orthanc-fazenda' },
-  'faxinal': { orthancProxy: '/orthanc-faxinal' },
-  'santamariana': { orthancProxy: '/orthanc-santamariana' },
-  'guarapuava': { orthancProxy: '/orthanc-guarapuava' },
-  'carlopolis': { orthancProxy: '/orthanc-carlopolis' },
-  'arapoti': { orthancProxy: '/orthanc-arapoti' },
+  
 };
 
 interface UseOrthancDataReturn {
