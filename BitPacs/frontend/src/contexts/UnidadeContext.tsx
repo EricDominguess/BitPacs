@@ -36,25 +36,25 @@ const UNIDADES_CONFIG = {
   santamariana: {
     value: 'santamariana',
     label: import.meta.env.VITE_UNIDADE_SANTAMARIANA || 'CIS - Unidade de Santa Mariana',
-    orthancUrl: '/orthanc-santamariana',
+    orthancUrl: '/orthanc-santamariana/',
     storageTotalGB: 1020,
   },
   guarapuava: {
     value: 'guarapuava',
     label: import.meta.env.VITE_UNIDADE_GUARAPUAVA || 'CIS - Unidade de Guarapuava',
-    orthancUrl: '/orthanc-guarapuava',
+    orthancUrl: '/orthanc-guarapuava/',
     storageTotalGB: 1020,
   },
   carlopolis: {
     value: 'carlopolis',
     label: import.meta.env.VITE_UNIDADE_CARLOPOLIS || 'CIS - Unidade de Carlópolis',
-    orthancUrl: '/orthanc-carlopolis',
+    orthancUrl: '/orthanc-carlopolis/',
     storageTotalGB: 1020,
   },
   arapoti: {
     value: 'arapoti',
     label: import.meta.env.VITE_UNIDADE_ARAPOTI || 'CIS - Unidade de Arapoti',
-    orthancUrl: '/orthanc-arapoti',
+    orthancUrl: '/orthanc-arapoti/',
     storageTotalGB: 1020,
   },
 };
