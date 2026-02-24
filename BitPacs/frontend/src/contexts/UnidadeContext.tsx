@@ -48,7 +48,7 @@ const UNIDADES_CONFIG = {
   carlopolis: {
     value: 'carlopolis',
     label: import.meta.env.VITE_UNIDADE_CARLOPOLIS || 'CIS - Unidade de Carlópolis',
-    orthancUrl: import.meta.env.VITE_ORTHANC_IP_CARLOPOLIS || 'http://localhost:8042',
+    orthancUrl: import.meta.env.VITE_ORTHANC_IP_CARLOPOLIS || '/orthanc-carlopolis',
     storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_CARLOPOLIS) || 1020,
   },
   arapoti: {
