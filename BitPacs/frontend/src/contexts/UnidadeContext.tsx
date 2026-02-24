@@ -36,26 +36,26 @@ const UNIDADES_CONFIG = {
   santamariana: {
     value: 'santamariana',
     label: import.meta.env.VITE_UNIDADE_SANTAMARIANA || 'CIS - Unidade de Santa Mariana',
-    orthancUrl: import.meta.env.VITE_ORTHANC_IP_SANTAMARIANA || 'http://localhost:8042',
-    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_SANTAMARIANA) || 1020,
+    orthancUrl: '/orthanc-santamariana',
+    storageTotalGB: 1020,
   },
   guarapuava: {
     value: 'guarapuava',
     label: import.meta.env.VITE_UNIDADE_GUARAPUAVA || 'CIS - Unidade de Guarapuava',
-    orthancUrl: import.meta.env.VITE_ORTHANC_IP_GUARAPUAVA || 'http://localhost:8042',
-    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_GUARAPUAVA) || 1020,
+    orthancUrl: '/orthanc-guarapuava',
+    storageTotalGB: 1020,
   },
   carlopolis: {
     value: 'carlopolis',
     label: import.meta.env.VITE_UNIDADE_CARLOPOLIS || 'CIS - Unidade de Carlópolis',
-    orthancUrl: import.meta.env.VITE_ORTHANC_IP_CARLOPOLIS || '/orthanc-carlopolis',
-    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_CARLOPOLIS) || 1020,
+    orthancUrl: '/orthanc-carlopolis',
+    storageTotalGB: 1020,
   },
   arapoti: {
     value: 'arapoti',
     label: import.meta.env.VITE_UNIDADE_ARAPOTI || 'CIS - Unidade de Arapoti',
-    orthancUrl: import.meta.env.VITE_ORTHANC_IP_ARAPOTI || 'http://localhost:8042',
-    storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_ARAPOTI) || 1020,
+    orthancUrl: '/orthanc-arapoti',
+    storageTotalGB: 1020,
   },
 };
 
