@@ -19,6 +19,10 @@ const UNIDADES_CONFIG: Record<string, { orthancProxy: string }> = {
   'foziguacu': { orthancProxy: '/orthanc-foziguacu' },
   'fazenda': { orthancProxy: '/orthanc-fazenda' },
   'faxinal': { orthancProxy: '/orthanc-faxinal' },
+  'santamariana': { orthancProxy: '/orthanc-santamariana' },
+  'guarapuava': { orthancProxy: '/orthanc-guarapuava' },
+  'carlopolis': { orthancProxy: '/orthanc-carlopolis' },
+  'arapoti': { orthancProxy: '/orthanc-arapoti' },
 };
 
 interface UseOrthancDataReturn {
