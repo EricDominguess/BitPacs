@@ -1,36 +1,35 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
-// Configuração das unidades do .env
 const UNIDADES_CONFIG = {
   localhost: {
     value: 'localhost',
     label: 'Nenhuma (Localhost)',
-    orthancUrl: 'http://localhost:8042',
+    orthancUrl: '/orthanc',
     storageTotalGB: 0,
   },
   riobranco: {
     value: 'riobranco',
     label: import.meta.env.VITE_UNIDADE_RIOBRANCO || 'CIS - Unidade de Rio Branco',
-    orthancUrl: import.meta.env.VITE_ORTHANC_IP_RIOBRANCO || 'http://localhost:8042',
+    orthancUrl: '/orthanc-riobranco',
     storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_RIOBRANCO) || 1020,
   },
   foziguacu: {
     value: 'foziguacu',
     label: import.meta.env.VITE_UNIDADE_FOZIGUACU || 'CIS - Unidade de Foz do Iguaçu',
-    orthancUrl: import.meta.env.VITE_ORTHANC_IP_FOZIGUACU || 'http://localhost:8042',
+    orthancUrl: '/orthanc-foziguacu',
     storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_FOZIGUACU) || 1020,
   },
   fazenda: {
     value: 'fazenda',
     label: import.meta.env.VITE_UNIDADE_FAZENDA || 'CIS - Unidade de Fazenda',
-    orthancUrl: import.meta.env.VITE_ORTHANC_IP_FAZENDA || 'http://localhost:8042',
+    orthancUrl: '/orthanc-fazenda',
     storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_FAZENDA) || 1080,
   },
   faxinal: {
     value: 'faxinal',
     label: import.meta.env.VITE_UNIDADE_FAXINAL || 'CIS - Unidade de Faxinal',
-    orthancUrl: import.meta.env.VITE_ORTHANC_IP_FAXINAL || 'http://localhost:8042',
+    orthancUrl: '/orthanc-faxinal',
     storageTotalGB: Number(import.meta.env.VITE_STORAGE_TOTAL_FAXINAL) || 1020,
   },
   santamariana: {
@@ -65,11 +64,11 @@ interface UnidadeContextType {
   unidade: UnidadeKey;
   unidadeLabel: string;
   orthancUrl: string;
-  storageTotalBytes: number; // Capacidade total de armazenamento em bytes
+  storageTotalBytes: number;
   setUnidade: (unidade: UnidadeKey) => void;
   unidadesDisponiveis: typeof UNIDADES_CONFIG;
   isMaster: boolean;
-  isUnidadeSelected: boolean; // Indica se o Master já escolheu uma unidade real
+  isUnidadeSelected: boolean;
 }
 
 const UnidadeContext = createContext<UnidadeContextType | undefined>(undefined);
@@ -79,67 +78,57 @@ interface UnidadeProviderProps {
 }
 
 export function UnidadeProvider({ children }: UnidadeProviderProps) {
-  // Pega o usuário logado
   const [currentUser, setCurrentUser] = useState(() => {
-    const stored = (sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user')) || localStorage.getItem('bitpacs_user');
+    const stored = sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user');
     return stored ? JSON.parse(stored) : null;
   });
 
   const isMaster = currentUser?.role === 'Master';
 
-  // Determina a unidade inicial
   const getInitialUnidade = (): UnidadeKey => {
-    // Se for Master, verifica se tem preferência salva, senão inicia em localhost
     if (isMaster) {
       const stored = localStorage.getItem('bitpacs-unidade-master');
-      if (stored && stored in UNIDADES_CONFIG) {
-        return stored as UnidadeKey;
-      }
-      // Master inicia em localhost (sem unidade selecionada)
+      if (stored && stored in UNIDADES_CONFIG) return stored as UnidadeKey;
       return 'localhost';
-    } else if (currentUser?.unidade) {
-      // Se não for Master, usa a unidade do usuário
-      if (currentUser.unidade in UNIDADES_CONFIG) {
-        return currentUser.unidade as UnidadeKey;
-      }
     }
-    // Padrão: fazenda
-    return 'fazenda';
+
+    // ✅ Lê unidadeId (slug string) em vez de unidade
+    const slug = currentUser?.unidadeId;
+    if (slug && slug in UNIDADES_CONFIG) return slug as UnidadeKey;
+
+    return 'localhost';
   };
 
   const [unidade, setUnidadeState] = useState<UnidadeKey>(getInitialUnidade);
 
-  // Atualiza quando o usuário muda
   useEffect(() => {
     const handleStorageChange = () => {
-      const stored = (sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user')) || localStorage.getItem('bitpacs_user');
+      const stored = sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user');
       const user = stored ? JSON.parse(stored) : null;
       setCurrentUser(user);
     };
-
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Atualiza a unidade quando o usuário muda (para não-Master)
+  // ✅ Atualiza unidade quando currentUser muda, lendo unidadeId
   useEffect(() => {
-    if (!isMaster && currentUser?.unidade && currentUser.unidade in UNIDADES_CONFIG) {
-      setUnidadeState(currentUser.unidade as UnidadeKey);
+    if (!isMaster) {
+      const slug = currentUser?.unidadeId;
+      if (slug && slug in UNIDADES_CONFIG) {
+        setUnidadeState(slug as UnidadeKey);
+      }
     }
   }, [currentUser, isMaster]);
 
-  // Reset para localhost quando Master faz login
   useEffect(() => {
     if (isMaster) {
       const stored = localStorage.getItem('bitpacs-unidade-master');
-      if (!stored) {
-        setUnidadeState('localhost');
-      }
+      if (!stored) setUnidadeState('localhost');
     }
   }, [isMaster]);
 
   const setUnidade = (novaUnidade: UnidadeKey) => {
-    // Apenas Master pode trocar manualmente
     if (isMaster) {
       setUnidadeState(novaUnidade);
       localStorage.setItem('bitpacs-unidade-master', novaUnidade);
@@ -176,6 +165,5 @@ export function useUnidade() {
   return context;
 }
 
-// Exporta as configurações para uso em outros lugares
 export { UNIDADES_CONFIG };
 export type { UnidadeKey };
