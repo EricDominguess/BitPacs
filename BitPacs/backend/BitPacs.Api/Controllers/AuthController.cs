@@ -45,13 +45,10 @@ namespace BitPacs.Api.Controllers
         public IActionResult GetUsers()
         {
             var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
-
             var query = _context.Users.AsQueryable();
 
             if (currentUserRole != "Master")
-            {
                 query = query.Where(u => u.Role != "Master");
-            }
 
             var users = query
                 .Select(u => new { u.Id, u.Nome, u.Email, u.Role, u.UnidadeId, u.AvatarUrl })
@@ -89,6 +86,7 @@ namespace BitPacs.Api.Controllers
                 Email = request.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 Role = request.Role,
+                // ✅ UnidadeId agora é string diretamente (ex: "guarapuava")
                 UnidadeId = request.Role != "Master" ? request.UnidadeId : null
             };
 
@@ -127,7 +125,8 @@ namespace BitPacs.Api.Controllers
             if (!string.IsNullOrEmpty(request.Role))
                 user.Role = request.Role;
 
-            if (request.UnidadeId.HasValue)
+            // ✅ UnidadeId agora é string — sem parseInt, sem conversão
+            if (request.UnidadeId != null)
                 user.UnidadeId = user.Role != "Master" ? request.UnidadeId : null;
 
             _context.SaveChanges();
@@ -270,7 +269,8 @@ namespace BitPacs.Api.Controllers
         public required string Email { get; set; }
         public required string Password { get; set; }
         public string Role { get; set; } = "Medico";
-        public int? UnidadeId { get; set; }
+        // ✅ string agora (ex: "guarapuava")
+        public string? UnidadeId { get; set; }
     }
 
     public class UpdateUserRequest
@@ -279,6 +279,7 @@ namespace BitPacs.Api.Controllers
         public string? Email { get; set; }
         public string? Password { get; set; }
         public string? Role { get; set; }
-        public int? UnidadeId { get; set; }
+        // ✅ string agora (ex: "guarapuava")
+        public string? UnidadeId { get; set; }
     }
 }

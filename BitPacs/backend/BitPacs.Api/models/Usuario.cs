@@ -12,7 +12,7 @@ namespace BitPacs.Api.Models
         public int Id { get; set; }
         
         [Required]
-        [Column("Name")]  // Mapeia Nome -> Name no banco
+        [Column("Name")]
         public string Nome { get; set; } = string.Empty;
         
         [Required]
@@ -25,7 +25,9 @@ namespace BitPacs.Api.Models
         [Required]
         public string Role { get; set; } = "Medico";
         
-        public int? UnidadeId { get; set; }
+        // ✅ Agora é string com o slug da unidade (ex: "guarapuava", "riobranco")
+        // Rode a migration: ALTER TABLE "Users" ALTER COLUMN "UnidadeId" TYPE VARCHAR(50);
+        public string? UnidadeId { get; set; }
         
         public string? AvatarUrl { get; set; }
         

@@ -1,39 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-// Intervalo entre atualizações (em ms)
 const INTERVALO_ATUALIZACAO = 15000;
 
-// Configuração das unidades
+// ✅ Apenas slugs — sem IDs numéricos. O backend agora retorna o slug direto.
 const UNIDADES_CONFIG: Record<string, { orthancProxy: string }> = {
-  'localhost': { orthancProxy: '/orthanc' },
-  '1': { orthancProxy: '/orthanc-riobranco' }, // Usando IDs para bater com o C#
-  '2': { orthancProxy: '/orthanc-foziguacu' },
-  '3': { orthancProxy: '/orthanc-fazenda' },
-  '4': { orthancProxy: '/orthanc-faxinal' },
-  '5': { orthancProxy: '/orthanc-santamariana' },
-  '6': { orthancProxy: '/orthanc-guarapuava' },
-  '7': { orthancProxy: '/orthanc-carlopolis' },
-  '8': { orthancProxy: '/orthanc-arapoti' },
-  // Mantendo nomes para retrocompatibilidade
-  'riobranco': { orthancProxy: '/orthanc-riobranco' },
-  'foziguacu': { orthancProxy: '/orthanc-foziguacu' },
-  'fazenda': { orthancProxy: '/orthanc-fazenda' },
-  'faxinal': { orthancProxy: '/orthanc-faxinal' },
-  'santamariana': { orthancProxy: '/orthanc-santamariana' },
-  'guarapuava': { orthancProxy: '/orthanc-guarapuava' },
-  'carlopolis': { orthancProxy: '/orthanc-carlopolis' },
-  'arapoti': { orthancProxy: '/orthanc-arapoti' },
-};
-
-const ID_PARA_NOME_UNIDADE: Record<string, string> = {
-  '1': 'riobranco',
-  '2': 'foziguacu',
-  '3': 'fazenda',
-  '4': 'faxinal',
-  '5': 'santamariana',
-  '6': 'guarapuava',
-  '7': 'carlopolis',
-  '8': 'arapoti',
+  'localhost':     { orthancProxy: '/orthanc' },
+  'riobranco':     { orthancProxy: '/orthanc-riobranco' },
+  'foziguacu':     { orthancProxy: '/orthanc-foziguacu' },
+  'fazenda':       { orthancProxy: '/orthanc-fazenda' },
+  'faxinal':       { orthancProxy: '/orthanc-faxinal' },
+  'santamariana':  { orthancProxy: '/orthanc-santamariana' },
+  'guarapuava':    { orthancProxy: '/orthanc-guarapuava' },
+  'carlopolis':    { orthancProxy: '/orthanc-carlopolis' },
+  'arapoti':       { orthancProxy: '/orthanc-arapoti' },
 };
 
 interface UseOrthancDataReturn {
@@ -52,125 +31,94 @@ interface UseOrthancDataReturn {
   buscarModalidadeNoServidor: (modality: string) => Promise<any[]>;
 }
 
-/**
- * Super Hook OTIMIZADO que combina:
- * - Fetch inicial de dados do Orthanc (pacientes, estudos, séries)
- * - Monitoramento em tempo real de mudanças
- * - Indexação de séries por estudo para busca O(1)
- * - Suporte a múltiplas unidades
- */
 export function useOrthancData(): UseOrthancDataReturn {
-  // Pega a unidade do localStorage/contexto
   const getUnidadeAtual = useCallback(() => {
     const userStorage = sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user');
     const user = JSON.parse(userStorage || '{}');
     const isMaster = user?.role === 'Master';
-    
+
     if (isMaster) {
       return localStorage.getItem('bitpacs-unidade-master') || 'riobranco';
     }
 
-    if (user?.unidadeId) {
-      return String(user.unidadeId);
-    }
-
-    if (user?.unidade) {
-      return user.unidade;
-    }
-
-    return 'rio branco';
+    // ✅ unidadeId agora já é o slug (ex: "guarapuava") — sem conversão necessária
+    return user?.unidadeId || 'riobranco';
   }, []);
 
   const [unidadeAtual, setUnidadeAtual] = useState(getUnidadeAtual);
 
-  // Estados de dados
   const [pacientes, setPacientes] = useState<any[]>([]);
   const [estudos, setEstudos] = useState<any[]>([]);
   const [series, setSeries] = useState<any[]>([]);
   const [seriesByStudy, setSeriesByStudy] = useState<Map<string, any[]>>(new Map());
   const [status, setStatus] = useState<any>(null);
-  
-  // Estados de controle
   const [isLoading, setIsLoading] = useState(true);
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Ref para o monitoramento de mudanças
+
   const lastSequenceRef = useRef<number>(0);
   const isLoadingRef = useRef<boolean>(false);
 
-  // Obtém o prefixo do proxy baseado na unidade
   const getProxyPrefix = useCallback(() => {
     const config = UNIDADES_CONFIG[unidadeAtual];
     return config?.orthancProxy || '/orthanc';
   }, [unidadeAtual]);
 
-  /**
-   * Carrega todos os dados do Orthanc
-   */
-    const carregarTudo = useCallback(async () => {
-        if (isLoadingRef.current) return;
-        isLoadingRef.current = true;
-        
-        const timestamp = Date.now();
-        const proxyPrefix = getProxyPrefix();
-        setError(null);
-        
-        try {
-          // 🚀 MUDANÇA 1: Busca Estudos, Estatísticas e PACIENTES tudo ao mesmo tempo!
-          const [estudosRes, statsRes, pacientesRes] = await Promise.all([
-            fetch(`${proxyPrefix}/studies?expand&_t=${timestamp}`),
-            fetch(`${proxyPrefix}/statistics?_t=${timestamp}`),
-            fetch(`${proxyPrefix}/patients?_t=${timestamp}`) // Passamos pra cá!
-          ]);
+  const carregarTudo = useCallback(async () => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
 
-          if (!estudosRes.ok || !statsRes.ok) throw new Error('Falha ao carregar dados principais');
+    const timestamp = Date.now();
+    const proxyPrefix = getProxyPrefix();
+    setError(null);
 
-          const [estudosData, statsData, pacientesData] = await Promise.all([
-            estudosRes.json(),
-            statsRes.json(),
-            pacientesRes.ok ? pacientesRes.json() : []
-          ]);
+    try {
+      const [estudosRes, statsRes, pacientesRes] = await Promise.all([
+        fetch(`${proxyPrefix}/studies?expand&_t=${timestamp}`),
+        fetch(`${proxyPrefix}/statistics?_t=${timestamp}`),
+        fetch(`${proxyPrefix}/patients?_t=${timestamp}`)
+      ]);
 
-          // Atualiza a tela imediatamente (Os pacientes vão aparecer na hora!)
-          setEstudos(estudosData);
-          setStatus(statsData);
-          setPacientes(pacientesData);
-          setIsLoading(false);
+      if (!estudosRes.ok || !statsRes.ok) throw new Error('Falha ao carregar dados principais');
 
-          // 🛡️ MUDANÇA 2: Busca as séries silenciosamente via C#
-          console.log(`Buscando séries no C# para a unidade: ${unidadeAtual}`);
-          const nomeUnidade = ID_PARA_NOME_UNIDADE[unidadeAtual] || unidadeAtual;
-          const seriesRes = await fetch(`/api/dashboard/series/${nomeUnidade}`);
-          
-          if (seriesRes.ok) {
-            const seriesData = await seriesRes.json();
-            const seriesMap = new Map<string, any[]>();
-            seriesData.forEach((serie: any) => {
-              const studyId = serie.ParentStudy;
-              if (!seriesMap.has(studyId)) seriesMap.set(studyId, []);
-              seriesMap.get(studyId)!.push(serie);
-            });
-            
-            setSeries(seriesData);
-            setSeriesByStudy(seriesMap);
-          }
-        } catch (erro) {
-          setError(erro instanceof Error ? erro.message : 'Erro desconhecido');
-          setIsLoading(false);
-        } finally {
-          isLoadingRef.current = false;
-        }
-    }, [getProxyPrefix, unidadeAtual]);
+      const [estudosData, statsData, pacientesData] = await Promise.all([
+        estudosRes.json(),
+        statsRes.json(),
+        pacientesRes.ok ? pacientesRes.json() : []
+      ]);
 
-  /**
-   * Verifica mudanças no Orthanc e recarrega se necessário
-   */
+      setEstudos(estudosData);
+      setStatus(statsData);
+      setPacientes(pacientesData);
+      setIsLoading(false);
+
+      // ✅ unidadeAtual já é o slug — passa direto para o C#
+      console.log(`Buscando séries no C# para a unidade: ${unidadeAtual}`);
+      const seriesRes = await fetch(`/api/dashboard/series/${unidadeAtual}`);
+
+      if (seriesRes.ok) {
+        const seriesData = await seriesRes.json();
+        const seriesMap = new Map<string, any[]>();
+        seriesData.forEach((serie: any) => {
+          const studyId = serie.ParentStudy;
+          if (!seriesMap.has(studyId)) seriesMap.set(studyId, []);
+          seriesMap.get(studyId)!.push(serie);
+        });
+        setSeries(seriesData);
+        setSeriesByStudy(seriesMap);
+      }
+    } catch (erro) {
+      setError(erro instanceof Error ? erro.message : 'Erro desconhecido');
+      setIsLoading(false);
+    } finally {
+      isLoadingRef.current = false;
+    }
+  }, [getProxyPrefix, unidadeAtual]);
+
   const checkChanges = useCallback(async () => {
     const proxyPrefix = getProxyPrefix();
-    
+
     try {
-      // Primeira execução: pega o último ID de sequência
       if (lastSequenceRef.current === 0) {
         const response = await fetch(`${proxyPrefix}/changes?descending=true&limit=1`);
         const data = await response.json();
@@ -180,7 +128,6 @@ export function useOrthancData(): UseOrthancDataReturn {
         return;
       }
 
-      // Verifica se há mudanças desde a última sequência
       const response = await fetch(`${proxyPrefix}/changes?since=${lastSequenceRef.current}&limit=100`);
       const data = await response.json();
 
@@ -188,10 +135,7 @@ export function useOrthancData(): UseOrthancDataReturn {
         console.log(`🔔 Novas mudanças detectadas! (De ${lastSequenceRef.current} para ${data.Last})`);
         lastSequenceRef.current = data.Last;
 
-        // Filtra apenas mudanças relevantes (novos estudos ou séries)
         const listaDeTipos = data.Changes.map((change: any) => change.ChangeType);
-        console.log("📋 Tipos de mudanças:", listaDeTipos);
-
         const temNovidadeReal = listaDeTipos.includes('NewStudy') || listaDeTipos.includes('NewSeries');
 
         if (temNovidadeReal) {
@@ -208,9 +152,7 @@ export function useOrthancData(): UseOrthancDataReturn {
     const proxyPrefix = getProxyPrefix();
     try {
       const res = await fetch(`${proxyPrefix}/studies/${studyId}/series?expand`);
-      if (res.ok) {
-        return await res.json();
-      }
+      if (res.ok) return await res.json();
     } catch (e) {
       console.error(`Erro ao carregar séries do estudo ${studyId}:`, e);
     }
@@ -218,41 +160,33 @@ export function useOrthancData(): UseOrthancDataReturn {
   };
 
   const buscarEstudosNoServidor = async (termo: string) => {
-      const proxyPrefix = getProxyPrefix();
-      try {
-        // O Orthanc exige o * (asterisco) para fazer busca parcial (ex: *JOAO*)
-        const payloadNome = { Level: "Study", Query: { PatientName: `*${termo}*` }, Expand: true, Limit: 50 };
-        const payloadId = { Level: "Study", Query: { PatientID: `*${termo}*` }, Expand: true, Limit: 50 };
+    const proxyPrefix = getProxyPrefix();
+    try {
+      const payloadNome = { Level: "Study", Query: { PatientName: `*${termo}*` }, Expand: true, Limit: 50 };
+      const payloadId   = { Level: "Study", Query: { PatientID: `*${termo}*` },   Expand: true, Limit: 50 };
 
-        // Fazemos as duas buscas ao mesmo tempo para o médico não ter que escolher entre buscar por nome ou ID
-        const [resNome, resId] = await Promise.all([
-          fetch(`${proxyPrefix}/tools/find`, { method: 'POST', body: JSON.stringify(payloadNome) }),
-          fetch(`${proxyPrefix}/tools/find`, { method: 'POST', body: JSON.stringify(payloadId) })
-        ]);
+      const [resNome, resId] = await Promise.all([
+        fetch(`${proxyPrefix}/tools/find`, { method: 'POST', body: JSON.stringify(payloadNome) }),
+        fetch(`${proxyPrefix}/tools/find`, { method: 'POST', body: JSON.stringify(payloadId) })
+      ]);
 
-        const estudosNome = resNome.ok ? await resNome.json() : [];
-        const estudosId = resId.ok ? await resId.json() : [];
+      const estudosNome = resNome.ok ? await resNome.json() : [];
+      const estudosId   = resId.ok   ? await resId.json()   : [];
 
-        // Junta tudo e remove duplicatas (caso o termo bata no nome e no ID do mesmo paciente)
-        const todos = [...estudosNome, ...estudosId];
-        const unicos = Array.from(new Map(todos.map((e: any) => [e.ID, e])).values());
-
-        return unicos;
-      } catch (e) {
-        console.error("Erro na busca universal:", e);
-        return [];
-      }
+      const todos = [...estudosNome, ...estudosId];
+      return Array.from(new Map(todos.map((e: any) => [e.ID, e])).values());
+    } catch (e) {
+      console.error("Erro na busca universal:", e);
+      return [];
+    }
   };
 
   const buscarModalidadeNoServidor = async (modality: string) => {
     const proxyPrefix = getProxyPrefix();
     try {
-      // O Orthanc permite buscar direto pela tag ModalitiesInStudy!
       const payload = { Level: "Study", Query: { ModalitiesInStudy: modality }, Expand: true, Limit: 100 };
       const res = await fetch(`${proxyPrefix}/tools/find`, { method: 'POST', body: JSON.stringify(payload) });
       const data = res.ok ? await res.json() : [];
-      
-      // Remove duplicatas por segurança
       return Array.from(new Map(data.map((e: any) => [e.ID, e])).values());
     } catch (e) {
       console.error("Erro na busca de modalidade:", e);
@@ -260,26 +194,22 @@ export function useOrthancData(): UseOrthancDataReturn {
     }
   };
 
-  // Efeito para detectar mudanças de unidade (via storage event)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'bitpacs-unidade-master' || e.key === 'bitpacs_user') {
         const novaUnidade = getUnidadeAtual();
         if (novaUnidade !== unidadeAtual) {
-          console.log(`🔄 Unidade alterada (Storage): ${unidadeAtual} -> ${novaUnidade}. Forçando recarregamento...`);
-          setUnidadeAtual(novaUnidade); // <-- Devolvemos isso para matar a linha amarela!
-          window.location.reload(); // Dá um F5 automático na página inteira!
+          setUnidadeAtual(novaUnidade);
+          window.location.reload();
         }
       }
     };
 
-    // Também verifica periodicamente (para mudanças na mesma aba)
     const checkUnidade = () => {
       const novaUnidade = getUnidadeAtual();
       if (novaUnidade !== unidadeAtual) {
-        console.log(`🔄 Unidade alterada (Aba local): ${unidadeAtual} -> ${novaUnidade}. Forçando recarregamento...`);
-        setUnidadeAtual(novaUnidade); // <-- Devolvemos isso para matar a linha amarela!
-        window.location.reload(); // Dá um F5 automático na página inteira!
+        setUnidadeAtual(novaUnidade);
+        window.location.reload();
       }
     };
 
@@ -292,23 +222,15 @@ export function useOrthancData(): UseOrthancDataReturn {
     };
   }, [getUnidadeAtual, unidadeAtual]);
 
-  // Efeito principal: carrega dados e inicia monitoramento
   useEffect(() => {
-    // Carrega dados inicialmente
     carregarTudo();
-
-    // Inicia o monitoramento
     checkChanges();
-
-    // Configura o intervalo para checagem periódica
     const intervalId = setInterval(checkChanges, INTERVALO_ATUALIZACAO);
-
-    // Cleanup: para o monitoramento ao desmontar
     return () => {
       clearInterval(intervalId);
       console.log("🛑 Monitor parado");
     };
-  }, [carregarTudo, checkChanges, unidadeAtual,]);
+  }, [carregarTudo, checkChanges, unidadeAtual]);
 
   return {
     pacientes,
@@ -327,9 +249,6 @@ export function useOrthancData(): UseOrthancDataReturn {
   };
 }
 
-/**
- * Hook auxiliar para calcular estatísticas baseadas nos dados do Orthanc
- */
 export function useOrthancStats(estudos: any[], pacientes: any[]) {
   const dataHoje = (() => {
     const data = new Date();
@@ -340,11 +259,9 @@ export function useOrthancStats(estudos: any[], pacientes: any[]) {
     (estudo) => estudo.MainDicomTags?.StudyDate === dataHoje
   ).length;
 
-  const totalPacientes = pacientes.length;
-
   return {
     estudosHoje,
-    totalPacientes,
+    totalPacientes: pacientes.length,
     dataHoje
   };
 }
