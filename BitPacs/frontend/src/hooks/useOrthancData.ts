@@ -15,7 +15,25 @@ const UNIDADES_CONFIG: Record<string, { orthancProxy: string }> = {
   '7': { orthancProxy: '/orthanc-carlopolis' },
   '8': { orthancProxy: '/orthanc-arapoti' },
   // Mantendo nomes para retrocompatibilidade
-  
+  'riobranco': { orthancProxy: '/orthanc-riobranco' },
+  'foziguacu': { orthancProxy: '/orthanc-foziguacu' },
+  'fazenda': { orthancProxy: '/orthanc-fazenda' },
+  'faxinal': { orthancProxy: '/orthanc-faxinal' },
+  'santamariana': { orthancProxy: '/orthanc-santamariana' },
+  'guarapuava': { orthancProxy: '/orthanc-guarapuava' },
+  'carlopolis': { orthancProxy: '/orthanc-carlopolis' },
+  'arapoti': { orthancProxy: '/orthanc-arapoti' },
+};
+
+const ID_PARA_NOME_UNIDADE: Record<string, string> = {
+  '1': 'riobranco',
+  '2': 'foziguacu',
+  '3': 'fazenda',
+  '4': 'faxinal',
+  '5': 'santamariana',
+  '6': 'guarapuava',
+  '7': 'carlopolis',
+  '8': 'arapoti',
 };
 
 interface UseOrthancDataReturn {
@@ -49,9 +67,18 @@ export function useOrthancData(): UseOrthancDataReturn {
     const isMaster = user?.role === 'Master';
     
     if (isMaster) {
-      return localStorage.getItem('bitpacs-unidade-master') || 'fazenda';
+      return localStorage.getItem('bitpacs-unidade-master') || 'riobranco';
     }
-    return user?.unidade || 'fazenda';
+
+    if (user?.unidadeId) {
+      return String(user.unidadeId);
+    }
+
+    if (user?.unidade) {
+      return user.unidade;
+    }
+
+    return 'rio branco';
   }, []);
 
   const [unidadeAtual, setUnidadeAtual] = useState(getUnidadeAtual);
@@ -113,7 +140,8 @@ export function useOrthancData(): UseOrthancDataReturn {
 
           // 🛡️ MUDANÇA 2: Busca as séries silenciosamente via C#
           console.log(`Buscando séries no C# para a unidade: ${unidadeAtual}`);
-          const seriesRes = await fetch(`/api/dashboard/series/${unidadeAtual}`);
+          const nomeUnidade = ID_PARA_NOME_UNIDADE[unidadeAtual] || unidadeAtual;
+          const seriesRes = await fetch(`/api/dashboard/series/${nomeUnidade}`);
           
           if (seriesRes.ok) {
             const seriesData = await seriesRes.json();
