@@ -183,24 +183,39 @@ export function useOrthancData(): UseOrthancDataReturn {
 
   const buscarModalidadeNoServidor = async (modality: string) => {
     const proxyPrefix = getProxyPrefix();
+    const PAGE_SIZE = 100;
+    const todos: any[] = [];
+    let since = 0;
+
     try {
-      // Sem Limit (ou Limit:0) o Orthanc retorna TODOS os estudos da modalidade de uma só vez
-      const payload = {
-        Level: "Study",
-        Query: { ModalitiesInStudy: modality },
-        Expand: true,
-      };
-      const res = await fetch(`${proxyPrefix}/tools/find`, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) return [];
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
+      // Pagina 100 por vez com Expand:true — acumula até não ter mais resultados
+      while (true) {
+        const payload = {
+          Level: "Study",
+          Query: { ModalitiesInStudy: modality },
+          Expand: true,
+          Limit: PAGE_SIZE,
+          Since: since,
+        };
+        const res = await fetch(`${proxyPrefix}/tools/find`, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (!res.ok) break;
+
+        const pagina: any[] = await res.json();
+        todos.push(...pagina);
+
+        // Se veio menos que o limite, chegamos na última página
+        if (pagina.length < PAGE_SIZE) break;
+        since += pagina.length;
+      }
+
+      return todos;
     } catch (e) {
       console.error("Erro na busca de modalidade:", e);
-      return [];
+      return todos; // retorna o que já buscou até o erro
     }
   };
 
