@@ -183,55 +183,21 @@ export function useOrthancData(): UseOrthancDataReturn {
 
   const buscarModalidadeNoServidor = async (modality: string) => {
     const proxyPrefix = getProxyPrefix();
-    const PAGE_SIZE = 200; // Páginas maiores = menos requisições
-    const todos: any[] = [];
-
     try {
-      // Busca em paralelo: IDs sem expand (rápido) + detalhes por lote
-      // O Orthanc /tools/find com Expand:false retorna apenas IDs — muito mais leve
-      let since = 0;
-      let temMais = true;
-
-      // Passo 1: busca todos os IDs paginando (sem Expand, bem rápido)
-      const idsSet = new Set<string>();
-      while (temMais) {
-        const payload = {
-          Level: "Study",
-          Query: { ModalitiesInStudy: modality },
-          Expand: false,
-          Limit: PAGE_SIZE,
-          Since: since,
-        };
-        const res = await fetch(`${proxyPrefix}/tools/find`, {
-          method: 'POST',
-          body: JSON.stringify(payload),
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (!res.ok) break;
-        const data: string[] = await res.json();
-        data.forEach(id => idsSet.add(id));
-        temMais = data.length === PAGE_SIZE;
-        since += data.length;
-      }
-
-      const ids = Array.from(idsSet);
-      if (ids.length === 0) return [];
-
-      // Passo 2: busca detalhes em lotes paralelos de 50
-      const BATCH_SIZE = 50;
-      for (let i = 0; i < ids.length; i += BATCH_SIZE) {
-        const lote = ids.slice(i, i + BATCH_SIZE);
-        const resultados = await Promise.all(
-          lote.map(id =>
-            fetch(`${proxyPrefix}/studies/${id}`)
-              .then(r => r.ok ? r.json() : null)
-              .catch(() => null)
-          )
-        );
-        resultados.forEach(estudo => { if (estudo) todos.push(estudo); });
-      }
-
-      return todos;
+      // Sem Limit (ou Limit:0) o Orthanc retorna TODOS os estudos da modalidade de uma só vez
+      const payload = {
+        Level: "Study",
+        Query: { ModalitiesInStudy: modality },
+        Expand: true,
+      };
+      const res = await fetch(`${proxyPrefix}/tools/find`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     } catch (e) {
       console.error("Erro na busca de modalidade:", e);
       return [];
