@@ -159,11 +159,11 @@ export function Studies() {
       study.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Como o servidor já filtrou a modalidade e nos entregou pronto, 
-    // nós só usamos o filtro local de modalidade se não houver busca no servidor.
-    const matchesModality = selectedModality === 'all'
+    // O servidor ja filtrou por modalidade, filtro local so se nao houver busca ativa
+    const matchesModality = selectedModality === 'all' || serverSearchResults !== null
       ? true
       : (study.modality || '').trim().toUpperCase() === selectedModality.toUpperCase();
+    
     return matchesSearch && matchesModality;
   });
 
