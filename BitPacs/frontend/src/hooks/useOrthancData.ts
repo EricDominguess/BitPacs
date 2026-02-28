@@ -183,39 +183,49 @@ export function useOrthancData(): UseOrthancDataReturn {
 
   const buscarModalidadeNoServidor = async (modality: string) => {
     const proxyPrefix = getProxyPrefix();
-    const PAGE_SIZE = 100;
-    const todos: any[] = [];
-    let since = 0;
+    const PAGE_SIZE = 200;
+    const headers = { 'Content-Type': 'application/json' };
 
-    try {
-      // Pagina 100 por vez com Expand:true — acumula até não ter mais resultados
-      while (true) {
-        const payload = {
+    const fetchPage = (since: number) =>
+      fetch(`${proxyPrefix}/tools/find`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
           Level: "Study",
           Query: { ModalitiesInStudy: modality },
           Expand: true,
           Limit: PAGE_SIZE,
           Since: since,
-        };
-        const res = await fetch(`${proxyPrefix}/tools/find`, {
-          method: 'POST',
-          body: JSON.stringify(payload),
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (!res.ok) break;
+        }),
+      }).then(r => r.ok ? r.json() as Promise<any[]> : []);
 
-        const pagina: any[] = await res.json();
-        todos.push(...pagina);
+    try {
+      // Passo 1: busca primeira página para saber quantos resultados tem
+      const primeira = await fetchPage(0);
+      if (primeira.length < PAGE_SIZE) return primeira; // coube em uma página, retorna já
 
-        // Se veio menos que o limite, chegamos na última página
-        if (pagina.length < PAGE_SIZE) break;
-        since += pagina.length;
+      // Passo 2: estima páginas restantes e busca TODAS em paralelo
+      const paginas: any[][] = [primeira];
+      let since = PAGE_SIZE;
+      const promessas: Promise<any[]>[] = [];
+
+      // Busca mais páginas em paralelo até uma delas retornar vazia
+      // (conservador: busca em lotes de 5 páginas paralelas por vez)
+      let temMais = true;
+      while (temMais) {
+        const lote = Array.from({ length: 5 }, (_, i) => fetchPage(since + i * PAGE_SIZE));
+        const resultados = await Promise.all(lote);
+        for (const pagina of resultados) {
+          if (pagina.length > 0) paginas.push(pagina);
+          if (pagina.length < PAGE_SIZE) { temMais = false; break; }
+        }
+        since += 5 * PAGE_SIZE;
       }
 
-      return todos;
+      return paginas.flat();
     } catch (e) {
       console.error("Erro na busca de modalidade:", e);
-      return todos; // retorna o que já buscou até o erro
+      return [];
     }
   };
 

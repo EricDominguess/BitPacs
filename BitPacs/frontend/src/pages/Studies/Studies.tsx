@@ -71,8 +71,11 @@ export function Studies() {
   // Formatação dos dados OTIMIZADA
   // 3. Transformando E ORDENANDO os dados
   const studiesFormatted = useMemo(() => {
-    // A MÁGICA: Se fizemos uma busca no servidor, desenha ela. Se não, desenha o periodo normal
-    const fonteDeDados = serverSearchResults !== null ? serverSearchResults : estudosPorPeriodo;
+    // Se ha busca no servidor, aplica filtro de periodo sobre ela tambem
+    // Isso permite combinar filtro de modalidade + periodo
+    const fonteDeDados = serverSearchResults !== null ? estudosPorPeriodo.filter(e =>
+      serverSearchResults.some((s: any) => s.ID === e.ID)
+    ) : estudosPorPeriodo;
     
     if (!fonteDeDados) return [];
 
@@ -128,27 +131,27 @@ export function Studies() {
   // O cérebro dos botões de modalidade
   const handleModalityClick = async (mod: string) => {
     setSelectedModality(mod);
-    
+    setCurrentPage(1);
+
     if (mod === 'all') {
-      // Se voltou para "Todos" e tem algo escrito na barra, pesquisa o texto de novo!
+      // Limpa IMEDIATAMENTE para evitar race condition na renderizacao
+      setServerSearchResults(null);
+      // Se tem texto na barra, refaz busca por nome
       if (searchTerm.length >= 2) {
         setIsSearchingServer(true);
         const res = await buscarEstudosNoServidor(searchTerm);
         setServerSearchResults(res);
         setIsSearchingServer(false);
-      } else {
-        setServerSearchResults(null);
       }
-      setCurrentPage(1);
       return;
     }
-    
-    // Se clicou em uma modalidade específica, vai buscar no Orthanc
+
+    // Modalidade especifica: limpa estado anterior e busca no servidor
+    setServerSearchResults(null); // limpa imediatamente enquanto carrega
     setIsSearchingServer(true);
     const resultados = await buscarModalidadeNoServidor(mod);
     setServerSearchResults(resultados);
     setIsSearchingServer(false);
-    setCurrentPage(1);
   };
 
   const filteredStudies = studiesFormatted.filter(study => {
