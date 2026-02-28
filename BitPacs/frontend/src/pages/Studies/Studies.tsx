@@ -161,10 +161,9 @@ export function Studies() {
 
     // Como o servidor já filtrou a modalidade e nos entregou pronto, 
     // nós só usamos o filtro local de modalidade se não houver busca no servidor.
-    const matchesModality = selectedModality === 'all' 
-      ? true 
+    const matchesModality = selectedModality === 'all'
+      ? true
       : (study.modality || '').trim().toUpperCase() === selectedModality.toUpperCase();
-    
     return matchesSearch && matchesModality;
   });
 
