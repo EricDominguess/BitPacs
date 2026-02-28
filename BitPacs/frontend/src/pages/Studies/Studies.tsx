@@ -39,6 +39,7 @@ export function Studies() {
 
   const [serverSearchResults, setServerSearchResults] = useState<any[] | null>(null);
   const [isSearchingServer, setIsSearchingServer] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Função que o botão vai chamar
   const handleServerSearch = async () => {
@@ -130,26 +131,31 @@ export function Studies() {
 
   // O cérebro dos botões de modalidade
   const handleModalityClick = async (mod: string) => {
+    // Cancela qualquer busca anterior em andamento
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setSelectedModality(mod);
     setCurrentPage(1);
+    setServerSearchResults(null);
 
     if (mod === 'all') {
-      // Limpa IMEDIATAMENTE para evitar race condition na renderizacao
-      setServerSearchResults(null);
-      // Se tem texto na barra, refaz busca por nome
       if (searchTerm.length >= 2) {
         setIsSearchingServer(true);
-        const res = await buscarEstudosNoServidor(searchTerm);
+        const res = await buscarEstudosNoServidor(searchTerm, controller.signal);
+        if (controller.signal.aborted) return;
         setServerSearchResults(res);
         setIsSearchingServer(false);
       }
       return;
     }
 
-    // Modalidade especifica: limpa estado anterior e busca no servidor
-    setServerSearchResults(null); // limpa imediatamente enquanto carrega
     setIsSearchingServer(true);
-    const resultados = await buscarModalidadeNoServidor(mod);
+    const resultados = await buscarModalidadeNoServidor(mod, controller.signal);
+    if (controller.signal.aborted) return;
     setServerSearchResults(resultados);
     setIsSearchingServer(false);
   };

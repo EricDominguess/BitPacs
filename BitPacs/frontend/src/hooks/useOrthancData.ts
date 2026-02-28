@@ -27,8 +27,8 @@ interface UseOrthancDataReturn {
   refetch: () => void;
   unidadeAtual: string;
   carregarSeriesDoEstudo: (studyId: string) => Promise<any[]>;
-  buscarEstudosNoServidor: (termo: string) => Promise<any[]>;
-  buscarModalidadeNoServidor: (modality: string) => Promise<any[]>;
+  buscarEstudosNoServidor: (termo: string, signal?: AbortSignal) => Promise<any[]>;
+  buscarModalidadeNoServidor: (modality: string, signal?: AbortSignal) => Promise<any[]>;
 }
 
 export function useOrthancData(): UseOrthancDataReturn {
@@ -159,15 +159,15 @@ export function useOrthancData(): UseOrthancDataReturn {
     return [];
   };
 
-  const buscarEstudosNoServidor = async (termo: string) => {
+  const buscarEstudosNoServidor = async (termo: string, signal?: AbortSignal) => {
     const proxyPrefix = getProxyPrefix();
     try {
       const payloadNome = { Level: "Study", Query: { PatientName: `*${termo}*` }, Expand: true, Limit: 50 };
       const payloadId   = { Level: "Study", Query: { PatientID: `*${termo}*` },   Expand: true, Limit: 50 };
 
       const [resNome, resId] = await Promise.all([
-        fetch(`${proxyPrefix}/tools/find`, { method: 'POST', body: JSON.stringify(payloadNome) }),
-        fetch(`${proxyPrefix}/tools/find`, { method: 'POST', body: JSON.stringify(payloadId) })
+        fetch(`${proxyPrefix}/tools/find`, { method: 'POST', body: JSON.stringify(payloadNome), signal }),
+        fetch(`${proxyPrefix}/tools/find`, { method: 'POST', body: JSON.stringify(payloadId), signal })
       ]);
 
       const estudosNome = resNome.ok ? await resNome.json() : [];
@@ -175,13 +175,14 @@ export function useOrthancData(): UseOrthancDataReturn {
 
       const todos = [...estudosNome, ...estudosId];
       return Array.from(new Map(todos.map((e: any) => [e.ID, e])).values());
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return [];
       console.error("Erro na busca universal:", e);
       return [];
     }
   };
 
-  const buscarModalidadeNoServidor = async (modality: string) => {
+  const buscarModalidadeNoServidor = async (modality: string, signal?: AbortSignal) => {
     const proxyPrefix = getProxyPrefix();
     const PAGE_SIZE = 200;
     const headers = { 'Content-Type': 'application/json' };
@@ -190,6 +191,7 @@ export function useOrthancData(): UseOrthancDataReturn {
       fetch(`${proxyPrefix}/tools/find`, {
         method: 'POST',
         headers,
+        signal,
         body: JSON.stringify({
           Level: "Study",
           Query: { ModalitiesInStudy: modality },
@@ -223,7 +225,8 @@ export function useOrthancData(): UseOrthancDataReturn {
       }
 
       return paginas.flat();
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return [];
       console.error("Erro na busca de modalidade:", e);
       return [];
     }
