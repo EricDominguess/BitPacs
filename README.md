@@ -4,8 +4,6 @@
 
 Sistema de visualização e gerenciamento de imagens médicas DICOM com interface moderna e intuitiva.
 
-![Logo](docs/logo.png)
-
 ## 📋 Sobre o Projeto
 
 Interface web customizada para visualização de estudos DICOM, desenvolvida com React, TypeScript e Tailwind CSS.
@@ -26,7 +24,7 @@ Interface web customizada para visualização de estudos DICOM, desenvolvida com
 - Axios para requisições HTTP
 - Vite para build
 
-- Responsável pelo front-end: Eric Domingues de Souza
+- Responsável pelo front-end e API: Eric Domingues de Souza
 
 ### Backend/PACS (Open Source)
 - **Orthanc PACS Server** (GPLv3)
@@ -64,7 +62,6 @@ O projeto requer Orthanc PACS Server configurado com:
 
 ##📄 Licença
 Código Proprietário
-© 2026 BitFix. Todos os direitos reservados.
 
 O código-fonte deste frontend é proprietário e confidencial.
 
@@ -74,13 +71,3 @@ Este projeto utiliza os seguintes componentes open-source:
 - Orthanc PACS Server - GPLv3 License
   - Copyright (C) 2012-2016 Sebastien Jodogne
   - https://www.orthanc-server.com/
-
-##👥 Suporte
-- Email: suporte@suaempresa.com
-- Documentação: https://docs.suaempresa.com
-- Telefone & Whatsapp: (43) 3336-4004
-
-##🏢 Sobre BitFix
-[Descrição da sua empresa]
-
-Website: [www.bitfix.com.br](https://www.bitfix.com.br/)
