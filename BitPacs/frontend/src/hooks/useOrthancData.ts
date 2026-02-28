@@ -207,7 +207,7 @@ export function useOrthancData(): UseOrthancDataReturn {
       // Passo 2: estima páginas restantes e busca TODAS em paralelo
       const paginas: any[][] = [primeira];
       let since = PAGE_SIZE;
-      const promessas: Promise<any[]>[] = [];
+      
 
       // Busca mais páginas em paralelo até uma delas retornar vazia
       // (conservador: busca em lotes de 5 páginas paralelas por vez)
