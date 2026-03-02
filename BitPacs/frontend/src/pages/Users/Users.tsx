@@ -405,14 +405,26 @@ export function Users() {
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-theme-secondary">Função</label>
-                <select value={formData.role} onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as UserRole }))}
-                  className="w-full px-4 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent transition-all duration-200">
-                  {availableRoles.map((role) => (
-                    <option key={role} value={role}>{roleColors[role]?.label || role}</option>
-                  ))}
-                </select>
-                {currentUser.role === 'Admin' && (
-                  <p className="text-xs text-theme-muted mt-1">Como administrador, você só pode criar Médicos e Enfermeiros.</p>
+                {/* Admin editando seu próprio perfil: função travada */}
+                {modalMode === 'edit' && currentUser.role === 'Admin' && editingUser?.id === currentUser.id ? (
+                  <>
+                    <div className="w-full px-4 py-2.5 bg-theme-secondary border border-theme-border rounded-lg text-theme-muted cursor-not-allowed">
+                      {roleColors[formData.role]?.label || formData.role}
+                    </div>
+                    <p className="text-xs text-theme-muted mt-1">Você não pode alterar sua própria função.</p>
+                  </>
+                ) : (
+                  <>
+                    <select value={formData.role} onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as UserRole }))}
+                      className="w-full px-4 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent transition-all duration-200">
+                      {availableRoles.map((role) => (
+                        <option key={role} value={role}>{roleColors[role]?.label || role}</option>
+                      ))}
+                    </select>
+                    {currentUser.role === 'Admin' && (
+                      <p className="text-xs text-theme-muted mt-1">Como administrador, você só pode criar Médicos e Enfermeiros.</p>
+                    )}
+                  </>
                 )}
               </div>
 
