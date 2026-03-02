@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { Button } from './Button';
-import { Input } from './Input';
 import { Badge } from './Badge';
 import { useUnidade } from '../../contexts';
 
@@ -39,7 +37,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [name, setName] = useState(storedUser.nome || 'Usuário');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(storedUser.avatarUrl || null);
   const [isUploading, setIsUploading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -119,49 +116,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    }
-  };
-
-  const handleSave = async () => {
-    // Se o nome não mudou, só fecha
-    if (name === storedUser.nome) {
-      onClose();
-      return;
-    }
-
-    setIsSaving(true);
-    setError(null);
-
-    try {
-      const token = (sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token'));
-      const response = await fetch(`/api/auth/users/${storedUser.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ nome: name }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Erro ao salvar');
-      }
-
-      const data = await response.json();
-      
-      // Atualiza storage com novo nome
-      const updatedUser = { ...storedUser, nome: data.nome };
-      updateUserStorage(updatedUser);
-      
-      onClose();
-      // Força reload para atualizar sidebar
-      window.location.reload();
-
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar');
-    } finally {
-      setIsSaving(false);
     }
   };
 
