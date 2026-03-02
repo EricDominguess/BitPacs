@@ -197,7 +197,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             </div>
           )}
 
-          {/* Avatar - Editável */}
+          {/* Avatar com Primeiro Nome */}
           <div className="flex items-center gap-4">
             <div className="relative">
               {avatarUrl ? (
@@ -220,6 +220,11 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 </div>
               )}
             </div>
+            {/* Primeiro Nome ao lado do Avatar */}
+            <div>
+              <h4 className="text-xl font-semibold text-theme-primary">{name.split(' ')[0]}</h4>
+              <p className="text-sm text-theme-muted">{readOnlyData.email}</p>
+            </div>
             {/* Input oculto mantido para funcionalidade futura */}
             <input
               ref={fileInputRef}
@@ -232,32 +237,20 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           </div>
 
           <div className="space-y-4">
-            {/* Nome - Único Campo Editável */}
-            <div>
-              <Input 
-                label="Nome de Exibição" 
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Como você quer ser chamado"
-              />
+            {/* Nome de Exibição - Somente Leitura */}
+            <div className="p-3 bg-theme-light/30 border border-theme-border rounded-lg">
+              <div className="flex items-center gap-2 mb-1">
+                <svg className="w-4 h-4 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span className="text-xs font-semibold text-theme-muted uppercase tracking-wider">Nome Completo</span>
+              </div>
+              <p className="text-sm font-medium text-theme-primary">{name}</p>
             </div>
 
             {/* Grid de Informações Somente Leitura */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               
-              {/* Card de Email */}
-              <div className="p-3 bg-theme-light/30 border border-theme-border rounded-lg opacity-80">
-                <div className="flex items-center gap-2 mb-1">
-                  <svg className="w-4 h-4 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  <span className="text-xs font-semibold text-theme-muted uppercase tracking-wider">Email</span>
-                </div>
-                <p className="text-sm font-medium text-theme-primary truncate" title={readOnlyData.email}>
-                  {readOnlyData.email}
-                </p>
-              </div>
-
               {/* Card de Cargo */}
               <div className="p-3 bg-theme-light/30 border border-theme-border rounded-lg opacity-80">
                 <div className="flex items-center gap-2 mb-1">
@@ -288,13 +281,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-theme-border">
-            <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={isSaving || isUploading}>
-              {isSaving ? 'Salvando...' : 'Salvar Alterações'}
-            </Button>
-          </div>
+
         </div>
       </div>
     </div>
