@@ -161,7 +161,10 @@ export function Users() {
       const payload: any = {
         nome: formData.nome,
         email: formData.email,
-        role: formData.role,
+        // Não envia role se Admin estiver editando seu próprio perfil (role já está travado)
+        role: (modalMode === 'edit' && currentUser.role === 'Admin' && editingUser?.id === currentUser.id) 
+          ? undefined 
+          : formData.role,
         // ✅ Envia o slug direto — sem parseInt
         unidadeId: formData.unidade || null,
       };

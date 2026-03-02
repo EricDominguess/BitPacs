@@ -106,7 +106,8 @@ namespace BitPacs.Api.Controllers
 
             var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
-            if (!string.IsNullOrEmpty(request.Role) && !CanCreateRole(currentUserRole, request.Role))
+            // Só valida permissão de role se estiver tentando MUDAR o role (não apenas manter o atual)
+            if (!string.IsNullOrEmpty(request.Role) && request.Role != user.Role && !CanCreateRole(currentUserRole, request.Role))
                 return Forbid("Você não tem permissão para definir este tipo de usuário.");
 
             if (!string.IsNullOrEmpty(request.Nome))
