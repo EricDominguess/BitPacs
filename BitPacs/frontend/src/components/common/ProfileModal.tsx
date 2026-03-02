@@ -38,6 +38,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   // O Nome continua sendo um estado editável
   const [name, setName] = useState(storedUser.nome || 'Usuário');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(storedUser.avatarUrl || null);
+  const [avatarError, setAvatarError] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       setStoredUser(user);
       setName(user.nome || 'Usuário');
       setAvatarUrl(user.avatarUrl || null);
+      setAvatarError(false);
       setError(null);
     }
   }, [isOpen]);
@@ -105,6 +107,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       
       // Atualiza estado local
       setAvatarUrl(data.avatarUrl);
+      setAvatarError(false);
       
       // Atualiza storage (sessionStorage ou localStorage)
       const updatedUser = { ...storedUser, avatarUrl: data.avatarUrl };
@@ -232,11 +235,12 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           {/* Avatar - Editável */}
           <div className="flex items-center gap-4">
             <div className="relative">
-              {avatarUrl ? (
+              {avatarUrl && !avatarError ? (
                 <img 
-                  src={`${avatarUrl}`}
+                  src={avatarUrl}
                   alt="Avatar"
                   className="w-16 h-16 rounded-full object-cover shadow-lg"
+                  onError={() => setAvatarError(true)}
                 />
               ) : (
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-nautico to-purple-light flex items-center justify-center shadow-lg">

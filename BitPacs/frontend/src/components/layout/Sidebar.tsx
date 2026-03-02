@@ -46,6 +46,7 @@ export function Sidebar() {
   const location = useLocation();
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   
   // Pegando usuário logado dentro do componente para garantir dados atualizados
   const user = JSON.parse((sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user')) || '{}');
@@ -107,11 +108,12 @@ export function Sidebar() {
           onClick={() => setShowProfileModal(true)}
           className="w-full flex items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group"
         >
-          {user.avatarUrl ? (
+          {user.avatarUrl && !avatarError ? (
             <img 
-              src={`${user.avatarUrl}`}
+              src={user.avatarUrl}
               alt="Avatar"
               className="w-8 h-8 rounded-full object-cover"
+              onError={() => setAvatarError(true)}
             />
           ) : (
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-nautico to-purple-light flex items-center justify-center">
