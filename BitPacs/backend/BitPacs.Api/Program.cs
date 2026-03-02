@@ -112,6 +112,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowReact");
+app.UseStaticFiles(); // Serve arquivos estáticos do wwwroot (avatares, etc.)
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

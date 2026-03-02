@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from './Button';
 import { Input } from './Input';
 import { Badge } from './Badge';
-import { UNIDADES_CONFIG } from '../../contexts';
+import { useUnidade } from '../../contexts';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -17,19 +17,19 @@ const roleColors: Record<string, { badge: 'default' | 'success' | 'warning' | 'e
   Enfermeiro: { badge: 'default', label: 'Enfermeiro' },
 };
 
-// Função para obter o label da unidade
-const getUnidadeLabel = (unidadeKey: string | null | undefined, role: string): string => {
-  if (role === 'Master') {
-    return 'Acesso Global (Todas as Unidades)';
-  }
-  if (!unidadeKey) {
-    return 'Nenhuma unidade vinculada';
-  }
-  const config = UNIDADES_CONFIG[unidadeKey as keyof typeof UNIDADES_CONFIG];
-  return config?.label || unidadeKey;
-};
-
 export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
+  // Usa o hook de unidade para obter o label correto
+  const { unidadeLabel, isMaster } = useUnidade();
+
+  // Determina qual storage está sendo usado
+  const useSessionStorage = !!sessionStorage.getItem('bitpacs_user');
+
+  // Função auxiliar para atualizar o storage correto
+  const updateUserStorage = (updatedUser: any) => {
+    const storage = useSessionStorage ? sessionStorage : localStorage;
+    storage.setItem('bitpacs_user', JSON.stringify(updatedUser));
+  };
+
   // Pega dados do usuário logado
   const [storedUser, setStoredUser] = useState(() => 
     JSON.parse((sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user')) || '{}')
@@ -58,7 +58,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const readOnlyData = {
     email: storedUser.email || 'email@exemplo.com',
     cargo: storedUser.role || 'Usuário',
-    instituicao: getUnidadeLabel(storedUser.unidade, storedUser.role),
+    instituicao: isMaster ? 'Acesso Global (Todas as Unidades)' : unidadeLabel,
   };
 
   if (!isOpen) return null;
@@ -106,9 +106,9 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       // Atualiza estado local
       setAvatarUrl(data.avatarUrl);
       
-      // Atualiza localStorage
+      // Atualiza storage (sessionStorage ou localStorage)
       const updatedUser = { ...storedUser, avatarUrl: data.avatarUrl };
-      localStorage.setItem('bitpacs_user', JSON.stringify(updatedUser));
+      updateUserStorage(updatedUser);
       setStoredUser(updatedUser);
 
     } catch (err) {
@@ -119,38 +119,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    }
-  };
-
-  const handleRemoveAvatar = async () => {
-    setIsUploading(true);
-    setError(null);
-
-    try {
-      const token = (sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token'));
-      const response = await fetch('/api/auth/avatar', {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao remover avatar');
-      }
-
-      // Atualiza estado local
-      setAvatarUrl(null);
-      
-      // Atualiza localStorage
-      const updatedUser = { ...storedUser, avatarUrl: null };
-      localStorage.setItem('bitpacs_user', JSON.stringify(updatedUser));
-      setStoredUser(updatedUser);
-
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao remover avatar');
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -182,9 +150,9 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
       const data = await response.json();
       
-      // Atualiza localStorage com novo nome
+      // Atualiza storage com novo nome
       const updatedUser = { ...storedUser, nome: data.nome };
-      localStorage.setItem('bitpacs_user', JSON.stringify(updatedUser));
+      updateUserStorage(updatedUser);
       
       onClose();
       // Força reload para atualizar sidebar
@@ -252,37 +220,15 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 </div>
               )}
             </div>
-            <div className="flex flex-col gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp"
-                onChange={handleFileChange}
-                className="hidden"
-                id="avatar-upload"
-              />
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                >
-                  {isUploading ? 'Enviando...' : 'Alterar Foto'}
-                </Button>
-                {avatarUrl && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleRemoveAvatar}
-                    disabled={isUploading}
-                  >
-                    Remover
-                  </Button>
-                )}
-              </div>
-              <p className="text-xs text-theme-muted">JPG, PNG, GIF ou WebP. Máx 2MB</p>
-            </div>
+            {/* Input oculto mantido para funcionalidade futura */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleFileChange}
+              className="hidden"
+              id="avatar-upload"
+            />
           </div>
 
           <div className="space-y-4">

@@ -119,7 +119,9 @@ export function Users() {
   const handleCreate = () => {
     setModalMode('create');
     setEditingUser(null);
-    setFormData({ nome: '', email: '', password: '', role: availableRoles[0] || 'Medico', unidade: '' });
+    // Admin: pré-seleciona sua própria unidade (lockada)
+    const initialUnidade = currentUser.role === 'Admin' ? (currentUser.unidadeId || '') : '';
+    setFormData({ nome: '', email: '', password: '', role: availableRoles[0] || 'Medico', unidade: initialUnidade });
     setFormError('');
     setShowModal(true);
   };
@@ -417,13 +419,24 @@ export function Users() {
               {formData.role !== 'Master' && (
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-theme-secondary">Unidade</label>
-                  <select value={formData.unidade} onChange={(e) => setFormData(prev => ({ ...prev, unidade: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent transition-all duration-200">
-                    <option value="">Selecione uma unidade...</option>
-                    {unidades.map((unidade) => (
-                      <option key={unidade.value} value={unidade.value}>{unidade.label}</option>
-                    ))}
-                  </select>
+                  {currentUser.role === 'Admin' ? (
+                    // Admin: mostra unidade lockada (não editável)
+                    <>
+                      <div className="w-full px-4 py-2.5 bg-theme-secondary border border-theme-border rounded-lg text-theme-muted cursor-not-allowed">
+                        {unidades.find(u => u.value === currentUser.unidadeId)?.label || 'Unidade não definida'}
+                      </div>
+                      <p className="text-xs text-theme-muted mt-1">Você só pode criar usuários para sua própria unidade.</p>
+                    </>
+                  ) : (
+                    // Master: pode escolher qualquer unidade
+                    <select value={formData.unidade} onChange={(e) => setFormData(prev => ({ ...prev, unidade: e.target.value }))}
+                      className="w-full px-4 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent transition-all duration-200">
+                      <option value="">Selecione uma unidade...</option>
+                      {unidades.map((unidade) => (
+                        <option key={unidade.value} value={unidade.value}>{unidade.label}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               )}
             </div>
