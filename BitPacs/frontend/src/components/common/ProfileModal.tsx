@@ -122,38 +122,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     }
   };
 
-  const handleRemoveAvatar = async () => {
-    setIsUploading(true);
-    setError(null);
-
-    try {
-      const token = (sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token'));
-      const response = await fetch('/api/auth/avatar', {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao remover avatar');
-      }
-
-      // Atualiza estado local
-      setAvatarUrl(null);
-      
-      // Atualiza storage (sessionStorage ou localStorage)
-      const updatedUser = { ...storedUser, avatarUrl: null };
-      updateUserStorage(updatedUser);
-      setStoredUser(updatedUser);
-
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao remover avatar');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   const handleSave = async () => {
     // Se o nome não mudou, só fecha
     if (name === storedUser.nome) {
