@@ -21,6 +21,15 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   // Usa o hook de unidade para obter o label correto
   const { unidadeLabel, isMaster } = useUnidade();
 
+  // Determina qual storage está sendo usado
+  const useSessionStorage = !!sessionStorage.getItem('bitpacs_user');
+
+  // Função auxiliar para atualizar o storage correto
+  const updateUserStorage = (updatedUser: any) => {
+    const storage = useSessionStorage ? sessionStorage : localStorage;
+    storage.setItem('bitpacs_user', JSON.stringify(updatedUser));
+  };
+
   // Pega dados do usuário logado
   const [storedUser, setStoredUser] = useState(() => 
     JSON.parse((sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user')) || '{}')
@@ -97,9 +106,9 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       // Atualiza estado local
       setAvatarUrl(data.avatarUrl);
       
-      // Atualiza localStorage
+      // Atualiza storage (sessionStorage ou localStorage)
       const updatedUser = { ...storedUser, avatarUrl: data.avatarUrl };
-      localStorage.setItem('bitpacs_user', JSON.stringify(updatedUser));
+      updateUserStorage(updatedUser);
       setStoredUser(updatedUser);
 
     } catch (err) {
@@ -133,9 +142,9 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       // Atualiza estado local
       setAvatarUrl(null);
       
-      // Atualiza localStorage
+      // Atualiza storage (sessionStorage ou localStorage)
       const updatedUser = { ...storedUser, avatarUrl: null };
-      localStorage.setItem('bitpacs_user', JSON.stringify(updatedUser));
+      updateUserStorage(updatedUser);
       setStoredUser(updatedUser);
 
     } catch (err) {
@@ -173,9 +182,9 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
       const data = await response.json();
       
-      // Atualiza localStorage com novo nome
+      // Atualiza storage com novo nome
       const updatedUser = { ...storedUser, nome: data.nome };
-      localStorage.setItem('bitpacs_user', JSON.stringify(updatedUser));
+      updateUserStorage(updatedUser);
       
       onClose();
       // Força reload para atualizar sidebar

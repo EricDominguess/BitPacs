@@ -22,7 +22,9 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 COPY --from=publish /app/publish .
 
+# Criar diretórios necessários com permissões
 RUN mkdir -p /app/logs && chmod 777 /app/logs
+RUN mkdir -p /app/wwwroot/avatars && chmod 777 /app/wwwroot/avatars
 
 EXPOSE 8080
 
