@@ -274,13 +274,8 @@ export function Studies() {
     // Registra o download no backend
     registrarLog('DOWNLOAD', study);
 
-    // Descobre em qual unidade estamos agora
-    const unidadeMaster = localStorage.getItem('bitpacs-unidade-master');
-    const user = JSON.parse(sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user') || '{}');
-    // Usa a seleção do master, ou a unidade fixa do usuário comum, ou cai no padrão
-    const unidadeAtual = unidadeMaster || user.unidade || 'riobranco';
-    
-    // Constrói a rota blindada do Nginx (ex: /orthanc-fazenda/studies/...)
+    // Usa a unidadeAtual que já vem corretamente do hook useOrthancData
+    // (para master: localStorage 'bitpacs-unidade-master', para outros: user.unidadeId)
     const prefixoProxy = `/orthanc-${unidadeAtual}`;
 
     // Executa o download (Técnica do Link Fantasma)
