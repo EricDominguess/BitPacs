@@ -37,8 +37,11 @@ export function Login() {
         const data = await response.json();
         
         // Salva no navegador para manter logado
-        sessionStorage.setItem('bitpacs_token', data.token);
-        sessionStorage.setItem('bitpacs_user', JSON.stringify(data.user));
+        // Se "Lembrar de mim" estiver marcado, usa localStorage (persiste após fechar navegador)
+        // Caso contrário, usa sessionStorage (limpa ao fechar navegador)
+        const storage = rememberMe ? localStorage : sessionStorage;
+        storage.setItem('bitpacs_token', data.token);
+        storage.setItem('bitpacs_user', JSON.stringify(data.user));
         localStorage.setItem('bitpacs-theme', 'light');        
 
         // Redireciona baseado no role do usuário
