@@ -68,6 +68,18 @@ export default defineConfig(() => {
           rewrite: (path) => path.replace(/^\/orthanc-arapoti/, ''),
         },
         
+        // --- BACKEND API E AVATARES ---
+        '/api': {
+          target: 'http://localhost:5151',
+          changeOrigin: true,
+          secure: false,
+        },
+        '/avatars': {
+          target: 'http://localhost:5151',
+          changeOrigin: true,
+          secure: false,
+        },
+
         // --- ROTAS LEGADAS / FALLBACK ---
         // Usa a constante FALLBACK_ORTHANC_IP definida lá em cima
         
