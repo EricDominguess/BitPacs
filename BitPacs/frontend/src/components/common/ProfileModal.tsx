@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from './Button';
 import { Input } from './Input';
 import { Badge } from './Badge';
-import { UNIDADES_CONFIG } from '../../contexts';
+import { useUnidade } from '../../contexts';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -17,19 +17,10 @@ const roleColors: Record<string, { badge: 'default' | 'success' | 'warning' | 'e
   Enfermeiro: { badge: 'default', label: 'Enfermeiro' },
 };
 
-// Função para obter o label da unidade
-const getUnidadeLabel = (unidadeKey: string | null | undefined, role: string): string => {
-  if (role === 'Master') {
-    return 'Acesso Global (Todas as Unidades)';
-  }
-  if (!unidadeKey) {
-    return 'Nenhuma unidade vinculada';
-  }
-  const config = UNIDADES_CONFIG[unidadeKey as keyof typeof UNIDADES_CONFIG];
-  return config?.label || unidadeKey;
-};
-
 export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
+  // Usa o hook de unidade para obter o label correto
+  const { unidadeLabel, isMaster } = useUnidade();
+
   // Pega dados do usuário logado
   const [storedUser, setStoredUser] = useState(() => 
     JSON.parse((sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user')) || '{}')
@@ -58,7 +49,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const readOnlyData = {
     email: storedUser.email || 'email@exemplo.com',
     cargo: storedUser.role || 'Usuário',
-    instituicao: getUnidadeLabel(storedUser.unidade, storedUser.role),
+    instituicao: isMaster ? 'Acesso Global (Todas as Unidades)' : unidadeLabel,
   };
 
   if (!isOpen) return null;
