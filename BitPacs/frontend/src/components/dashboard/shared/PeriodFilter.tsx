@@ -84,14 +84,20 @@ export function PeriodFilter({
   }, [showCustomDates, customStartDate, customEndDate]);
 
   const handlePeriodSelect = (period: PeriodType) => {
-    onPeriodChange(period);
-    setShowCustomDates(period === 'custom');
-    if (period !== 'custom') {
+    if (period === 'custom') {
+      // Apenas mostra os campos de data, não aplica o filtro ainda
+      setShowCustomDates(true);
+    } else {
+      // Para outros períodos, aplica imediatamente
+      onPeriodChange(period);
+      setShowCustomDates(false);
       setIsOpen(false);
     }
   };
 
   const handleApplyCustomDates = () => {
+    // Agora sim aplica o período 'custom' junto com as datas
+    onPeriodChange('custom');
     onCustomDateChange?.(tempStartDate, tempEndDate);
     setIsOpen(false);
   };
@@ -121,30 +127,35 @@ export function PeriodFilter({
       {/* Dropdown menu */}
       {isOpen && (
         <div className={cn(
-          'absolute top-full right-0 mt-2 w-72 z-50',
+          'absolute top-full mt-2 w-72 z-50',
+          'right-0 sm:right-auto sm:left-0',
           'bg-theme-secondary border border-theme-border rounded-lg shadow-lg',
           'animate-in fade-in-0 zoom-in-95 duration-150'
         )}>
           {/* Opções de período */}
           <div className="p-2">
-            {PERIOD_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => handlePeriodSelect(option.value)}
-                className={cn(
-                  'w-full flex items-center justify-between px-3 py-2 rounded-md text-sm',
-                  'transition-colors duration-150',
-                  selectedPeriod === option.value
-                    ? 'bg-nautico/10 text-nautico'
-                    : 'text-theme-primary hover:bg-theme-tertiary'
-                )}
-              >
-                <span>{option.label}</span>
-                {selectedPeriod === option.value && (
-                  <CheckIcon className="w-4 h-4" />
-                )}
-              </button>
-            ))}
+            {PERIOD_OPTIONS.map((option) => {
+              const isSelected = selectedPeriod === option.value;
+              const isCustomHighlighted = option.value === 'custom' && showCustomDates;
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => handlePeriodSelect(option.value)}
+                  className={cn(
+                    'w-full flex items-center justify-between px-3 py-2 rounded-md text-sm',
+                    'transition-colors duration-150',
+                    isSelected || isCustomHighlighted
+                      ? 'bg-nautico/10 text-nautico'
+                      : 'text-theme-primary hover:bg-theme-tertiary'
+                  )}
+                >
+                  <span>{option.label}</span>
+                  {isSelected && (
+                    <CheckIcon className="w-4 h-4" />
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* Campos de data customizada */}
