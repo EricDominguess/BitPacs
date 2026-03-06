@@ -128,7 +128,7 @@ export function PeriodFilter({
       {isOpen && (
         <div className={cn(
           'absolute top-full mt-2 w-72 z-50',
-          'right-0 sm:right-auto sm:left-0',
+          'right-0',
           'bg-theme-secondary border border-theme-border rounded-lg shadow-lg',
           'animate-in fade-in-0 zoom-in-95 duration-150'
         )}>
