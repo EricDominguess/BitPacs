@@ -45,10 +45,23 @@ namespace BitPacs.Api.Controllers
         public IActionResult GetUsers()
         {
             var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var currentUserUnidade = User.FindFirst("UnidadeId")?.Value;
             var query = _context.Users.AsQueryable();
 
-            if (currentUserRole != "Master")
-                query = query.Where(u => u.Role != "Master");
+            if (currentUserRole == "Master")
+            {
+                // Master vê todos os usuários
+            }
+            else if (currentUserRole == "Admin")
+            {
+                // Admin vê apenas usuários da sua unidade (exceto Masters)
+                query = query.Where(u => u.Role != "Master" && u.UnidadeId == currentUserUnidade);
+            }
+            else
+            {
+                // Outros roles não deveriam acessar esta rota, mas por segurança retorna vazio
+                return Ok(new List<object>());
+            }
 
             var users = query
                 .Select(u => new { u.Id, u.Nome, u.Email, u.Role, u.UnidadeId, u.AvatarUrl })

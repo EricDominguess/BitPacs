@@ -55,18 +55,33 @@ export function PeriodFilter({
   const [isOpen, setIsOpen] = useState(false);
   const [showCustomDates, setShowCustomDates] = useState(selectedPeriod === 'custom');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Estados temporários para as datas personalizadas (só aplica ao clicar em "Aplicar")
+  const [tempStartDate, setTempStartDate] = useState(customStartDate);
+  const [tempEndDate, setTempEndDate] = useState(customEndDate);
+
+  // Sincroniza estados temporários quando as props mudam
+  useEffect(() => {
+    setTempStartDate(customStartDate);
+    setTempEndDate(customEndDate);
+  }, [customStartDate, customEndDate]);
 
   // Fecha o dropdown quando clicar fora
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        // Reseta os valores temporários se fechar sem aplicar
+        if (showCustomDates) {
+          setTempStartDate(customStartDate);
+          setTempEndDate(customEndDate);
+        }
       }
     }
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [showCustomDates, customStartDate, customEndDate]);
 
   const handlePeriodSelect = (period: PeriodType) => {
     onPeriodChange(period);
@@ -74,6 +89,11 @@ export function PeriodFilter({
     if (period !== 'custom') {
       setIsOpen(false);
     }
+  };
+
+  const handleApplyCustomDates = () => {
+    onCustomDateChange?.(tempStartDate, tempEndDate);
+    setIsOpen(false);
   };
 
   const selectedOption = PERIOD_OPTIONS.find(opt => opt.value === selectedPeriod);
@@ -101,7 +121,7 @@ export function PeriodFilter({
       {/* Dropdown menu */}
       {isOpen && (
         <div className={cn(
-          'absolute top-full left-0 mt-2 w-72 z-50',
+          'absolute top-full right-0 mt-2 w-72 z-50',
           'bg-theme-secondary border border-theme-border rounded-lg shadow-lg',
           'animate-in fade-in-0 zoom-in-95 duration-150'
         )}>
@@ -134,8 +154,8 @@ export function PeriodFilter({
                 <label className="text-xs font-medium text-theme-muted">Data inicial</label>
                 <input
                   type="date"
-                  value={customStartDate}
-                  onChange={(e) => onCustomDateChange?.(e.target.value, customEndDate)}
+                  value={tempStartDate}
+                  onChange={(e) => setTempStartDate(e.target.value)}
                   className={cn(
                     'w-full px-3 py-2 rounded-md text-sm',
                     'bg-theme-primary border border-theme-border',
@@ -148,8 +168,8 @@ export function PeriodFilter({
                 <label className="text-xs font-medium text-theme-muted">Data final</label>
                 <input
                   type="date"
-                  value={customEndDate}
-                  onChange={(e) => onCustomDateChange?.(customStartDate, e.target.value)}
+                  value={tempEndDate}
+                  onChange={(e) => setTempEndDate(e.target.value)}
                   className={cn(
                     'w-full px-3 py-2 rounded-md text-sm',
                     'bg-theme-primary border border-theme-border',
@@ -159,7 +179,7 @@ export function PeriodFilter({
                 />
               </div>
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={handleApplyCustomDates}
                 className={cn(
                   'w-full px-3 py-2 rounded-md text-sm font-medium',
                   'bg-nautico text-white hover:bg-nautico/90',
