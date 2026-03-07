@@ -3,7 +3,7 @@ interface ContactModalProps {
   onClose: () => void;
 }
 
-export function ContactModal({ isOpen, onClose }: ContactModalProps) {
+export function ContactModalLogged({ isOpen, onClose }: ContactModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -93,9 +93,6 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
               <p className="text-theme-primary font-medium">Seg - Sex: 08:00 - 18:00</p>
               <p className="text-theme-secondary text-sm">Sáb: 08:30 - 12:30</p>
             </div>
-          </div>
-          <div className="text-center text-sm text-theme-muted mt-4">
-            <p>Ou entre em contato com o Administrador da sua unidade</p>
           </div>
         </div>
       </div>

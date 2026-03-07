@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../../utils/cn';
-import { ContactModal, ProfileModal } from '../common';
+import { ContactModalLogged, ProfileModal } from '../common';
 
 const navItems = [
   {
@@ -55,7 +55,7 @@ export function Sidebar() {
     <aside className="w-64 bg-theme-secondary/50 border-r border-theme-light min-h-[calc(100vh-72px)] flex flex-col transition-colors duration-300">
       <nav className="p-4 flex flex-col gap-1 flex-1">
         {navItems
-          .filter (item => {
+          .filter(item => {
             if (item.href === '/dashboard') return user.role === 'Master' || user.role === 'Admin';
             if (item.href === '/user-dashboard') return user.role !== 'Master' && user.role !== 'Admin';
             if (item.href === '/users') return user.role === 'Master' || user.role === 'Admin';
@@ -134,7 +134,7 @@ export function Sidebar() {
     </aside>
 
     {/* Modal de Suporte */}
-    <ContactModal 
+    <ContactModalLogged
       isOpen={showSupportModal} 
       onClose={() => setShowSupportModal(false)} 
     />
