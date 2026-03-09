@@ -164,15 +164,15 @@ namespace BitPacs.Api.Controllers
                 }
             });
         }
+
+        // Helper method para obter horário do Brasil (UTC-3)
+        private static DateTime GetBrazilTime()
+        {
+            return DateTime.UtcNow.AddHours(-3);
+        }
     }
 
     // Request para criar log
-    // Helper method para obter horário do Brasil (UTC-3)
-    private static DateTime GetBrazilTime()
-    {
-        return DateTime.UtcNow.AddHours(-3);
-    }
-
     public class CreateStudyLogRequest
     {
         public required string ActionType { get; set; } // "VIEW" ou "DOWNLOAD"
