@@ -106,6 +106,26 @@ namespace BitPacs.Api.Controllers
             _context.Users.Add(user);
             _context.SaveChanges();
 
+            // Registrar log de criação de usuário
+            var creatorIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(creatorIdClaim) && int.TryParse(creatorIdClaim, out int creatorId))
+            {
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                var log = new StudyLog
+                {
+                    UserId = creatorId,
+                    ActionType = "USER_CREATE",
+                    StudyId = "",
+                    TargetUserId = user.Id,
+                    TargetUserName = user.Nome,
+                    Details = $"Criou usuário {user.Nome} ({user.Email}) com função {user.Role}",
+                    Timestamp = DateTime.UtcNow.AddHours(-3),
+                    IpAddress = ipAddress
+                };
+                _context.StudyLogs.Add(log);
+                _context.SaveChanges();
+            }
+
             return Ok(new { user.Id, user.Nome, user.Email, user.Role, user.UnidadeId, user.AvatarUrl });
         }
 
@@ -118,10 +138,14 @@ namespace BitPacs.Api.Controllers
                 return NotFound("Usuário não encontrado.");
 
             var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            int.TryParse(currentUserIdClaim, out int currentUserId);
 
             // Só valida permissão de role se estiver tentando MUDAR o role (não apenas manter o atual)
             if (!string.IsNullOrEmpty(request.Role) && request.Role != user.Role && !CanCreateRole(currentUserRole, request.Role))
                 return Forbid("Você não tem permissão para definir este tipo de usuário.");
+
+            bool passwordChanged = !string.IsNullOrEmpty(request.Password);
 
             if (!string.IsNullOrEmpty(request.Nome))
                 user.Nome = request.Nome;
@@ -133,7 +157,7 @@ namespace BitPacs.Api.Controllers
                 user.Email = request.Email;
             }
 
-            if (!string.IsNullOrEmpty(request.Password))
+            if (passwordChanged)
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
             if (!string.IsNullOrEmpty(request.Role))
@@ -144,6 +168,28 @@ namespace BitPacs.Api.Controllers
                 user.UnidadeId = user.Role != "Master" ? request.UnidadeId : null;
 
             _context.SaveChanges();
+
+            // Registrar log de mudança de senha
+            if (passwordChanged && currentUserId > 0)
+            {
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                var isSelfChange = currentUserId == id;
+                var log = new StudyLog
+                {
+                    UserId = currentUserId,
+                    ActionType = isSelfChange ? "PASSWORD_CHANGE" : "PASSWORD_CHANGE_OTHER",
+                    StudyId = "",
+                    TargetUserId = id,
+                    TargetUserName = user.Nome,
+                    Details = isSelfChange 
+                        ? "Alterou sua própria senha" 
+                        : $"Alterou a senha do usuário {user.Nome} ({user.Email})",
+                    Timestamp = DateTime.UtcNow.AddHours(-3),
+                    IpAddress = ipAddress
+                };
+                _context.StudyLogs.Add(log);
+                _context.SaveChanges();
+            }
 
             return Ok(new { user.Id, user.Nome, user.Email, user.Role, user.UnidadeId, user.AvatarUrl });
         }
@@ -157,16 +203,41 @@ namespace BitPacs.Api.Controllers
                 return NotFound("Usuário não encontrado.");
 
             var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
-            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            int.TryParse(currentUserIdClaim, out int currentUserId);
 
-            if (currentUserId == id.ToString())
+            if (currentUserIdClaim == id.ToString())
                 return BadRequest(new { message = "Você não pode excluir sua própria conta." });
 
             if (!CanDeleteRole(currentUserRole, user.Role))
                 return Forbid("Você não tem permissão para excluir este usuário.");
 
+            // Guardar dados do usuário antes de deletar para o log
+            var deletedUserName = user.Nome;
+            var deletedUserEmail = user.Email;
+            var deletedUserRole = user.Role;
+
             _context.Users.Remove(user);
             _context.SaveChanges();
+
+            // Registrar log de exclusão de usuário
+            if (currentUserId > 0)
+            {
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                var log = new StudyLog
+                {
+                    UserId = currentUserId,
+                    ActionType = "USER_DELETE",
+                    StudyId = "",
+                    TargetUserId = id,
+                    TargetUserName = deletedUserName,
+                    Details = $"Excluiu usuário {deletedUserName} ({deletedUserEmail}) com função {deletedUserRole}",
+                    Timestamp = DateTime.UtcNow.AddHours(-3),
+                    IpAddress = ipAddress
+                };
+                _context.StudyLogs.Add(log);
+                _context.SaveChanges();
+            }
 
             return Ok(new { message = "Usuário excluído com sucesso." });
         }

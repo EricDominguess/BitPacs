@@ -7,16 +7,16 @@ namespace BitPacs.Api.Models
     {
         public int Id { get; set; }
         
-        // Relacionamento com o usuário
+        // Relacionamento com o usuário que fez a ação
         public int UserId { get; set; }
         
         [ForeignKey("UserId")]
         public User? User { get; set; }
         
-        // Tipo de ação: "VIEW" ou "DOWNLOAD"
+        // Tipo de ação: "VIEW", "DOWNLOAD", "USER_CREATE", "USER_DELETE", "PASSWORD_CHANGE", "PASSWORD_CHANGE_OTHER"
         public string ActionType { get; set; } = "VIEW";
         
-        // ID do estudo no Orthanc
+        // ID do estudo no Orthanc (apenas para VIEW/DOWNLOAD)
         public string StudyId { get; set; } = string.Empty;
         
         // StudyInstanceUID para referência
@@ -39,5 +39,14 @@ namespace BitPacs.Api.Models
         
         // IP do usuário (opcional, para auditoria)
         public string? IpAddress { get; set; }
+        
+        // ID do usuário alvo (para ações administrativas como criar/deletar usuário)
+        public int? TargetUserId { get; set; }
+        
+        // Nome do usuário alvo (para exibição no histórico)
+        public string? TargetUserName { get; set; }
+        
+        // Detalhes adicionais da ação
+        public string? Details { get; set; }
     }
 }

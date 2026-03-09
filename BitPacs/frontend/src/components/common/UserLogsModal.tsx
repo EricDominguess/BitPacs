@@ -103,7 +103,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
               Histórico de Atividades
             </h2>
             <p className="text-sm text-theme-muted mt-1">
-              Visualizações e downloads de <span className="text-nautico">{userName}</span>
+              Atividades de <span className="text-nautico">{userName}</span>
             </p>
           </div>
           <button
@@ -123,7 +123,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
               <thead className="bg-theme-secondary sticky top-0">
                 <tr>
                   <th className="text-left text-xs font-semibold text-theme-secondary px-4 py-3">Ação</th>
-                  <th className="text-left text-xs font-semibold text-theme-secondary px-4 py-3">Paciente</th>
+                  <th className="text-left text-xs font-semibold text-theme-secondary px-4 py-3">Paciente/Usuário</th>
                   <th className="text-left text-xs font-semibold text-theme-secondary px-4 py-3">Descrição</th>
                   <th className="text-left text-xs font-semibold text-theme-secondary px-4 py-3">Mod.</th>
                   <th className="text-left text-xs font-semibold text-theme-secondary px-4 py-3">Unidade</th>
@@ -152,47 +152,115 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                     </td>
                   </tr>
                 ) : (
-                  logs.map((log) => (
+                  logs.map((log) => {
+                    // Determinar estilo e texto baseado no tipo de ação
+                    const getActionStyle = (actionType: string) => {
+                      switch (actionType) {
+                        case 'DOWNLOAD':
+                          return {
+                            className: 'bg-[#dcfce7] border-[#86efac] cor-download-forcada dark:bg-[#00ffd5]/10 dark:border-[#00ffd5]/30',
+                            label: 'DOWNLOAD',
+                            icon: (
+                              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeWidth: '3px' }}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            )
+                          };
+                        case 'VIEW':
+                          return {
+                            className: 'bg-nautico/10 border-nautico/20 text-nautico',
+                            label: 'VISUALIZAÇÃO',
+                            icon: (
+                              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeWidth: '3px' }}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            )
+                          };
+                        case 'USER_CREATE':
+                          return {
+                            className: 'bg-blue-100 border-blue-300 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-400',
+                            label: 'CRIOU USUÁRIO',
+                            icon: (
+                              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeWidth: '3px' }}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                              </svg>
+                            )
+                          };
+                        case 'USER_DELETE':
+                          return {
+                            className: 'bg-red-100 border-red-300 text-red-700 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-400',
+                            label: 'DELETOU USUÁRIO',
+                            icon: (
+                              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeWidth: '3px' }}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+                              </svg>
+                            )
+                          };
+                        case 'PASSWORD_CHANGE':
+                          return {
+                            className: 'bg-yellow-100 border-yellow-300 text-yellow-700 dark:bg-yellow-500/10 dark:border-yellow-500/30 dark:text-yellow-400',
+                            label: 'ALTEROU SENHA',
+                            icon: (
+                              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeWidth: '3px' }}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                              </svg>
+                            )
+                          };
+                        case 'PASSWORD_CHANGE_OTHER':
+                          return {
+                            className: 'bg-orange-100 border-orange-300 text-orange-700 dark:bg-orange-500/10 dark:border-orange-500/30 dark:text-orange-400',
+                            label: 'ALTEROU SENHA',
+                            icon: (
+                              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeWidth: '3px' }}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                              </svg>
+                            )
+                          };
+                        default:
+                          return {
+                            className: 'bg-gray-100 border-gray-300 text-gray-700 dark:bg-gray-500/10 dark:border-gray-500/30 dark:text-gray-400',
+                            label: actionType,
+                            icon: null
+                          };
+                      }
+                    };
+
+                    const actionStyle = getActionStyle(log.actionType);
+                    const isAdminAction = ['USER_CREATE', 'USER_DELETE', 'PASSWORD_CHANGE', 'PASSWORD_CHANGE_OTHER'].includes(log.actionType);
+
+                    return (
                     <tr key={log.id} className="hover:bg-nautico/5 transition-colors">
                       <td className="px-4 py-3">
                         <span 
-                          className={`inline-flex items-center justify-center w-[120px] gap-1.5 px-2 py-1 rounded text-[11px] font-bold border transition-colors shadow-sm ${
-                            log.actionType === 'DOWNLOAD' 
-                              ? 'bg-[#dcfce7] border-[#86efac] cor-download-forcada dark:bg-[#00ffd5]/10 dark:border-[#00ffd5]/30' 
-                              : 'bg-nautico/10 border-nautico/20 text-nautico'
-                          }`}
+                          className={`inline-flex items-center justify-center w-[130px] gap-1.5 px-2 py-1 rounded text-[10px] font-bold border transition-colors shadow-sm ${actionStyle.className}`}
                         >
-                          {log.actionType === 'DOWNLOAD' ? (
-                            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeWidth: '3px' }}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                          ) : (
-                            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeWidth: '3px' }}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          )}
-                          {log.actionType === 'DOWNLOAD' ? 'DOWNLOAD' : 'VISUALIZAÇÃO'}
+                          {actionStyle.icon}
+                          {actionStyle.label}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-sm text-theme-primary font-medium truncate max-w-[150px] block">
-                          {log.patientName || 'N/A'}
+                          {isAdminAction 
+                            ? ((log as any).targetUserName || '-') 
+                            : (log.patientName || 'N/A')}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-sm text-theme-muted truncate max-w-[180px] block">
-                          {log.studyDescription || 'Sem descrição'}
+                          {isAdminAction 
+                            ? ((log as any).details || '-')
+                            : (log.studyDescription || 'Sem descrição')}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-xs font-semibold text-theme-secondary bg-theme-secondary/50 px-2 py-1 rounded">
-                          {log.modality || '-'}
+                          {isAdminAction ? '-' : (log.modality || '-')}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-theme-secondary bg-theme-secondary/20 px-2 py-0.5 rounded border border-theme-border whitespace-nowrap">
-                          {(log as any).unidadeNome || (log as any).UnidadeNome || (log as any).unidade || 'Não identificado'}
+                          {isAdminAction ? '-' : ((log as any).unidadeNome || (log as any).UnidadeNome || (log as any).unidade || 'Não identificado')}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -201,7 +269,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                         </span>
                       </td>
                     </tr>
-                  ))
+                  );})
                 )}
               </tbody>
             </table>

@@ -96,7 +96,10 @@ namespace BitPacs.Api.Controllers
                     l.Modality,
                     l.Timestamp,
                     l.IpAddress,
-                    l.UnidadeNome
+                    l.UnidadeNome,
+                    l.TargetUserId,
+                    l.TargetUserName,
+                    l.Details
                 })
                 .ToList();
 
@@ -165,6 +168,40 @@ namespace BitPacs.Api.Controllers
             });
         }
 
+        // POST: Registrar log administrativo (criar usuário, deletar, mudar senha)
+        [HttpPost("admin")]
+        [Authorize]
+        public IActionResult CreateAdminLog([FromBody] CreateAdminLogRequest request)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                return Unauthorized("Usuário não identificado.");
+
+            var validActions = new[] { "USER_CREATE", "USER_DELETE", "PASSWORD_CHANGE", "PASSWORD_CHANGE_OTHER" };
+            if (!validActions.Contains(request.ActionType))
+                return BadRequest(new { message = "Tipo de ação inválido." });
+
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var localTime = GetBrazilTime();
+
+            var log = new StudyLog
+            {
+                UserId = userId,
+                ActionType = request.ActionType,
+                StudyId = "", // Não se aplica para ações administrativas
+                TargetUserId = request.TargetUserId,
+                TargetUserName = request.TargetUserName,
+                Details = request.Details,
+                Timestamp = localTime,
+                IpAddress = ipAddress
+            };
+
+            _context.StudyLogs.Add(log);
+            _context.SaveChanges();
+
+            return Ok(new { message = "Log administrativo registrado com sucesso.", logId = log.Id });
+        }
+
         // Helper method para obter horário do Brasil (UTC-3)
         private static DateTime GetBrazilTime()
         {
@@ -172,7 +209,7 @@ namespace BitPacs.Api.Controllers
         }
     }
 
-    // Request para criar log
+    // Request para criar log de estudo
     public class CreateStudyLogRequest
     {
         public required string ActionType { get; set; } // "VIEW" ou "DOWNLOAD"
@@ -182,5 +219,14 @@ namespace BitPacs.Api.Controllers
         public string? StudyDescription { get; set; }
         public string? Modality { get; set; }
         public string? UnidadeNome { get; set; }
+    }
+
+    // Request para criar log administrativo
+    public class CreateAdminLogRequest
+    {
+        public required string ActionType { get; set; } // "USER_CREATE", "USER_DELETE", "PASSWORD_CHANGE", "PASSWORD_CHANGE_OTHER"
+        public int? TargetUserId { get; set; }
+        public string? TargetUserName { get; set; }
+        public string? Details { get; set; }
     }
 }
