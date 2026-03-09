@@ -35,6 +35,10 @@ namespace BitPacs.Api.Controllers
             // Obtém o IP do cliente
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
 
+            // Converte para horário de São Paulo
+            var saoPauloTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+            var localTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, saoPauloTimeZone);
+
             var log = new StudyLog
             {
                 UserId = userId,
@@ -44,7 +48,7 @@ namespace BitPacs.Api.Controllers
                 PatientName = request.PatientName,
                 StudyDescription = request.StudyDescription,
                 Modality = request.Modality,
-                Timestamp = DateTime.UtcNow,
+                Timestamp = localTime,
                 UnidadeNome = request.UnidadeNome,
                 IpAddress = ipAddress
             };
