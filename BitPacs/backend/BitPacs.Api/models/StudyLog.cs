@@ -34,8 +34,8 @@ namespace BitPacs.Api.Models
         // Unidade de origem do estudo (Foz, Fazenda, etc)
         public string? UnidadeNome { get; set; }
 
-        // Data e hora da ação (Horário de São Paulo)
-        public DateTime Timestamp { get; set; } = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo"));
+        // Data e hora da ação (Horário de São Paulo - UTC-3)
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow.AddHours(-3);
         
         // IP do usuário (opcional, para auditoria)
         public string? IpAddress { get; set; }

@@ -35,9 +35,8 @@ namespace BitPacs.Api.Controllers
             // Obtém o IP do cliente
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-            // Converte para horário de São Paulo
-            var saoPauloTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
-            var localTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, saoPauloTimeZone);
+            // Converte para horário de São Paulo (UTC-3)
+            var localTime = GetBrazilTime();
 
             var log = new StudyLog
             {
@@ -168,6 +167,12 @@ namespace BitPacs.Api.Controllers
     }
 
     // Request para criar log
+    // Helper method para obter horário do Brasil (UTC-3)
+    private static DateTime GetBrazilTime()
+    {
+        return DateTime.UtcNow.AddHours(-3);
+    }
+
     public class CreateStudyLogRequest
     {
         public required string ActionType { get; set; } // "VIEW" ou "DOWNLOAD"
