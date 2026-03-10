@@ -120,6 +120,16 @@ export function OHIFViewer() {
             </div>
           </div>
         )}
+
+        {/* Overlay para esconder a logo do OHIF */}
+        {!isLoading && !hasError && (
+          <div 
+            className="absolute top-0 left-0 z-20 bg-[#090c29] flex items-center px-3 pointer-events-none"
+            style={{ width: '200px', height: '52px' }}
+          >
+            <span className="text-purple-light font-semibold text-sm">OHIF Viewer</span>
+          </div>
+        )}
         
         {hasError && (
           <div className="absolute inset-0 flex items-center justify-center bg-tangaroa z-10">
