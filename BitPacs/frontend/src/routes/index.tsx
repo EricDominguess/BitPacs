@@ -10,6 +10,7 @@ const Dashboard = lazy(() => import('../pages/Dashboard/Dashboard').then(m => ({
 const UserDashboard = lazy(() => import('../pages/Dashboard/UserDashboard').then(m => ({ default: m.UserDashboard })));
 const Studies = lazy(() => import('../pages/Studies/Studies').then(m => ({ default: m.Studies })));
 const Viewer = lazy(() => import('../pages/Viewer/Viewer').then(m => ({ default: m.Viewer })));
+const OHIFViewer = lazy(() => import('../pages/Viewer/OHIFViewer').then(m => ({ default: m.OHIFViewer })));
 
 // Loading Component
 function PageLoader() {
@@ -103,6 +104,16 @@ const router = createBrowserRouter([
       <Suspense fallback={<PageLoader />}>
         <ProtectedRoute>
           <Viewer />
+        </ProtectedRoute>
+      </Suspense>
+    ),
+  },
+  {
+    path: '/ohif-viewer/:studyId',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <ProtectedRoute>
+          <OHIFViewer />
         </ProtectedRoute>
       </Suspense>
     ),

@@ -603,10 +603,8 @@ export function Studies() {
     if (selectedStudyForViewer) {
       registrarLog('VIEW', selectedStudyForViewer);
       setShowViewerModal(false);
-      // OHIF Viewer via plugin do Orthanc - ajuste a URL conforme sua configuração
-      const prefixoProxy = `/orthanc-${unidadeAtual}`;
-      const ohifUrl = `${prefixoProxy}/ohif/viewer?StudyInstanceUIDs=${selectedStudyForViewer.studyInstanceUID}`;
-      window.open(ohifUrl, '_blank');
+      // Navega para a página do OHIF Viewer interno (iframe)
+      navigate(`/ohif-viewer/${selectedStudyForViewer.studyInstanceUID}`);
     }
   };
 
