@@ -247,11 +247,19 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-sm text-theme-muted truncate max-w-[180px] block">
-                          {isAdminAction 
-                            ? ((log as any).details || '-')
-                            : (log.studyDescription || 'Sem descrição')}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-sm text-theme-muted truncate max-w-[180px] block">
+                            {isAdminAction 
+                              ? ((log as any).details || '-')
+                              : (log.studyDescription || 'Sem descrição')}
+                          </span>
+                          {/* Mostrar detalhes do download (formato) */}
+                          {log.actionType === 'DOWNLOAD' && (log as any).details && (
+                            <span className="text-xs text-theme-muted/70 italic">
+                              {(log as any).details}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-xs font-semibold text-theme-secondary bg-theme-secondary/50 px-2 py-1 rounded">

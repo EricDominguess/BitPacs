@@ -253,7 +253,7 @@ export function Studies() {
   // const currentUser = JSON.parse((sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user')) || '{}');
 
   // 2. FUNÇÃO DE LOG (Auditoria) - Envia para o backend
-  const registrarLog = async (actionType: 'VIEW' | 'DOWNLOAD', study: any) => {
+  const registrarLog = async (actionType: 'VIEW' | 'DOWNLOAD', study: any, details?: string) => {
     try {
       // 1. Mapeamento para nomes amigáveis (ajuste conforme suas unidades)
       const nomesUnidades: Record<string, string> = {
@@ -276,12 +276,13 @@ export function Studies() {
         },
         body: JSON.stringify({
           actionType,
-          unidadeNome: nomeUnidadeLog, // 👈 Agora o dado vai para o C#
+          unidadeNome: nomeUnidadeLog,
           studyId: study.id,
           studyInstanceUID: study.studyInstanceUID,
           patientName: study.patient,
           studyDescription: study.description,
           modality: study.modality,
+          details: details, // 👈 Detalhes extras (ex: formato do download)
         }),
       });
     } catch (err) {
@@ -410,8 +411,9 @@ export function Studies() {
     const prefixoProxy = `/orthanc-${unidadeAtual}`;
     const patientName = studyForDownload.patient.replace(/[^a-zA-Z0-9]/g, '_');
     
-    // Registra o log
-    registrarLog('DOWNLOAD', studyForDownload);
+    // Registra o log com o formato escolhido
+    const formatoLabel = downloadFormat === 'pdf' ? 'PDF' : 'JPEG (ZIP)';
+    registrarLog('DOWNLOAD', studyForDownload, `Formato: ${formatoLabel}`);
     
     // Coletar todas as imagens selecionadas
     const imagesToDownload: { blob: Blob; modality: string; index: number }[] = [];

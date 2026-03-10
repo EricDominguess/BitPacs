@@ -49,7 +49,8 @@ namespace BitPacs.Api.Controllers
                 Modality = request.Modality,
                 Timestamp = localTime,
                 UnidadeNome = request.UnidadeNome,
-                IpAddress = ipAddress
+                IpAddress = ipAddress,
+                Details = request.Details // Detalhes extras (formato do download)
             };
 
             _context.StudyLogs.Add(log);
@@ -219,6 +220,7 @@ namespace BitPacs.Api.Controllers
         public string? StudyDescription { get; set; }
         public string? Modality { get; set; }
         public string? UnidadeNome { get; set; }
+        public string? Details { get; set; } // Detalhes extras (ex: formato do download)
     }
 
     // Request para criar log administrativo
