@@ -154,12 +154,21 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                 ) : (
                   logs.map((log) => {
                     // Determinar estilo e texto baseado no tipo de ação
-                    const getActionStyle = (actionType: string) => {
+                    const getActionStyle = (actionType: string, details?: string) => {
                       switch (actionType) {
                         case 'DOWNLOAD':
+                          // Verificar formato no details
+                          let downloadLabel = 'DOWNLOAD';
+                          if (details) {
+                            if (details.toLowerCase().includes('pdf')) {
+                              downloadLabel = 'DOWNLOAD (PDF)';
+                            } else if (details.toLowerCase().includes('jpeg') || details.toLowerCase().includes('zip')) {
+                              downloadLabel = 'DOWNLOAD (JPEG)';
+                            }
+                          }
                           return {
                             className: 'bg-[#dcfce7] border-[#86efac] cor-download-forcada dark:bg-[#00ffd5]/10 dark:border-[#00ffd5]/30',
-                            label: 'DOWNLOAD',
+                            label: downloadLabel,
                             icon: (
                               <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeWidth: '3px' }}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -226,14 +235,14 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                       }
                     };
 
-                    const actionStyle = getActionStyle(log.actionType);
+                    const actionStyle = getActionStyle(log.actionType, (log as any).details);
                     const isAdminAction = ['USER_CREATE', 'USER_DELETE', 'PASSWORD_CHANGE', 'PASSWORD_CHANGE_OTHER'].includes(log.actionType);
 
                     return (
                     <tr key={log.id} className="hover:bg-nautico/5 transition-colors">
                       <td className="px-4 py-3">
                         <span 
-                          className={`inline-flex items-center justify-center w-[130px] gap-1.5 px-2 py-1 rounded text-[10px] font-bold border transition-colors shadow-sm ${actionStyle.className}`}
+                          className={`inline-flex items-center justify-center min-w-[130px] gap-1.5 px-2 py-1 rounded text-[10px] font-bold border transition-colors shadow-sm ${actionStyle.className}`}
                         >
                           {actionStyle.icon}
                           {actionStyle.label}
@@ -247,19 +256,11 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-col">
-                          <span className="text-sm text-theme-muted truncate max-w-[180px] block">
-                            {isAdminAction 
-                              ? ((log as any).details || '-')
-                              : (log.studyDescription || 'Sem descrição')}
-                          </span>
-                          {/* Mostrar detalhes do download (formato) */}
-                          {log.actionType === 'DOWNLOAD' && (log as any).details && (
-                            <span className="text-xs text-theme-muted/70 italic">
-                              {(log as any).details}
-                            </span>
-                          )}
-                        </div>
+                        <span className="text-sm text-theme-muted truncate max-w-[180px] block">
+                          {isAdminAction 
+                            ? ((log as any).details || '-')
+                            : (log.studyDescription || 'Sem descrição')}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-xs font-semibold text-theme-secondary bg-theme-secondary/50 px-2 py-1 rounded">
