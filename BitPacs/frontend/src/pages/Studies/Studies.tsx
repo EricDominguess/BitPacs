@@ -28,6 +28,31 @@ interface SelectedStudyForViewer {
   description: string;
 }
 
+// Interfaces para o modal de download
+interface SeriesForDownload {
+  id: string;
+  description: string;
+  modality: string;
+  instancesCount: number;
+  instances: InstanceForDownload[];
+  isExpanded: boolean;
+  isSelected: boolean;
+}
+
+interface InstanceForDownload {
+  id: string;
+  instanceNumber: string;
+  isSelected: boolean;
+}
+
+interface StudyForDownload {
+  id: string;
+  patient: string;
+  description: string;
+  modality: string;
+  studyInstanceUID: string;
+}
+
 export function Studies() {
   const navigate = useNavigate();
   // Usa o índice de séries por estudo para busca O(1)
@@ -54,6 +79,13 @@ export function Studies() {
   // Estado para o modal de seleção de visualizador
   const [showViewerModal, setShowViewerModal] = useState(false);
   const [selectedStudyForViewer, setSelectedStudyForViewer] = useState<SelectedStudyForViewer | null>(null);
+
+  // Estados para o modal de download
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [studyForDownload, setStudyForDownload] = useState<StudyForDownload | null>(null);
+  const [seriesForDownload, setSeriesForDownload] = useState<SeriesForDownload[]>([]);
+  const [isLoadingSeries, setIsLoadingSeries] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Função que o botão vai chamar
   const handleServerSearch = async () => {
@@ -281,24 +313,172 @@ export function Studies() {
     }
   };
 
-  // 3. FUNÇÃO DE DOWNLOAD ATUALIZADA (E Blindada para Multi-Unidades)
-  const handleDownload = (study: typeof studiesFormatted[0]) => {
-    const filename = `estudo-${study.id}.zip`;
+  // FUNÇÃO PARA ABRIR O MODAL DE DOWNLOAD
+  const handleOpenDownloadModal = async (study: typeof studiesFormatted[0]) => {
+    setStudyForDownload({
+      id: study.id,
+      patient: study.patient,
+      description: study.description,
+      modality: study.modality,
+      studyInstanceUID: study.studyInstanceUID
+    });
+    setShowDownloadModal(true);
+    setIsLoadingSeries(true);
     
-    // Registra o download no backend
-    registrarLog('DOWNLOAD', study);
+    try {
+      const prefixoProxy = `/orthanc-${unidadeAtual}`;
+      
+      // Buscar séries do estudo
+      const seriesData = await carregarSeriesDoEstudo(study.id);
+      
+      // Para cada série, buscar as instâncias
+      const seriesWithInstances: SeriesForDownload[] = await Promise.all(
+        seriesData.map(async (serie: any) => {
+          // Buscar instâncias da série
+          const instancesResponse = await fetch(`${prefixoProxy}/series/${serie.ID}/instances`);
+          const instancesData = await instancesResponse.json();
+          
+          return {
+            id: serie.ID,
+            description: serie.MainDicomTags?.SeriesDescription || 'Sem descrição',
+            modality: serie.MainDicomTags?.Modality || 'OT',
+            instancesCount: instancesData.length,
+            instances: instancesData.map((inst: any) => ({
+              id: inst.ID,
+              instanceNumber: inst.MainDicomTags?.InstanceNumber || '?',
+              isSelected: true
+            })),
+            isExpanded: false,
+            isSelected: true
+          };
+        })
+      );
+      
+      setSeriesForDownload(seriesWithInstances);
+    } catch (error) {
+      console.error('Erro ao carregar séries:', error);
+      setSeriesForDownload([]);
+    } finally {
+      setIsLoadingSeries(false);
+    }
+  };
 
-    // Usa a unidadeAtual que já vem corretamente do hook useOrthancData
-    // (para master: localStorage 'bitpacs-unidade-master', para outros: user.unidadeId)
+  // TOGGLE EXPANSÃO DA SÉRIE
+  const toggleSeriesExpanded = (seriesId: string) => {
+    setSeriesForDownload(prev => prev.map(s => 
+      s.id === seriesId ? { ...s, isExpanded: !s.isExpanded } : s
+    ));
+  };
+
+  // TOGGLE SELEÇÃO DA SÉRIE (seleciona/deseleciona todas as instâncias)
+  const toggleSeriesSelection = (seriesId: string) => {
+    setSeriesForDownload(prev => prev.map(s => {
+      if (s.id === seriesId) {
+        const newSelected = !s.isSelected;
+        return {
+          ...s,
+          isSelected: newSelected,
+          instances: s.instances.map(inst => ({ ...inst, isSelected: newSelected }))
+        };
+      }
+      return s;
+    }));
+  };
+
+  // TOGGLE SELEÇÃO DE UMA INSTÂNCIA
+  const toggleInstanceSelection = (seriesId: string, instanceId: string) => {
+    setSeriesForDownload(prev => prev.map(s => {
+      if (s.id === seriesId) {
+        const updatedInstances = s.instances.map(inst => 
+          inst.id === instanceId ? { ...inst, isSelected: !inst.isSelected } : inst
+        );
+        const allSelected = updatedInstances.every(inst => inst.isSelected);
+        return { ...s, instances: updatedInstances, isSelected: allSelected };
+      }
+      return s;
+    }));
+  };
+
+  // SELECIONAR/DESELECIONAR TUDO
+  const toggleSelectAll = () => {
+    const allSelected = seriesForDownload.every(s => s.isSelected);
+    setSeriesForDownload(prev => prev.map(s => ({
+      ...s,
+      isSelected: !allSelected,
+      instances: s.instances.map(inst => ({ ...inst, isSelected: !allSelected }))
+    })));
+  };
+
+  // CONTAR SELECIONADOS
+  const countSelected = () => {
+    let seriesCount = 0;
+    let instancesCount = 0;
+    seriesForDownload.forEach(s => {
+      const selectedInstances = s.instances.filter(i => i.isSelected).length;
+      if (selectedInstances > 0) {
+        seriesCount++;
+        instancesCount += selectedInstances;
+      }
+    });
+    return { seriesCount, instancesCount };
+  };
+
+  // EXECUTAR DOWNLOAD
+  const executeDownload = async () => {
+    if (!studyForDownload) return;
+    
+    setIsDownloading(true);
     const prefixoProxy = `/orthanc-${unidadeAtual}`;
-
-    // Executa o download (Técnica do Link Fantasma)
-    const link = document.createElement('a');
-    link.href = `${prefixoProxy}/studies/${study.id}/archive`;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const patientName = studyForDownload.patient.replace(/[^a-zA-Z0-9]/g, '_');
+    
+    // Registra o log
+    registrarLog('DOWNLOAD', studyForDownload);
+    
+    const allSelected = seriesForDownload.every(s => s.isSelected && s.instances.every(i => i.isSelected));
+    
+    if (allSelected) {
+      // Download do estudo completo
+      const link = document.createElement('a');
+      link.href = `${prefixoProxy}/studies/${studyForDownload.id}/archive`;
+      link.setAttribute('download', `${patientName}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      // Download das séries selecionadas
+      for (const series of seriesForDownload) {
+        const selectedInstances = series.instances.filter(i => i.isSelected);
+        if (selectedInstances.length === 0) continue;
+        
+        if (selectedInstances.length === series.instances.length) {
+          // Baixar série completa
+          const link = document.createElement('a');
+          link.href = `${prefixoProxy}/series/${series.id}/archive`;
+          link.setAttribute('download', `${patientName}_${series.modality}_${series.description.replace(/[^a-zA-Z0-9]/g, '_')}.zip`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // Pequeno delay entre downloads
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } else {
+          // Baixar instâncias individuais
+          for (const instance of selectedInstances) {
+            const link = document.createElement('a');
+            link.href = `${prefixoProxy}/instances/${instance.id}/file`;
+            link.setAttribute('download', `${patientName}_${series.modality}_img${instance.instanceNumber}.dcm`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+        }
+      }
+    }
+    
+    setIsDownloading(false);
+    setShowDownloadModal(false);
   };
 
   // 4. FUNÇÃO PARA ABRIR O MODAL DE SELEÇÃO DE VISUALIZADOR
@@ -331,17 +511,6 @@ export function Studies() {
       const prefixoProxy = `/orthanc-${unidadeAtual}`;
       const ohifUrl = `${prefixoProxy}/ohif/viewer?StudyInstanceUIDs=${selectedStudyForViewer.studyInstanceUID}`;
       window.open(ohifUrl, '_blank');
-    }
-  };
-
-  // 8. FUNÇÃO PARA ABRIR O STONE VIEWER (alternativa)
-  const handleOpenStoneViewer = () => {
-    if (selectedStudyForViewer) {
-      registrarLog('VIEW', selectedStudyForViewer);
-      setShowViewerModal(false);
-      const prefixoProxy = `/orthanc-${unidadeAtual}`;
-      const stoneUrl = `${prefixoProxy}/stone-webviewer/index.html?study=${selectedStudyForViewer.studyInstanceUID}`;
-      window.open(stoneUrl, '_blank');
     }
   };
 
@@ -471,7 +640,7 @@ export function Studies() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                           </Button>
-                          <Button variant="ghost" size="sm" title="Baixar estudo (ZIP)" onClick={() => handleDownload(study)}>
+                          <Button variant="ghost" size="sm" title="Baixar estudo" onClick={() => handleOpenDownloadModal(study)}>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
@@ -511,7 +680,7 @@ export function Studies() {
 
               <Button 
                 variant="ghost" 
-                size="sm" 
+                size="sm"                 
                 onClick={handleNextPage}
                 disabled={currentPage === totalPages || filteredStudies.length === 0}
               >
@@ -600,27 +769,6 @@ export function Studies() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </button>
-
-              {/* Stone Web Viewer */}
-              <button
-                onClick={handleOpenStoneViewer}
-                className="w-full flex items-center gap-4 p-4 rounded-lg border border-theme-border hover:border-ultra hover:bg-ultra/5 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-lg bg-ultra/10 flex items-center justify-center group-hover:bg-ultra/20 transition-colors">
-                  <svg className="w-6 h-6 text-ultra" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div className="flex-1 text-left">
-                  <h3 className="font-semibold text-theme-primary group-hover:text-ultra transition-colors">
-                    Stone Web Viewer
-                  </h3>
-                  <p className="text-sm text-theme-muted">Visualizador Orthanc nativo (abre em nova aba)</p>
-                </div>
-                <svg className="w-5 h-5 text-theme-muted group-hover:text-ultra transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </button>
             </div>
 
             {/* Footer */}
@@ -631,6 +779,179 @@ export function Studies() {
               >
                 Cancelar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Download com Seleção de Séries/Imagens */}
+      {showDownloadModal && studyForDownload && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-theme-card border border-theme-border rounded-xl overflow-hidden w-full max-w-2xl mx-4 shadow-2xl animate-scale-up max-h-[85vh] flex flex-col">
+            {/* Header do Modal */}
+            <div className="flex items-center justify-between p-6 border-b border-theme-border flex-shrink-0">
+              <div>
+                <h2 className="text-xl font-bold text-theme-primary">
+                  Selecionar Download
+                </h2>
+                <p className="text-sm text-theme-muted mt-1">
+                  {studyForDownload.patient}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDownloadModal(false)}
+                className="text-theme-muted hover:text-theme-primary transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Informações do Estudo */}
+            <div className="px-6 py-3 bg-theme-secondary/50 border-b border-theme-border flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className={`inline-flex px-2.5 py-1 rounded text-xs font-semibold border ${modalityColors[studyForDownload.modality] || modalityColors['OT']}`}>
+                    {studyForDownload.modality}
+                  </span>
+                  <span className="text-sm text-theme-muted truncate">{studyForDownload.description}</span>
+                </div>
+                {!isLoadingSeries && (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={seriesForDownload.length > 0 && seriesForDownload.every(s => s.isSelected)}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-theme-border text-nautico focus:ring-nautico"
+                    />
+                    <span className="text-sm text-theme-muted">Selecionar Tudo</span>
+                  </label>
+                )}
+              </div>
+            </div>
+
+            {/* Lista de Séries */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {isLoadingSeries ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="flex items-center gap-3 text-theme-muted">
+                    <div className="w-5 h-5 border-2 border-nautico border-t-transparent rounded-full animate-spin" />
+                    Carregando séries...
+                  </div>
+                </div>
+              ) : seriesForDownload.length === 0 ? (
+                <div className="text-center py-12 text-theme-muted">
+                  Nenhuma série encontrada.
+                </div>
+              ) : (
+                seriesForDownload.map((series) => (
+                  <div key={series.id} className="border border-theme-border rounded-lg overflow-hidden">
+                    {/* Header da Série */}
+                    <div 
+                      className="flex items-center gap-3 p-3 bg-theme-secondary/30 cursor-pointer hover:bg-theme-secondary/50 transition-colors"
+                      onClick={() => toggleSeriesExpanded(series.id)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={series.isSelected}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          toggleSeriesSelection(series.id);
+                        }}
+                        className="w-4 h-4 rounded border-theme-border text-nautico focus:ring-nautico"
+                      />
+                      <svg 
+                        className={`w-5 h-5 text-theme-muted transition-transform ${series.isExpanded ? 'rotate-90' : ''}`} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                      <svg className="w-5 h-5 text-accent-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                      </svg>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-theme-primary truncate">
+                          {series.description || 'Série sem descrição'}
+                        </p>
+                        <p className="text-xs text-theme-muted">
+                          {series.instancesCount} imagem(ns)
+                        </p>
+                      </div>
+                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold border ${modalityColors[series.modality] || modalityColors['OT']}`}>
+                        {series.modality}
+                      </span>
+                    </div>
+
+                    {/* Lista de Instâncias (expandível) */}
+                    {series.isExpanded && (
+                      <div className="border-t border-theme-border bg-theme-card">
+                        <div className="max-h-48 overflow-y-auto">
+                          {series.instances.map((instance, idx) => (
+                            <div 
+                              key={instance.id}
+                              className="flex items-center gap-3 px-4 py-2 hover:bg-theme-secondary/20 transition-colors border-b border-theme-light last:border-b-0"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={instance.isSelected}
+                                onChange={() => toggleInstanceSelection(series.id, instance.id)}
+                                className="w-4 h-4 rounded border-theme-border text-nautico focus:ring-nautico"
+                              />
+                              <svg className="w-4 h-4 text-ultra" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              <span className="text-sm text-theme-secondary">
+                                Imagem {instance.instanceNumber || (idx + 1)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer com Ações */}
+            <div className="px-6 py-4 border-t border-theme-border bg-theme-secondary/30 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-theme-muted">
+                  {countSelected().seriesCount > 0 
+                    ? `${countSelected().seriesCount} série(s), ${countSelected().instancesCount} imagem(ns) selecionada(s)`
+                    : 'Nenhuma seleção'}
+                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setShowDownloadModal(false)}
+                    className="px-4 py-2 text-sm text-theme-muted hover:text-theme-primary transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={executeDownload}
+                    disabled={countSelected().instancesCount === 0 || isDownloading}
+                    className="px-4 py-2 bg-nautico text-white rounded-lg text-sm font-medium hover:bg-nautico/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {isDownloading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Baixando...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Baixar Selecionados
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
