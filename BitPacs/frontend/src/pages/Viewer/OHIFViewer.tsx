@@ -1,46 +1,52 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useState, useRef } from 'react';
-import { useUnidade } from '../../contexts';
 
-// Configuração dos proxies por unidade (deve corresponder ao vite.config.ts)
-const UNIDADE_PROXY: Record<string, string> = {
+// Mapeamento de IPs diretos do Orthanc por unidade (extraído do vite.config.ts)
+// O OHIF precisa de acesso direto para evitar problemas de CORS com proxy
+const ORTHANC_DIRECT_IPS: Record<string, string> = {
   // IDs Numéricos (Novo padrão do banco de dados)
-  '1': '/orthanc-riobranco',
-  '2': '/orthanc-foziguacu',
-  '3': '/orthanc-fazenda',
-  '4': '/orthanc-faxinal',
-  '5': '/orthanc-santamariana',
-  '6': '/orthanc-guarapuava',
-  '7': '/orthanc-carlopolis',
-  '8': '/orthanc-arapoti',
+  '1': '10.31.0.36:8042',    // Rio Branco
+  '2': '10.31.0.39:8042',    // Foz do Iguaçu
+  '3': '10.31.0.38:8042',    // Fazenda
+  '4': '10.31.0.37:8042',    // Faxinal
+  '5': '10.31.0.46:8042',    // Santa Mariana
+  '6': '10.31.0.47:8042',    // Guarapuava
+  '7': '10.31.0.48:8042',    // Carlópolis
+  '8': '10.31.0.49:8042',    // Arapoti
   
   // Textos legados (Mantidos como salva-vidas)
-  'localhost': '/orthanc',
-  'riobranco': '/orthanc-riobranco',
-  'foziguacu': '/orthanc-foziguacu',
-  'fazenda': '/orthanc-fazenda',
-  'faxinal': '/orthanc-faxinal',
-  'santamariana': '/orthanc-santamariana',
-  'guarapuava': '/orthanc-guarapuava',
-  'carlopolis': '/orthanc-carlopolis',
-  'arapoti': '/orthanc-arapoti',
+  'localhost': '10.31.0.36:8042',
+  'riobranco': '10.31.0.36:8042',
+  'foziguacu': '10.31.0.39:8042',
+  'fazenda': '10.31.0.38:8042',
+  'faxinal': '10.31.0.37:8042',
+  'santamariana': '10.31.0.46:8042',
+  'guarapuava': '10.31.0.47:8042',
+  'carlopolis': '10.31.0.48:8042',
+  'arapoti': '10.31.0.49:8042',
 };
+
+// IP padrão (Rio Branco) caso não encontre a unidade
+const DEFAULT_ORTHANC_IP = '10.31.0.36:8042';
 
 export function OHIFViewer() {
   const { studyId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const { unidade } = useUnidade();
+  
+  // Obtém a unidade da query string (passada pelo ViewerModal)
+  const unidade = searchParams.get('unidade') || '1';
 
-  // Obtém o proxy correto baseado na unidade selecionada
-  const proxyPrefix = UNIDADE_PROXY[unidade] || '/orthanc';
+  // Obtém o IP direto do Orthanc baseado na unidade selecionada
+  const orthancIp = ORTHANC_DIRECT_IPS[unidade] || DEFAULT_ORTHANC_IP;
 
-  // URL do OHIF Viewer - usa StudyInstanceUID como parâmetro
+  // URL do OHIF Viewer - acesso direto ao servidor Orthanc
   const viewerUrl = studyId 
-    ? `${proxyPrefix}/ohif/viewer?StudyInstanceUIDs=${encodeURIComponent(studyId)}`
-    : `${proxyPrefix}/ohif/`;
+    ? `http://${orthancIp}/ohif/viewer?StudyInstanceUIDs=${encodeURIComponent(studyId)}`
+    : `http://${orthancIp}/ohif/`;
 
   const handleIframeLoad = () => {
     setIsLoading(false);

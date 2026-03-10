@@ -603,8 +603,8 @@ export function Studies() {
     if (selectedStudyForViewer) {
       registrarLog('VIEW', selectedStudyForViewer);
       setShowViewerModal(false);
-      // Navega para a página do OHIF Viewer interno (iframe)
-      navigate(`/ohif-viewer/${selectedStudyForViewer.studyInstanceUID}`);
+      // Navega para a página do OHIF Viewer interno (iframe) passando a unidade
+      navigate(`/ohif-viewer/${selectedStudyForViewer.studyInstanceUID}?unidade=${unidadeAtual}`);
     }
   };
 
