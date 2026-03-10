@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react'; // <--- Adicione useEffect
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import JSZip from 'jszip';
 import { jsPDF } from 'jspdf';
@@ -7,16 +7,14 @@ import { Card, Button, Input } from '../../components/common';
 import { PeriodFilter, useFilteredStudies } from '../../components/dashboard';
 import type { PeriodType } from '../../components/dashboard';
 import { useOrthancData } from '../../hooks';
-
-const modalityColors: Record<string, string> = {
-  CT: 'bg-nautico/20 text-nautico border-nautico/30',
-  MR: 'bg-purple-light/20 text-purple-light border-purple-light/30',
-  CR: 'bg-ultra/20 text-ultra border-ultra/30',
-  US: 'bg-green-aqua/20 text-green-aqua border-green-aqua/30',
-  DR: 'bg-accent-orange/20 text-accent-orange border-accent-orange/30',
-  DX: 'bg-nautico',
-  OT: 'bg-gray-400/20 text-gray-500 border-gray-400/30',
-};
+import { 
+  ModalityBadge, 
+  ViewerModal, 
+  DownloadModal,
+  type SeriesForDownload,
+  type StudyForDownload,
+  type DownloadFormat
+} from '../../components/studies';
 
 // Constante de itens por página
 const ITEMS_PER_PAGE = 8;
@@ -29,35 +27,6 @@ interface SelectedStudyForViewer {
   modality: string;
   description: string;
 }
-
-// Interfaces para o modal de download
-interface SeriesForDownload {
-  id: string;
-  description: string;
-  modality: string;
-  instancesCount: number;
-  instances: InstanceForDownload[];
-  isExpanded: boolean;
-  isSelected: boolean;
-}
-
-interface InstanceForDownload {
-  id: string;
-  instanceNumber: string;
-  isSelected: boolean;
-}
-
-interface StudyForDownload {
-  id: string;
-  patient: string;
-  description: string;
-  modality: string;
-  studyInstanceUID: string;
-  date: string;
-  birthDate: string;
-}
-
-type DownloadFormat = 'jpeg' | 'pdf';
 
 export function Studies() {
   const navigate = useNavigate();
@@ -521,7 +490,7 @@ export function Studies() {
         
         // Cabeçalho na primeira página
         pdf.setFillColor(30, 58, 138); // Azul escuro
-        pdf.rect(0, 0, pageWidth, 45, 'F');
+        pdf.rect(0, 0, pageWidth, 55, 'F');
         
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(18);
@@ -532,19 +501,19 @@ export function Studies() {
         pdf.setFont('helvetica', 'normal');
         pdf.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, margin, 23);
         
-        // Informações do paciente
+        // Informações do paciente - layout em grid
         pdf.setFontSize(11);
-        pdf.text(`Paciente: ${studyForDownload.patient}`, margin, 32);
-        pdf.text(`Data de Nascimento: ${studyForDownload.birthDate}`, margin, 38);
-        pdf.text(`Data do Exame: ${studyForDownload.date}`, pageWidth / 2, 32);
-        pdf.text(`Modalidade: ${studyForDownload.modality}`, pageWidth / 2, 38);
+        pdf.text(`Paciente: ${studyForDownload.patient}`, margin, 33);
+        pdf.text(`Data de Nascimento: ${studyForDownload.birthDate}`, margin, 40);
+        pdf.text(`Data do Exame: ${studyForDownload.date}`, margin, 47);
+        pdf.text(`Modalidade: ${studyForDownload.modality}`, pageWidth / 2, 47);
         
         // Descrição do estudo
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(10);
-        pdf.text(`Descrição: ${studyForDownload.description}`, margin, 55);
+        pdf.text(`Descrição: ${studyForDownload.description}`, margin, 65);
         
-        let yPosition = 65;
+        let yPosition = 75;
         let isFirstImage = true;
         
         for (const img of imagesToDownload) {
@@ -741,9 +710,7 @@ export function Studies() {
                         <span className="text-theme-muted text-sm">{study.birthDate}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex px-2.5 py-1 rounded text-xs font-semibold border ${modalityColors[study.modality] || modalityColors['OT']}`}>
-                          {study.modality}
-                        </span>
+                        <ModalityBadge modality={study.modality} />
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-theme-secondary">{study.description}</span>
@@ -817,285 +784,31 @@ export function Studies() {
       </div>
 
       {/* Modal de Seleção de Visualizador */}
-      {showViewerModal && selectedStudyForViewer && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-          <div className="bg-theme-card border border-theme-border rounded-xl overflow-hidden w-full max-w-md mx-4 shadow-2xl animate-scale-up">
-            {/* Header do Modal */}
-            <div className="flex items-center justify-between p-6 border-b border-theme-border">
-              <div>
-                <h2 className="text-xl font-bold text-theme-primary">
-                  Escolher Visualizador
-                </h2>
-                <p className="text-sm text-theme-muted mt-1">
-                  {selectedStudyForViewer.patient}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowViewerModal(false)}
-                className="text-theme-muted hover:text-theme-primary transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+      <ViewerModal
+        isOpen={showViewerModal}
+        study={selectedStudyForViewer}
+        onClose={() => setShowViewerModal(false)}
+        onOpenInternal={handleOpenInternalViewer}
+        onOpenOHIF={handleOpenOHIFViewer}
+      />
 
-            {/* Informações do Estudo */}
-            <div className="px-6 py-4 bg-theme-secondary/50 border-b border-theme-border">
-              <div className="flex items-center gap-4 text-sm">
-                <span className={`inline-flex px-2.5 py-1 rounded text-xs font-semibold border ${modalityColors[selectedStudyForViewer.modality] || modalityColors['OT']}`}>
-                  {selectedStudyForViewer.modality}
-                </span>
-                <span className="text-theme-muted truncate">{selectedStudyForViewer.description}</span>
-              </div>
-            </div>
-
-            {/* Opções de Visualizador */}
-            <div className="p-6 space-y-3">
-              {/* Visualizador Interno */}
-              <button
-                onClick={handleOpenInternalViewer}
-                className="w-full flex items-center gap-4 p-4 rounded-lg border border-theme-border hover:border-nautico hover:bg-nautico/5 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-lg bg-nautico/10 flex items-center justify-center group-hover:bg-nautico/20 transition-colors">
-                  <svg className="w-6 h-6 text-nautico" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                </div>
-                <div className="flex-1 text-left">
-                  <h3 className="font-semibold text-theme-primary group-hover:text-nautico transition-colors">
-                    Visualizador BitPacs
-                  </h3>
-                  <p className="text-sm text-theme-muted">Visualizador integrado do sistema</p>
-                </div>
-                <svg className="w-5 h-5 text-theme-muted group-hover:text-nautico transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-
-              {/* OHIF Viewer */}
-              <button
-                onClick={handleOpenOHIFViewer}
-                className="w-full flex items-center gap-4 p-4 rounded-lg border border-theme-border hover:border-purple-light hover:bg-purple-light/5 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-lg bg-purple-light/10 flex items-center justify-center group-hover:bg-purple-light/20 transition-colors">
-                  <svg className="w-6 h-6 text-purple-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div className="flex-1 text-left">
-                  <h3 className="font-semibold text-theme-primary group-hover:text-purple-light transition-colors">
-                    OHIF Viewer
-                  </h3>
-                  <p className="text-sm text-theme-muted">Visualizador avançado (abre em nova aba)</p>
-                </div>
-                <svg className="w-5 h-5 text-theme-muted group-hover:text-purple-light transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-theme-border bg-theme-secondary/30">
-              <button
-                onClick={() => setShowViewerModal(false)}
-                className="w-full py-2 text-sm text-theme-muted hover:text-theme-primary transition-colors"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Download com Seleção de Séries/Imagens */}
-      {showDownloadModal && studyForDownload && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-          <div className="bg-theme-card border border-theme-border rounded-xl overflow-hidden w-full max-w-2xl mx-4 shadow-2xl animate-scale-up max-h-[85vh] flex flex-col">
-            {/* Header do Modal */}
-            <div className="flex items-center justify-between p-6 border-b border-theme-border flex-shrink-0">
-              <div>
-                <h2 className="text-xl font-bold text-theme-primary">
-                  Selecionar Download
-                </h2>
-                <p className="text-sm text-theme-muted mt-1">
-                  {studyForDownload.patient}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowDownloadModal(false)}
-                className="text-theme-muted hover:text-theme-primary transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Informações do Estudo */}
-            <div className="px-6 py-3 bg-theme-secondary/50 border-b border-theme-border flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className={`inline-flex px-2.5 py-1 rounded text-xs font-semibold border ${modalityColors[studyForDownload.modality] || modalityColors['OT']}`}>
-                    {studyForDownload.modality}
-                  </span>
-                  <span className="text-sm text-theme-muted truncate">{studyForDownload.description}</span>
-                </div>
-                {!isLoadingSeries && (
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={seriesForDownload.length > 0 && seriesForDownload.every(s => s.isSelected)}
-                      onChange={toggleSelectAll}
-                      className="w-4 h-4 rounded border-theme-border text-nautico focus:ring-nautico"
-                    />
-                    <span className="text-sm text-theme-muted">Selecionar Tudo</span>
-                  </label>
-                )}
-              </div>
-            </div>
-
-            {/* Lista de Séries */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {isLoadingSeries ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="flex items-center gap-3 text-theme-muted">
-                    <div className="w-5 h-5 border-2 border-nautico border-t-transparent rounded-full animate-spin" />
-                    Carregando séries...
-                  </div>
-                </div>
-              ) : seriesForDownload.length === 0 ? (
-                <div className="text-center py-12 text-theme-muted">
-                  Nenhuma série encontrada.
-                </div>
-              ) : (
-                seriesForDownload.map((series) => (
-                  <div key={series.id} className="border border-theme-border rounded-lg overflow-hidden">
-                    {/* Header da Série */}
-                    <div 
-                      className="flex items-center gap-3 p-3 bg-theme-secondary/30 cursor-pointer hover:bg-theme-secondary/50 transition-colors"
-                      onClick={() => toggleSeriesExpanded(series.id)}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={series.isSelected}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          toggleSeriesSelection(series.id);
-                        }}
-                        className="w-4 h-4 rounded border-theme-border text-nautico focus:ring-nautico"
-                      />
-                      <svg 
-                        className={`w-5 h-5 text-theme-muted transition-transform ${series.isExpanded ? 'rotate-90' : ''}`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                      <svg className="w-5 h-5 text-accent-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                      </svg>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-theme-primary truncate">
-                          {series.description || 'Série sem descrição'}
-                        </p>
-                        <p className="text-xs text-theme-muted">
-                          {series.instancesCount} imagem(ns)
-                        </p>
-                      </div>
-                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold border ${modalityColors[series.modality] || modalityColors['OT']}`}>
-                        {series.modality}
-                      </span>
-                    </div>
-
-                    {/* Lista de Instâncias (expandível) */}
-                    {series.isExpanded && (
-                      <div className="border-t border-theme-border bg-theme-card">
-                        <div className="max-h-48 overflow-y-auto">
-                          {series.instances.map((instance, idx) => (
-                            <div 
-                              key={instance.id}
-                              className="flex items-center gap-3 px-4 py-2 hover:bg-theme-secondary/20 transition-colors border-b border-theme-light last:border-b-0"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={instance.isSelected}
-                                onChange={() => toggleInstanceSelection(series.id, instance.id)}
-                                className="w-4 h-4 rounded border-theme-border text-nautico focus:ring-nautico"
-                              />
-                              <svg className="w-4 h-4 text-ultra" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                              <span className="text-sm text-theme-secondary">
-                                Imagem {instance.instanceNumber || (idx + 1)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Footer com Ações */}
-            <div className="px-6 py-4 border-t border-theme-border bg-theme-secondary/30 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-theme-muted">
-                    {countSelected().seriesCount > 0 
-                      ? `${countSelected().seriesCount} série(s), ${countSelected().instancesCount} imagem(ns)`
-                      : 'Nenhuma seleção'}
-                  </span>
-                  
-                  {/* Seletor de formato */}
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-theme-muted">Formato:</label>
-                    <select
-                      value={downloadFormat}
-                      onChange={(e) => setDownloadFormat(e.target.value as DownloadFormat)}
-                      className="px-3 py-1.5 text-sm bg-theme-secondary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico/50"
-                    >
-                      <option value="jpeg">JPEG (ZIP)</option>
-                      <option value="pdf">PDF</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setShowDownloadModal(false)}
-                    className="px-4 py-2 text-sm text-theme-muted hover:text-theme-primary transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={executeDownload}
-                    disabled={countSelected().instancesCount === 0 || isDownloading}
-                    className="px-4 py-2 bg-nautico text-white rounded-lg text-sm font-medium hover:bg-nautico/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    {isDownloading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        {downloadFormat === 'pdf' ? 'Gerando PDF...' : 'Gerando ZIP...'}
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Baixar {downloadFormat === 'pdf' ? 'PDF' : 'ZIP'}
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal de Download */}
+      <DownloadModal
+        isOpen={showDownloadModal}
+        study={studyForDownload}
+        series={seriesForDownload}
+        isLoadingSeries={isLoadingSeries}
+        isDownloading={isDownloading}
+        downloadFormat={downloadFormat}
+        onClose={() => setShowDownloadModal(false)}
+        onFormatChange={setDownloadFormat}
+        onToggleSelectAll={toggleSelectAll}
+        onToggleSeriesExpanded={toggleSeriesExpanded}
+        onToggleSeriesSelection={toggleSeriesSelection}
+        onToggleInstanceSelection={toggleInstanceSelection}
+        onDownload={executeDownload}
+        countSelected={countSelected}
+      />
     </MainLayout>
   );
 }
