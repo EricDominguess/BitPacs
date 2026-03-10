@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'; // <--- Adicione useEffect
 import { useNavigate } from 'react-router-dom';
 import JSZip from 'jszip';
+import { jsPDF } from 'jspdf';
 import { MainLayout } from '../../components/layout';
 import { Card, Button, Input } from '../../components/common';
 import { PeriodFilter, useFilteredStudies } from '../../components/dashboard';
@@ -52,7 +53,11 @@ interface StudyForDownload {
   description: string;
   modality: string;
   studyInstanceUID: string;
+  date: string;
+  birthDate: string;
 }
+
+type DownloadFormat = 'jpeg' | 'pdf';
 
 export function Studies() {
   const navigate = useNavigate();
@@ -87,6 +92,7 @@ export function Studies() {
   const [seriesForDownload, setSeriesForDownload] = useState<SeriesForDownload[]>([]);
   const [isLoadingSeries, setIsLoadingSeries] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState<DownloadFormat>('jpeg');
 
   // Função que o botão vai chamar
   const handleServerSearch = async () => {
@@ -321,8 +327,11 @@ export function Studies() {
       patient: study.patient,
       description: study.description,
       modality: study.modality,
-      studyInstanceUID: study.studyInstanceUID
+      studyInstanceUID: study.studyInstanceUID,
+      date: study.date,
+      birthDate: study.birthDate
     });
+    setDownloadFormat('jpeg'); // Reset para JPEG ao abrir modal
     setShowDownloadModal(true);
     setIsLoadingSeries(true);
     
@@ -435,29 +444,19 @@ export function Studies() {
     // Registra o log
     registrarLog('DOWNLOAD', studyForDownload);
     
-    // Criar ZIP
-    const zip = new JSZip();
-    const folder = zip.folder(patientName);
-    
-    if (!folder) {
-      console.error('Erro ao criar pasta no ZIP');
-      setIsDownloading(false);
-      return;
-    }
+    // Coletar todas as imagens selecionadas
+    const imagesToDownload: { blob: Blob; modality: string; index: number }[] = [];
+    let imgIndex = 1;
     
     const allSelected = seriesForDownload.every(s => s.isSelected && s.instances.every(i => i.isSelected));
     
-    let imgIndex = 1;
-    
     if (allSelected) {
-      // Download do estudo completo - todas as imagens
       for (const series of seriesForDownload) {
         for (const instance of series.instances) {
           try {
             const response = await fetch(`${prefixoProxy}/instances/${instance.id}/rendered`);
             const blob = await response.blob();
-            const filename = `${series.modality}_${String(imgIndex).padStart(3, '0')}.jpg`;
-            folder.file(filename, blob);
+            imagesToDownload.push({ blob, modality: series.modality, index: imgIndex });
             imgIndex++;
           } catch (err) {
             console.error('Erro ao baixar imagem:', err);
@@ -465,7 +464,6 @@ export function Studies() {
         }
       }
     } else {
-      // Download apenas das séries/instâncias selecionadas
       for (const series of seriesForDownload) {
         const selectedInstances = series.instances.filter(i => i.isSelected);
         if (selectedInstances.length === 0) continue;
@@ -474,8 +472,7 @@ export function Studies() {
           try {
             const response = await fetch(`${prefixoProxy}/instances/${instance.id}/rendered`);
             const blob = await response.blob();
-            const filename = `${series.modality}_${String(imgIndex).padStart(3, '0')}.jpg`;
-            folder.file(filename, blob);
+            imagesToDownload.push({ blob, modality: series.modality, index: imgIndex });
             imgIndex++;
           } catch (err) {
             console.error('Erro ao baixar imagem:', err);
@@ -484,19 +481,125 @@ export function Studies() {
       }
     }
     
-    // Gerar e baixar o ZIP
-    try {
-      const content = await zip.generateAsync({ type: 'blob' });
-      const url = window.URL.createObjectURL(content);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${patientName}.zip`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Erro ao gerar ZIP:', err);
+    if (downloadFormat === 'jpeg') {
+      // Download como ZIP com JPEGs
+      const zip = new JSZip();
+      const folder = zip.folder(patientName);
+      
+      if (!folder) {
+        console.error('Erro ao criar pasta no ZIP');
+        setIsDownloading(false);
+        return;
+      }
+      
+      for (const img of imagesToDownload) {
+        const filename = `${img.modality}_${String(img.index).padStart(3, '0')}.jpg`;
+        folder.file(filename, img.blob);
+      }
+      
+      try {
+        const content = await zip.generateAsync({ type: 'blob' });
+        const url = window.URL.createObjectURL(content);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${patientName}.zip`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Erro ao gerar ZIP:', err);
+      }
+    } else {
+      // Download como PDF
+      try {
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 15;
+        const contentWidth = pageWidth - (margin * 2);
+        
+        // Cabeçalho na primeira página
+        pdf.setFillColor(30, 58, 138); // Azul escuro
+        pdf.rect(0, 0, pageWidth, 45, 'F');
+        
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('BitPacs - Relatório de Imagens', margin, 15);
+        
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, margin, 23);
+        
+        // Informações do paciente
+        pdf.setFontSize(11);
+        pdf.text(`Paciente: ${studyForDownload.patient}`, margin, 32);
+        pdf.text(`Data de Nascimento: ${studyForDownload.birthDate}`, margin, 38);
+        pdf.text(`Data do Exame: ${studyForDownload.date}`, pageWidth / 2, 32);
+        pdf.text(`Modalidade: ${studyForDownload.modality}`, pageWidth / 2, 38);
+        
+        // Descrição do estudo
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(10);
+        pdf.text(`Descrição: ${studyForDownload.description}`, margin, 55);
+        
+        let yPosition = 65;
+        let isFirstImage = true;
+        
+        for (const img of imagesToDownload) {
+          // Converter blob para base64
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(img.blob);
+          });
+          
+          // Calcular dimensões da imagem mantendo proporção
+          const imgElement = await new Promise<HTMLImageElement>((resolve) => {
+            const imgEl = new Image();
+            imgEl.onload = () => resolve(imgEl);
+            imgEl.src = base64;
+          });
+          
+          const imgRatio = imgElement.width / imgElement.height;
+          let imgWidth = contentWidth;
+          let imgHeight = imgWidth / imgRatio;
+          
+          // Limitar altura máxima da imagem
+          const maxImgHeight = pageHeight - 80;
+          if (imgHeight > maxImgHeight) {
+            imgHeight = maxImgHeight;
+            imgWidth = imgHeight * imgRatio;
+          }
+          
+          // Verificar se precisa de nova página
+          if (!isFirstImage && (yPosition + imgHeight + 10) > pageHeight - margin) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+          
+          // Centralizar imagem
+          const xPosition = (pageWidth - imgWidth) / 2;
+          
+          // Adicionar número da imagem
+          pdf.setFontSize(9);
+          pdf.setTextColor(100, 100, 100);
+          pdf.text(`Imagem ${img.index} - ${img.modality}`, margin, yPosition);
+          yPosition += 5;
+          
+          // Adicionar imagem
+          pdf.addImage(base64, 'JPEG', xPosition, yPosition, imgWidth, imgHeight);
+          yPosition += imgHeight + 10;
+          
+          isFirstImage = false;
+        }
+        
+        // Salvar PDF
+        pdf.save(`${patientName}.pdf`);
+      } catch (err) {
+        console.error('Erro ao gerar PDF:', err);
+      }
     }
     
     setIsDownloading(false);
@@ -941,11 +1044,26 @@ export function Studies() {
             {/* Footer com Ações */}
             <div className="px-6 py-4 border-t border-theme-border bg-theme-secondary/30 flex-shrink-0">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-theme-muted">
-                  {countSelected().seriesCount > 0 
-                    ? `${countSelected().seriesCount} série(s), ${countSelected().instancesCount} imagem(ns) selecionada(s)`
-                    : 'Nenhuma seleção'}
-                </span>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-theme-muted">
+                    {countSelected().seriesCount > 0 
+                      ? `${countSelected().seriesCount} série(s), ${countSelected().instancesCount} imagem(ns)`
+                      : 'Nenhuma seleção'}
+                  </span>
+                  
+                  {/* Seletor de formato */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-theme-muted">Formato:</label>
+                    <select
+                      value={downloadFormat}
+                      onChange={(e) => setDownloadFormat(e.target.value as DownloadFormat)}
+                      className="px-3 py-1.5 text-sm bg-theme-secondary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico/50"
+                    >
+                      <option value="jpeg">JPEG (ZIP)</option>
+                      <option value="pdf">PDF</option>
+                    </select>
+                  </div>
+                </div>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowDownloadModal(false)}
@@ -961,14 +1079,14 @@ export function Studies() {
                     {isDownloading ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Baixando...
+                        {downloadFormat === 'pdf' ? 'Gerando PDF...' : 'Gerando ZIP...'}
                       </>
                     ) : (
                       <>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
-                        Baixar Selecionados
+                        Baixar {downloadFormat === 'pdf' ? 'PDF' : 'ZIP'}
                       </>
                     )}
                   </button>
