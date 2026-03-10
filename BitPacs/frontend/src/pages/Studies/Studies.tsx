@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'; // <--- Adicione useEffect
 import { useNavigate } from 'react-router-dom';
+import JSZip from 'jszip';
 import { MainLayout } from '../../components/layout';
 import { Card, Button, Input } from '../../components/common';
 import { PeriodFilter, useFilteredStudies } from '../../components/dashboard';
@@ -434,65 +435,68 @@ export function Studies() {
     // Registra o log
     registrarLog('DOWNLOAD', studyForDownload);
     
+    // Criar ZIP
+    const zip = new JSZip();
+    const folder = zip.folder(patientName);
+    
+    if (!folder) {
+      console.error('Erro ao criar pasta no ZIP');
+      setIsDownloading(false);
+      return;
+    }
+    
     const allSelected = seriesForDownload.every(s => s.isSelected && s.instances.every(i => i.isSelected));
     
+    let imgIndex = 1;
+    
     if (allSelected) {
-      // Download do estudo completo - baixar todas as imagens como JPEG
-      let imgIndex = 1;
+      // Download do estudo completo - todas as imagens
       for (const series of seriesForDownload) {
         for (const instance of series.instances) {
           try {
-            // Buscar imagem renderizada como JPEG
             const response = await fetch(`${prefixoProxy}/instances/${instance.id}/rendered`);
             const blob = await response.blob();
-            
-            // Criar link para download
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `${patientName}_${series.modality}_${String(imgIndex).padStart(3, '0')}.jpg`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-            
+            const filename = `${series.modality}_${String(imgIndex).padStart(3, '0')}.jpg`;
+            folder.file(filename, blob);
             imgIndex++;
-            await new Promise(resolve => setTimeout(resolve, 200));
           } catch (err) {
             console.error('Erro ao baixar imagem:', err);
           }
         }
       }
     } else {
-      // Download das séries/instâncias selecionadas como JPEG
-      let imgIndex = 1;
+      // Download apenas das séries/instâncias selecionadas
       for (const series of seriesForDownload) {
         const selectedInstances = series.instances.filter(i => i.isSelected);
         if (selectedInstances.length === 0) continue;
         
         for (const instance of selectedInstances) {
           try {
-            // Buscar imagem renderizada como JPEG
             const response = await fetch(`${prefixoProxy}/instances/${instance.id}/rendered`);
             const blob = await response.blob();
-            
-            // Criar link para download
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `${patientName}_${series.modality}_${String(imgIndex).padStart(3, '0')}.jpg`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-            
+            const filename = `${series.modality}_${String(imgIndex).padStart(3, '0')}.jpg`;
+            folder.file(filename, blob);
             imgIndex++;
-            await new Promise(resolve => setTimeout(resolve, 200));
           } catch (err) {
             console.error('Erro ao baixar imagem:', err);
           }
         }
       }
+    }
+    
+    // Gerar e baixar o ZIP
+    try {
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = window.URL.createObjectURL(content);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${patientName}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Erro ao gerar ZIP:', err);
     }
     
     setIsDownloading(false);
