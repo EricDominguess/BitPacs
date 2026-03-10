@@ -437,41 +437,59 @@ export function Studies() {
     const allSelected = seriesForDownload.every(s => s.isSelected && s.instances.every(i => i.isSelected));
     
     if (allSelected) {
-      // Download do estudo completo
-      const link = document.createElement('a');
-      link.href = `${prefixoProxy}/studies/${studyForDownload.id}/archive`;
-      link.setAttribute('download', `${patientName}.zip`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Download do estudo completo - baixar todas as imagens como JPEG
+      let imgIndex = 1;
+      for (const series of seriesForDownload) {
+        for (const instance of series.instances) {
+          try {
+            // Buscar imagem renderizada como JPEG
+            const response = await fetch(`${prefixoProxy}/instances/${instance.id}/rendered`);
+            const blob = await response.blob();
+            
+            // Criar link para download
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${patientName}_${series.modality}_${String(imgIndex).padStart(3, '0')}.jpg`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            imgIndex++;
+            await new Promise(resolve => setTimeout(resolve, 200));
+          } catch (err) {
+            console.error('Erro ao baixar imagem:', err);
+          }
+        }
+      }
     } else {
-      // Download das séries selecionadas
+      // Download das séries/instâncias selecionadas como JPEG
+      let imgIndex = 1;
       for (const series of seriesForDownload) {
         const selectedInstances = series.instances.filter(i => i.isSelected);
         if (selectedInstances.length === 0) continue;
         
-        if (selectedInstances.length === series.instances.length) {
-          // Baixar série completa
-          const link = document.createElement('a');
-          link.href = `${prefixoProxy}/series/${series.id}/archive`;
-          link.setAttribute('download', `${patientName}_${series.modality}_${series.description.replace(/[^a-zA-Z0-9]/g, '_')}.zip`);
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          
-          // Pequeno delay entre downloads
-          await new Promise(resolve => setTimeout(resolve, 500));
-        } else {
-          // Baixar instâncias individuais
-          for (const instance of selectedInstances) {
+        for (const instance of selectedInstances) {
+          try {
+            // Buscar imagem renderizada como JPEG
+            const response = await fetch(`${prefixoProxy}/instances/${instance.id}/rendered`);
+            const blob = await response.blob();
+            
+            // Criar link para download
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.href = `${prefixoProxy}/instances/${instance.id}/file`;
-            link.setAttribute('download', `${patientName}_${series.modality}_img${instance.instanceNumber}.dcm`);
+            link.href = url;
+            link.setAttribute('download', `${patientName}_${series.modality}_${String(imgIndex).padStart(3, '0')}.jpg`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
             
-            await new Promise(resolve => setTimeout(resolve, 300));
+            imgIndex++;
+            await new Promise(resolve => setTimeout(resolve, 200));
+          } catch (err) {
+            console.error('Erro ao baixar imagem:', err);
           }
         }
       }
