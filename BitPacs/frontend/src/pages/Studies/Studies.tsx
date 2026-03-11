@@ -299,7 +299,8 @@ export function Studies() {
       modality: study.modality,
       studyInstanceUID: study.studyInstanceUID,
       date: study.date,
-      birthDate: study.birthDate
+      birthDate: study.birthDate,
+      bodyPartExamined: undefined // Será preenchido após buscar as tags
     });
     setDownloadFormat('jpeg'); // Reset para JPEG ao abrir modal
     setShowDownloadModal(true);
@@ -312,6 +313,28 @@ export function Studies() {
       const seriesData = await carregarSeriesDoEstudo(study.id);
       
       // Para cada série, buscar as instâncias
+      // Buscar BodyPartExamined da primeira instância do estudo
+      let bodyPartExamined = '';
+      if (seriesData.length > 0) {
+        try {
+          const firstSeriesId = seriesData[0].ID;
+          const firstInstancesResponse = await fetch(`${prefixoProxy}/series/${firstSeriesId}/instances`);
+          const firstInstances = await firstInstancesResponse.json();
+          if (firstInstances.length > 0) {
+            const tagsResponse = await fetch(`${prefixoProxy}/instances/${firstInstances[0].ID}/simplified-tags`);
+            const tags = await tagsResponse.json();
+            bodyPartExamined = tags.BodyPartExamined || '';
+          }
+        } catch (e) {
+          console.warn('Não foi possível obter BodyPartExamined:', e);
+        }
+      }
+      
+      // Atualizar o studyForDownload com a informação do órgão
+      if (bodyPartExamined) {
+        setStudyForDownload(prev => prev ? { ...prev, bodyPartExamined } : prev);
+      }
+
       const seriesWithInstances: SeriesForDownload[] = await Promise.all(
         seriesData.map(async (serie: any) => {
           // Buscar instâncias da série
@@ -508,7 +531,14 @@ export function Studies() {
         pdf.text(`Paciente: ${studyForDownload.patient}`, margin, 33);
         pdf.text(`Data de Nascimento: ${studyForDownload.birthDate}`, margin, 40);
         pdf.text(`Data do Exame: ${studyForDownload.date}`, margin, 47);
-        pdf.text(`Modalidade: ${studyForDownload.modality}`, pageWidth / 2, 47);
+        
+        // Modalidade e Órgão Examinado na mesma linha
+        const modalidadeText = `Modalidade: ${studyForDownload.modality}`;
+        const orgaoText = studyForDownload.bodyPartExamined ? `Órgão: ${studyForDownload.bodyPartExamined}` : '';
+        pdf.text(modalidadeText, pageWidth / 2, 40);
+        if (orgaoText) {
+          pdf.text(orgaoText, pageWidth / 2, 47);
+        }
         
         // Descrição do estudo
         pdf.setTextColor(0, 0, 0);

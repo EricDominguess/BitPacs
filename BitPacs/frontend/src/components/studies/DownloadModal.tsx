@@ -24,6 +24,7 @@ export interface StudyForDownload {
   studyInstanceUID: string;
   date: string;
   birthDate: string;
+  bodyPartExamined?: string;
 }
 
 export type DownloadFormat = 'jpeg' | 'pdf';
