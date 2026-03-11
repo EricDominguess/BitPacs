@@ -200,7 +200,8 @@ namespace BitPacs.Api.Controllers
                     if (response.IsSuccessStatusCode)
                     {
                         var content = await response.Content.ReadAsStringAsync();
-                        var stats = System.Text.Json.JsonSerializer.Deserialize<OrthancStatistics>(content);
+                        var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                        var stats = System.Text.Json.JsonSerializer.Deserialize<OrthancStatistics>(content, options);
                         if (stats != null)
                         {
                             totalStudies += stats.CountStudies;
@@ -304,7 +305,8 @@ namespace BitPacs.Api.Controllers
                     if (response.IsSuccessStatusCode)
                     {
                         var content = await response.Content.ReadAsStringAsync();
-                        var stats = System.Text.Json.JsonSerializer.Deserialize<OrthancStatistics>(content);
+                        var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                        var stats = System.Text.Json.JsonSerializer.Deserialize<OrthancStatistics>(content, options);
                         if (stats != null)
                         {
                             totalUsedBytes += stats.TotalDiskSize; // Já vem em bytes

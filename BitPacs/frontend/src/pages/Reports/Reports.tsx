@@ -67,8 +67,10 @@ export function Reports() {
   const isMaster = currentUser.role === 'Master';
   
   // Para Admin, sempre usar sua própria unidade; para Master, permitir escolher
+  // Note: API retorna UnidadeId (PascalCase), mas JSON converte para camelCase automaticamente
+  const userUnidadeId = currentUser.unidadeId || currentUser.UnidadeId || '';
   const [selectedUnidade, setSelectedUnidade] = useState<string>(
-    isMaster ? 'all' : (currentUser.unidadeId || '')
+    isMaster ? 'all' : userUnidadeId
   );
   
   const [selectedPeriod, setSelectedPeriod] = useState<string>('today');
@@ -94,7 +96,10 @@ export function Reports() {
         return;
       }
 
-      let url = `/api/reports/statistics?period=${selectedPeriod}&unidade=${selectedUnidade}`;
+      // Se unidade não especificada, usa 'all' para buscar de todas
+      const unidadeParam = selectedUnidade || 'all';
+      let url = `/api/reports/statistics?period=${selectedPeriod}&unidade=${unidadeParam}`;
+      console.log('[Reports] Fetching:', url, 'selectedUnidade:', selectedUnidade, 'userUnidadeId:', userUnidadeId);
       if (selectedPeriod === 'custom' && customStartDate && customEndDate) {
         url += `&startDate=${customStartDate}&endDate=${customEndDate}`;
       }
@@ -111,6 +116,7 @@ export function Reports() {
       }
 
       const result = await response.json();
+      console.log('[Reports] API Response:', result);
       setData(result);
     } catch (err) {
       console.error('Erro ao buscar relatórios:', err);
@@ -118,7 +124,7 @@ export function Reports() {
     } finally {
       setLoading(false);
     }
-  }, [selectedPeriod, customStartDate, customEndDate, selectedUnidade]);
+  }, [selectedPeriod, customStartDate, customEndDate, selectedUnidade, userUnidadeId]);
 
   // Buscar dados quando período ou unidade mudar
   useEffect(() => {
