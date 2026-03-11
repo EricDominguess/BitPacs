@@ -11,7 +11,6 @@ const UserDashboard = lazy(() => import('../pages/Dashboard/UserDashboard').then
 const Studies = lazy(() => import('../pages/Studies/Studies').then(m => ({ default: m.Studies })));
 const Viewer = lazy(() => import('../pages/Viewer/Viewer').then(m => ({ default: m.Viewer })));
 const OHIFViewer = lazy(() => import('../pages/Viewer/OHIFViewer').then(m => ({ default: m.OHIFViewer })));
-const Reports = lazy(() => import('../pages/Reports/Reports').then(m => ({ default: m.Reports })));
 
 // Loading Component
 function PageLoader() {
@@ -115,16 +114,6 @@ const router = createBrowserRouter([
       <Suspense fallback={<PageLoader />}>
         <ProtectedRoute>
           <OHIFViewer />
-        </ProtectedRoute>
-      </Suspense>
-    ),
-  },
-  {
-    path: '/reports',
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <ProtectedRoute allowedRoles={['Master', 'Admin']}>
-          <Reports />
         </ProtectedRoute>
       </Suspense>
     ),
