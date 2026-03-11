@@ -147,11 +147,11 @@ namespace BitPacs.Api.Controllers
                     .ToList();
             }
 
-            // Total de instâncias (estimativa baseada nos logs)
-            var totalInstances = studyLogs.Count * 15; // Média estimada de 15 instâncias por estudo
-
-            // Buscar armazenamento (filtrado por unidade se necessário)
+            // Total de instâncias (buscar do Orthanc via storage que já foi buscado)
             var storageData = await GetTotalStorageAsync(unidade);
+            
+            // Extrair totais do storage (que vem do Orthanc real)
+            var orthancTotals = await GetOrthancTotalsAsync(unidade);
 
             return Ok(new
             {
@@ -159,16 +159,61 @@ namespace BitPacs.Api.Controllers
                 unidade = unidade,
                 summary = new
                 {
-                    totalStudies = studyLogs.Count,
-                    totalInstances,
+                    totalStudies = studyLogs.Count, // Estudos visualizados/baixados no período
+                    totalInstances = studyLogs.Count * 15, // Estimativa de instâncias acessadas
                     activeModalities = modalityStats.Count,
                     totalUserActions = totalActions
                 },
+                orthancStats = orthancTotals, // Dados reais do Orthanc
                 modalityData,
                 userActionData,
                 hourlyVolume,
                 storage = storageData
             });
+        }
+        
+        // Buscar totais reais do Orthanc
+        private async Task<object> GetOrthancTotalsAsync(string filtroUnidade = "all")
+        {
+            var todasUnidades = new[] { "foziguacu", "fazenda", "riobranco", "faxinal", "santamariana", "guarapuava", "carlopolis", "arapoti" };
+            var unidadesParaBuscar = filtroUnidade.ToLower() == "all" 
+                ? todasUnidades 
+                : new[] { filtroUnidade.ToLower() };
+            
+            int totalStudies = 0;
+            int totalSeries = 0;
+            int totalInstances = 0;
+            int totalPatients = 0;
+            
+            foreach (var unidadeItem in unidadesParaBuscar)
+            {
+                try
+                {
+                    var orthancUrl = GetOrthancUrl(unidadeItem);
+                    var client = _httpClientFactory.CreateClient();
+                    client.Timeout = TimeSpan.FromSeconds(5);
+                    
+                    var authString = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes("admin:@BitFix123"));
+                    client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authString);
+                    
+                    var response = await client.GetAsync($"{orthancUrl}/statistics");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var content = await response.Content.ReadAsStringAsync();
+                        var stats = System.Text.Json.JsonSerializer.Deserialize<OrthancStatistics>(content);
+                        if (stats != null)
+                        {
+                            totalStudies += stats.CountStudies;
+                            totalSeries += stats.CountSeries;
+                            totalInstances += stats.CountInstances;
+                            totalPatients += stats.CountPatients;
+                        }
+                    }
+                }
+                catch { }
+            }
+            
+            return new { totalStudies, totalSeries, totalInstances, totalPatients };
         }
 
         // GET: api/reports/hourly-volume
@@ -239,9 +284,10 @@ namespace BitPacs.Api.Controllers
                 ? todasUnidades 
                 : new[] { filtroUnidade.ToLower() };
             
-            long totalUsed = 0;
-            long totalCapacity = 500L * 1024 * 1024 * 1024; // 500 GB default por unidade
+            long totalUsedBytes = 0;
+            long capacityPerUnitGB = 1075L; // 1.05 TB por unidade
             var unidadeStorage = new List<object>();
+            int unidadesOnline = 0;
 
             foreach (var unidade in unidadesParaBuscar)
             {
@@ -261,11 +307,12 @@ namespace BitPacs.Api.Controllers
                         var stats = System.Text.Json.JsonSerializer.Deserialize<OrthancStatistics>(content);
                         if (stats != null)
                         {
-                            totalUsed += stats.TotalDiskSizeMB * 1024 * 1024;
+                            totalUsedBytes += stats.TotalDiskSize; // Já vem em bytes
+                            unidadesOnline++;
                             unidadeStorage.Add(new
                             {
                                 unidade,
-                                usedMB = stats.TotalDiskSizeMB,
+                                usedGB = Math.Round((double)stats.TotalDiskSize / 1024 / 1024 / 1024, 2),
                                 studies = stats.CountStudies,
                                 series = stats.CountSeries,
                                 instances = stats.CountInstances
@@ -279,9 +326,10 @@ namespace BitPacs.Api.Controllers
                 }
             }
 
-            var totalCapacityGB = (totalCapacity / 1024 / 1024 / 1024) * unidadesParaBuscar.Length;
-            var usedGB = totalUsed / 1024 / 1024 / 1024;
-            var availableGB = totalCapacityGB - usedGB;
+            // Calcular totais
+            var totalCapacityGB = capacityPerUnitGB * unidadesParaBuscar.Length;
+            var usedGB = Math.Round((double)totalUsedBytes / 1024 / 1024 / 1024, 0);
+            var availableGB = totalCapacityGB - (long)usedGB;
 
             return new
             {
@@ -376,9 +424,11 @@ namespace BitPacs.Api.Controllers
     // Classe para deserializar estatísticas do Orthanc
     public class OrthancStatistics
     {
+        public long TotalDiskSize { get; set; } // Em bytes
         public long TotalDiskSizeMB { get; set; }
         public int CountStudies { get; set; }
         public int CountSeries { get; set; }
         public int CountInstances { get; set; }
+        public int CountPatients { get; set; }
     }
 }

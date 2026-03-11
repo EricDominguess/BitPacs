@@ -39,6 +39,13 @@ interface StorageInfo {
   usedPercentage: number;
 }
 
+interface OrthancStats {
+  totalStudies: number;
+  totalSeries: number;
+  totalInstances: number;
+  totalPatients: number;
+}
+
 interface ReportsData {
   period: { start: string; end: string };
   summary: {
@@ -47,6 +54,7 @@ interface ReportsData {
     activeModalities: number;
     totalUserActions: number;
   };
+  orthancStats: OrthancStats; // Dados reais do Orthanc
   modalityData: ModalityData[];
   userActionData: UserActionData[];
   hourlyVolume: number[];
@@ -122,6 +130,7 @@ export function Reports() {
 
   // Valores padrão enquanto carrega ou se não tem dados
   const summary = data?.summary ?? { totalStudies: 0, totalInstances: 0, activeModalities: 0, totalUserActions: 0 };
+  const orthancStats = data?.orthancStats ?? { totalStudies: 0, totalSeries: 0, totalInstances: 0, totalPatients: 0 };
   const modalityData = data?.modalityData ?? [];
   const userActionData = data?.userActionData ?? [];
   const hourlyVolume = data?.hourlyVolume ?? Array(24).fill(0);
@@ -359,13 +368,13 @@ export function Reports() {
           <>
             {/* Cards de Métricas */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Total de Estudos */}
+              {/* Total de Estudos - Do Orthanc */}
               <Card className="p-5">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm text-theme-muted">Total de Estudos</p>
-                    <p className="text-3xl font-bold text-theme-primary mt-1">{summary.totalStudies.toLocaleString()}</p>
-                    <p className="text-sm text-theme-muted mt-1">{getPeriodLabel()}</p>
+                    <p className="text-3xl font-bold text-theme-primary mt-1">{orthancStats.totalStudies.toLocaleString()}</p>
+                    <p className="text-sm text-theme-muted mt-1">No sistema PACS</p>
                   </div>
                   <div className="w-12 h-12 rounded-full bg-nautico/10 flex items-center justify-center">
                     <svg className="w-6 h-6 text-nautico" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -375,13 +384,13 @@ export function Reports() {
                 </div>
               </Card>
 
-              {/* Total de Instâncias */}
+              {/* Total de Instâncias - Do Orthanc */}
               <Card className="p-5">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm text-theme-muted">Total de Instâncias</p>
-                    <p className="text-3xl font-bold text-theme-primary mt-1">{summary.totalInstances.toLocaleString()}</p>
-                    <p className="text-sm text-theme-muted mt-1">Imagens processadas</p>
+                    <p className="text-3xl font-bold text-theme-primary mt-1">{orthancStats.totalInstances.toLocaleString()}</p>
+                    <p className="text-sm text-theme-muted mt-1">Imagens armazenadas</p>
                   </div>
                   <div className="w-12 h-12 rounded-full bg-purple-light/10 flex items-center justify-center">
                     <svg className="w-6 h-6 text-purple-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
