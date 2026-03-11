@@ -88,10 +88,12 @@ export function Reports() {
   const getDateLimits = useCallback(() => {
     const now = new Date();
     let startDate: Date;
+    let endDate: Date = now;
     
     switch (selectedPeriod) {
       case 'today':
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
         break;
       case 'week':
         startDate = new Date(now);
@@ -103,6 +105,7 @@ export function Reports() {
         break;
       case 'custom':
         startDate = customStartDate ? new Date(customStartDate) : new Date(now);
+        endDate = customEndDate ? new Date(customEndDate) : now;
         break;
       default:
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -113,9 +116,9 @@ export function Reports() {
     
     return {
       startDateStr: formatDate(startDate),
-      endDateStr: formatDate(now)
+      endDateStr: formatDate(endDate)
     };
-  }, [selectedPeriod, customStartDate]);
+  }, [selectedPeriod, customStartDate, customEndDate]);
 
   // Função para buscar estatísticas e estudos diretamente do Orthanc
   const fetchOrthancData = useCallback(async (unidadeValue: string) => {
@@ -128,10 +131,10 @@ export function Reports() {
     let totalInstances = 0;
     let totalPatients = 0;
     let totalDiskSizeBytes = 0;
-    const allEstudos: any[] = [];
+    const allSeries: any[] = [];
 
     const timestamp = Date.now();
-    const { startDateStr } = getDateLimits();
+    const { startDateStr, endDateStr } = getDateLimits();
 
     for (const unidade of unidadesParaBuscar) {
       if (!unidade.orthancProxy) continue;
@@ -148,30 +151,43 @@ export function Reports() {
           totalDiskSizeBytes += stats.TotalDiskSize || 0;
         }
 
-        // Buscar estudos para calcular modalidades
-        const estudosResponse = await fetch(`${unidade.orthancProxy}/studies?expand&_t=${timestamp}`);
-        if (estudosResponse.ok) {
-          const estudos = await estudosResponse.json();
-          allEstudos.push(...estudos);
+        // Buscar séries via API C# (que já tem cache e modalidades)
+        const seriesResponse = await fetch(`/api/dashboard/series/${unidade.value}`);
+        if (seriesResponse.ok) {
+          const seriesData = await seriesResponse.json();
+          // Filtrar por erro do Orthanc
+          if (!seriesData[0]?.ParentStudy?.includes('ERRO')) {
+            allSeries.push(...seriesData);
+          }
         }
       } catch (err) {
         console.warn(`[Reports] Erro ao buscar dados de ${unidade.value}:`, err);
       }
     }
 
-    // Filtrar estudos pelo período e calcular modalidades
-    const estudosFiltrados = allEstudos.filter(e => {
-      const studyDate = e.MainDicomTags?.StudyDate || '';
-      return studyDate >= startDateStr;
+    // Agrupar séries por estudo e filtrar pelo período
+    const studyMap = new Map<string, { date: string, modality: string }>();
+    allSeries.forEach(serie => {
+      const studyId = serie.ParentStudy;
+      const studyDate = serie.MainDicomTags?.SeriesDate || '';
+      const modality = serie.MainDicomTags?.Modality || 'OT';
+      
+      // Só adiciona se ainda não temos esse estudo
+      if (!studyMap.has(studyId)) {
+        studyMap.set(studyId, { date: studyDate, modality });
+      }
     });
 
-    // Contar modalidades
+    // Filtrar estudos pelo período
+    const estudosFiltrados = Array.from(studyMap.values()).filter(estudo => {
+      if (!estudo.date) return false;
+      return estudo.date >= startDateStr && estudo.date <= endDateStr;
+    });
+
+    // Contar modalidades dos estudos filtrados
     const modalidadeContagem: Record<string, number> = {};
     estudosFiltrados.forEach(estudo => {
-      let mod = 'OT';
-      if (estudo.MainDicomTags?.ModalitiesInStudy) {
-        mod = estudo.MainDicomTags.ModalitiesInStudy.split('\\')[0];
-      }
+      const mod = estudo.modality || 'OT';
       modalidadeContagem[mod] = (modalidadeContagem[mod] || 0) + 1;
     });
 
@@ -182,6 +198,7 @@ export function Reports() {
       'MR': '#EC4899',
       'US': '#10B981',
       'MG': '#F59E0B',
+      'DR': '#F97316',
       'OT': '#94A3B8',
     };
 
@@ -191,6 +208,7 @@ export function Reports() {
       'MR': 'Ressonância',
       'US': 'Ultrassom',
       'MG': 'Mamografia',
+      'DR': 'Radiografia Digital',
       'OT': 'Outros',
     };
 
@@ -205,10 +223,24 @@ export function Reports() {
       }))
       .sort((a, b) => b.count - a.count);
 
+    // Calcular storage corretamente
+    const numUnidadesOnline = unidadesParaBuscar.filter(u => u.orthancProxy).length;
+    const capacityPerUnitBytes = 1075 * 1024 * 1024 * 1024; // 1.05 TB em bytes
+    const totalCapacityBytes = capacityPerUnitBytes * numUnidadesOnline;
+    const usedGB = Math.round(totalDiskSizeBytes / (1024 * 1024 * 1024));
+    const totalCapacityGB = Math.round(totalCapacityBytes / (1024 * 1024 * 1024));
+    const usedPercentage = totalCapacityGB > 0 ? Math.round((usedGB / totalCapacityGB) * 1000) / 10 : 0;
+
     return { 
       totalStudies, totalSeries, totalInstances, totalPatients, totalDiskSizeBytes,
       modalityData,
-      activeModalities: Object.keys(modalidadeContagem).length
+      activeModalities: Object.keys(modalidadeContagem).length,
+      storage: {
+        usedGB,
+        availableGB: totalCapacityGB - usedGB,
+        totalGB: totalCapacityGB,
+        usedPercentage
+      }
     };
   }, [getDateLimits]);
 
@@ -228,34 +260,38 @@ export function Reports() {
       const orthancData = await fetchOrthancData(selectedUnidade);
       console.log('[Reports] Orthanc Data:', orthancData);
 
-      // 2. Buscar logs de ações da API C#
-      const unidadeParam = selectedUnidade || 'all';
-      let url = `/api/reports/statistics?period=${selectedPeriod}&unidade=${unidadeParam}`;
-      if (selectedPeriod === 'custom' && customStartDate && customEndDate) {
-        url += `&startDate=${customStartDate}&endDate=${customEndDate}`;
-      }
-
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      // 2. Tentar buscar logs de ações da API C# (não é crítico)
+      let apiResult = {
+        summary: { totalStudies: 0, totalInstances: 0, activeModalities: 0, totalUserActions: 0 },
+        userActionData: [],
+        hourlyVolume: Array(24).fill(0),
+        period: { start: '', end: '' }
+      };
+      
+      try {
+        const unidadeParam = selectedUnidade || 'all';
+        let url = `/api/reports/statistics?period=${selectedPeriod}&unidade=${unidadeParam}`;
+        if (selectedPeriod === 'custom' && customStartDate && customEndDate) {
+          url += `&startDate=${customStartDate}&endDate=${customEndDate}`;
         }
-      });
 
-      if (!response.ok) {
-        throw new Error('Erro ao carregar dados');
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          apiResult = await response.json();
+        }
+      } catch (apiErr) {
+        console.warn('[Reports] API C# não disponível, usando apenas dados do Orthanc:', apiErr);
       }
-
-      const result = await response.json();
       
-      // 3. Combinar dados do Orthanc com dados da API
-      const capacityPerUnitGB = 1075; // 1.05 TB por unidade
-      const numUnidades = selectedUnidade === 'all' ? unidades.length - 1 : 1;
-      const totalCapacityGB = capacityPerUnitGB * numUnidades;
-      const usedGB = Math.round(orthancData.totalDiskSizeBytes / 1024 / 1024 / 1024);
-      
+      // 3. Combinar dados do Orthanc com dados da API (usar storage do Orthanc)
       const combinedData: ReportsData = {
-        ...result,
+        ...apiResult,
         orthancStats: {
           totalStudies: orthancData.totalStudies,
           totalSeries: orthancData.totalSeries,
@@ -265,15 +301,11 @@ export function Reports() {
         // Usar modalidades do Orthanc em vez da API
         modalityData: orthancData.modalityData,
         summary: {
-          ...result.summary,
+          ...apiResult.summary,
           activeModalities: orthancData.activeModalities,
         },
-        storage: {
-          usedGB: usedGB,
-          availableGB: totalCapacityGB - usedGB,
-          totalGB: totalCapacityGB,
-          usedPercentage: totalCapacityGB > 0 ? Math.round((usedGB / totalCapacityGB) * 100 * 10) / 10 : 0,
-        }
+        // Usar storage calculado no fetchOrthancData
+        storage: orthancData.storage,
       };
 
       console.log('[Reports] Combined Data:', combinedData);
