@@ -57,6 +57,9 @@ const mockHourlyVolume = [
 
 export function Reports() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('today');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
   
   // Calcular métricas totais
   const totalStudies = useMemo(() => mockModalityData.reduce((acc, m) => acc + m.count, 0), []);
@@ -75,61 +78,58 @@ export function Reports() {
     }
   };
 
-  // Calcular pontos do gráfico SVG
-  const chartPoints = useMemo(() => {
-    const maxValue = Math.max(...mockHourlyVolume);
-    const width = 100;
-    const height = 100;
-    const padding = 5;
-    
-    return mockHourlyVolume.map((value, index) => {
-      const x = padding + (index / (mockHourlyVolume.length - 1)) * (width - padding * 2);
-      const y = height - padding - (value / maxValue) * (height - padding * 2);
-      return `${x},${y}`;
-    }).join(' ');
-  }, []);
-
-  const chartAreaPoints = useMemo(() => {
-    const maxValue = Math.max(...mockHourlyVolume);
-    const width = 100;
-    const height = 100;
-    const padding = 5;
-    
-    const points = mockHourlyVolume.map((value, index) => {
-      const x = padding + (index / (mockHourlyVolume.length - 1)) * (width - padding * 2);
-      const y = height - padding - (value / maxValue) * (height - padding * 2);
-      return `${x},${y}`;
-    });
-    
-    // Adicionar pontos para fechar a área
-    const lastX = padding + ((mockHourlyVolume.length - 1) / (mockHourlyVolume.length - 1)) * (width - padding * 2);
-    const firstX = padding;
-    
-    return `${firstX},${height - padding} ${points.join(' ')} ${lastX},${height - padding}`;
-  }, []);
-
   return (
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-theme-primary">Analytics & Telemetria</h1>
+            <h1 className="text-2xl font-bold text-theme-primary">Relatórios</h1>
             <p className="text-theme-muted mt-1">
-              Monitoramento de Volumetria, Instâncias e Atividade de Usuários
+              Visão geral do sistema
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <select
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="px-4 py-2 bg-theme-card border border-theme-border rounded-lg text-theme-primary text-sm focus:outline-none focus:ring-2 focus:ring-nautico/50"
-            >
-              <option value="today">Hoje</option>
-              <option value="week">Última Semana</option>
-              <option value="month">Último Mês</option>
-              <option value="year">Último Ano</option>
-            </select>
+            {/* Filtro de Período */}
+            <div className="relative">
+              <select
+                value={selectedPeriod}
+                onChange={(e) => {
+                  setSelectedPeriod(e.target.value);
+                  if (e.target.value === 'custom') {
+                    setShowCustomDatePicker(true);
+                  } else {
+                    setShowCustomDatePicker(false);
+                  }
+                }}
+                className="px-4 py-2 bg-theme-card border border-theme-border rounded-lg text-theme-primary text-sm focus:outline-none focus:ring-2 focus:ring-nautico/50"
+              >
+                <option value="today">Hoje</option>
+                <option value="week">Última Semana</option>
+                <option value="month">Último Mês</option>
+                <option value="custom">Período Personalizado</option>
+              </select>
+            </div>
+            
+            {/* Seletores de data customizada */}
+            {showCustomDatePicker && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="px-3 py-2 bg-theme-card border border-theme-border rounded-lg text-theme-primary text-sm focus:outline-none focus:ring-2 focus:ring-nautico/50"
+                />
+                <span className="text-theme-muted">até</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="px-3 py-2 bg-theme-card border border-theme-border rounded-lg text-theme-primary text-sm focus:outline-none focus:ring-2 focus:ring-nautico/50"
+                />
+              </div>
+            )}
+            
             <button className="flex items-center gap-2 px-4 py-2 bg-nautico text-white rounded-lg text-sm font-medium hover:bg-nautico/90 transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -227,37 +227,72 @@ export function Reports() {
             </button>
           </div>
           
-          {/* Gráfico SVG */}
-          <div className="h-48 relative">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full">
-              {/* Área preenchida */}
-              <polygon
-                points={chartAreaPoints}
-                fill="url(#gradient)"
-                opacity="0.3"
+          {/* Gráfico SVG - Melhorado com curvas suaves */}
+          <div className="h-52 relative">
+            {/* Linhas de grade horizontais */}
+            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="border-b border-theme-border/30" />
+              ))}
+            </div>
+            
+            <svg viewBox="0 0 920 180" preserveAspectRatio="none" className="w-full h-full">
+              <defs>
+                <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.02" />
+                </linearGradient>
+              </defs>
+              
+              {/* Área preenchida com curva suave */}
+              <path
+                d={`M 0,180 ${mockHourlyVolume.map((value, index) => {
+                  const maxValue = Math.max(...mockHourlyVolume);
+                  const x = (index / (mockHourlyVolume.length - 1)) * 920;
+                  const y = 180 - (value / maxValue) * 160;
+                  return `L ${x},${y}`;
+                }).join(' ')} L 920,180 Z`}
+                fill="url(#areaGradient)"
               />
-              {/* Linha do gráfico */}
-              <polyline
-                points={chartPoints}
+              
+              {/* Linha do gráfico com curva suave usando spline */}
+              <path
+                d={(() => {
+                  const maxValue = Math.max(...mockHourlyVolume);
+                  const points = mockHourlyVolume.map((value, index) => ({
+                    x: (index / (mockHourlyVolume.length - 1)) * 920,
+                    y: 180 - (value / maxValue) * 160
+                  }));
+                  
+                  // Criar curva spline suave
+                  let path = `M ${points[0].x},${points[0].y}`;
+                  for (let i = 0; i < points.length - 1; i++) {
+                    const p0 = points[i === 0 ? i : i - 1];
+                    const p1 = points[i];
+                    const p2 = points[i + 1];
+                    const p3 = points[i + 2 < points.length ? i + 2 : i + 1];
+                    
+                    const cp1x = p1.x + (p2.x - p0.x) / 6;
+                    const cp1y = p1.y + (p2.y - p0.y) / 6;
+                    const cp2x = p2.x - (p3.x - p1.x) / 6;
+                    const cp2y = p2.y - (p3.y - p1.y) / 6;
+                    
+                    path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+                  }
+                  return path;
+                })()}
                 fill="none"
                 stroke="#3B82F6"
-                strokeWidth="0.5"
+                strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
-              {/* Gradiente */}
-              <defs>
-                <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.5" />
-                  <stop offset="100%" stopColor="#3B82F6" stopOpacity="0" />
-                </linearGradient>
-              </defs>
             </svg>
             
             {/* Labels do eixo X */}
-            <div className="absolute bottom-0 left-0 right-0 flex justify-between text-xs text-theme-muted px-1">
+            <div className="absolute -bottom-6 left-0 right-0 flex justify-between text-xs text-theme-muted">
               {['00:00h', '02:00h', '04:00h', '06:00h', '08:00h', '10:00h', '12:00h', '14:00h', '16:00h', '18:00h', '20:00h', '22:00h', '00:00h'].map((label, i) => (
-                <span key={i} className="hidden sm:inline">{label}</span>
+                <span key={i}>{label}</span>
               ))}
             </div>
           </div>
