@@ -575,24 +575,33 @@ export function Studies() {
         };
         const unidadeNome = UNIDADE_NOMES[unidadeAtual] || 'CIS';
         
-        // Formatar CPF se disponível
-        const formatarCPF = (cpf: string) => {
-          const numeros = cpf.replace(/\D/g, '');
+        // Identificar se é CPF (11 dígitos) ou outro ID (pid, etc)
+        const formatarIdentificador = (id: string) => {
+          const numeros = id.replace(/\D/g, '');
+          // Se tem exatamente 11 dígitos numéricos, é CPF
           if (numeros.length === 11) {
-            return numeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+            return {
+              label: 'CPF',
+              valor: numeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+            };
           }
-          return cpf;
+          // Caso contrário, é outro tipo de ID (pid, etc)
+          return {
+            label: 'Id do Paciente',
+            valor: id
+          };
         };
-        const cpfFormatado = studyForDownload.patientId ? formatarCPF(studyForDownload.patientId) : '';
+        
+        const identificador = studyForDownload.patientId ? formatarIdentificador(studyForDownload.patientId) : null;
         
         // Informações do paciente - layout reorganizado
         pdf.setFontSize(11);
         pdf.text(`Paciente: ${studyForDownload.patient}`, margin, 34);
         
-        // CPF na linha abaixo do nome
+        // Identificador (CPF ou Id do Paciente) na linha abaixo do nome
         let currentY = 42;
-        if (cpfFormatado) {
-          pdf.text(`CPF: ${cpfFormatado}`, margin, currentY);
+        if (identificador) {
+          pdf.text(`${identificador.label}: ${identificador.valor}`, margin, currentY);
           currentY += 8;
         }
         
