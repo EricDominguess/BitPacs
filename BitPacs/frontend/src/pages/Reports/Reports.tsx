@@ -26,17 +26,17 @@ interface StorageData {
 
 // Dados mockados (serão substituídos por dados reais da API)
 const mockModalityData: ModalityData[] = [
-  { name: 'Raio-X', shortName: 'CR/DX', count: 420, percentage: 58, color: 'bg-nautico' },
-  { name: 'Tomografia', shortName: 'CT', count: 185, percentage: 25, color: 'bg-purple-light' },
-  { name: 'Ultrassom', shortName: 'US', count: 92, percentage: 12, color: 'bg-emerald-500' },
-  { name: 'Ressonância', shortName: 'MR', count: 25, percentage: 5, color: 'bg-pink-500' },
+  { name: 'Raio-X', shortName: 'CR/DX', count: 420, percentage: 58, color: '#3B82F6' },
+  { name: 'Tomografia', shortName: 'CT', count: 185, percentage: 25, color: '#A855F7' },
+  { name: 'Ultrassom', shortName: 'US', count: 92, percentage: 12, color: '#10B981' },
+  { name: 'Ressonância', shortName: 'MR', count: 25, percentage: 5, color: '#EC4899' },
 ];
 
 const mockUserActions: UserActionData[] = [
-  { name: 'Visualização de Estudos', count: 840, percentage: 61, color: 'bg-nautico' },
-  { name: 'Exportação p/ Governo', count: 315, percentage: 23, color: 'bg-amber-500' },
-  { name: 'Criação de Laudos', count: 180, percentage: 13, color: 'bg-purple-light' },
-  { name: 'Ações Administrativas', count: 42, percentage: 3, color: 'bg-slate-400' },
+  { name: 'Visualização de Estudos', count: 840, percentage: 61, color: '#3B82F6' },
+  { name: 'Exportação p/ Governo', count: 315, percentage: 23, color: '#F59E0B' },
+  { name: 'Criação de Laudos', count: 180, percentage: 13, color: '#A855F7' },
+  { name: 'Ações Administrativas', count: 42, percentage: 3, color: '#94A3B8' },
 ];
 
 // Dados de armazenamento mockados (GB)
@@ -56,6 +56,7 @@ export function Reports() {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   
   // Calcular métricas totais
   const totalStudies = useMemo(() => mockModalityData.reduce((acc, m) => acc + m.count, 0), []);
@@ -120,12 +121,67 @@ export function Reports() {
               </div>
             )}
             
-            <button className="flex items-center gap-2 px-4 py-2 bg-nautico text-white rounded-lg text-sm font-medium hover:bg-nautico/90 transition-colors">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Exportar Dados
-            </button>
+            {/* Botão Exportar com Menu */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                className="flex items-center gap-2 px-4 py-2 bg-nautico text-white rounded-lg text-sm font-medium hover:bg-nautico/90 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Exportar Dados
+                <svg className={`w-4 h-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {/* Dropdown Menu */}
+              {showExportMenu && (
+                <>
+                  {/* Overlay para fechar ao clicar fora */}
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setShowExportMenu(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-48 bg-theme-card border border-theme-border rounded-lg shadow-lg z-20 overflow-hidden">
+                    <button
+                      onClick={() => {
+                        // TODO: Implementar exportação Excel
+                        console.log('Exportar Excel');
+                        setShowExportMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-theme-primary hover:bg-theme-secondary transition-colors"
+                    >
+                      <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <div className="text-left">
+                        <p className="font-medium">Excel (.xlsx)</p>
+                        <p className="text-xs text-theme-muted">Planilha com dados</p>
+                      </div>
+                    </button>
+                    <div className="border-t border-theme-border" />
+                    <button
+                      onClick={() => {
+                        // TODO: Implementar exportação PDF
+                        console.log('Exportar PDF');
+                        setShowExportMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-theme-primary hover:bg-theme-secondary transition-colors"
+                    >
+                      <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      <div className="text-left">
+                        <p className="font-medium">PDF (.pdf)</p>
+                        <p className="text-xs text-theme-muted">Relatório formatado</p>
+                      </div>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -292,7 +348,7 @@ export function Reports() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Estudos por Modalidade */}
           <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-theme-primary">Estudos por Modalidade</h2>
               <button className="p-2 text-theme-muted hover:text-theme-primary hover:bg-theme-secondary rounded-lg transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -300,27 +356,59 @@ export function Reports() {
                 </svg>
               </button>
             </div>
-            <div className="space-y-4">
-              {mockModalityData.map((modality) => (
-                <div key={modality.shortName}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-theme-primary">{modality.name} ({modality.shortName})</span>
-                    <span className="text-sm text-theme-muted">{modality.count} ({modality.percentage}%)</span>
-                  </div>
-                  <div className="h-2 bg-theme-secondary rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${modality.color} rounded-full transition-all duration-500`}
-                      style={{ width: `${modality.percentage}%` }}
-                    />
-                  </div>
+            
+            {/* Gráfico de Rosca */}
+            <div className="flex flex-col items-center">
+              <div className="relative w-36 h-36">
+                <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+                  {(() => {
+                    let offset = 0;
+                    return mockModalityData.map((modality) => {
+                      const strokeDasharray = `${modality.percentage * 2.51} 251`;
+                      const strokeDashoffset = -offset * 2.51;
+                      offset += modality.percentage;
+                      return (
+                        <circle
+                          key={modality.shortName}
+                          cx="50"
+                          cy="50"
+                          r="40"
+                          fill="none"
+                          stroke={modality.color}
+                          strokeWidth="10"
+                          strokeDasharray={strokeDasharray}
+                          strokeDashoffset={strokeDashoffset}
+                          className="transition-all duration-1000"
+                        />
+                      );
+                    });
+                  })()}
+                </svg>
+                {/* Texto central */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-bold text-theme-primary">{totalStudies}</span>
+                  <span className="text-xs text-theme-muted">estudos</span>
                 </div>
-              ))}
+              </div>
+              
+              {/* Legenda */}
+              <div className="mt-4 w-full space-y-2">
+                {mockModalityData.map((modality) => (
+                  <div key={modality.shortName} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: modality.color }} />
+                      <span className="text-sm text-theme-muted">{modality.name} ({modality.shortName})</span>
+                    </div>
+                    <span className="text-sm font-medium text-theme-primary">{modality.count} ({modality.percentage}%)</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </Card>
 
           {/* Ações dos Usuários */}
           <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-theme-primary">Ações dos Usuários</h2>
               <button className="p-2 text-theme-muted hover:text-theme-primary hover:bg-theme-secondary rounded-lg transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -328,21 +416,53 @@ export function Reports() {
                 </svg>
               </button>
             </div>
-            <div className="space-y-4">
-              {mockUserActions.map((action) => (
-                <div key={action.name}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-theme-primary">{action.name}</span>
-                    <span className="text-sm text-theme-muted">{action.count} ({action.percentage}%)</span>
-                  </div>
-                  <div className="h-2 bg-theme-secondary rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${action.color} rounded-full transition-all duration-500`}
-                      style={{ width: `${action.percentage}%` }}
-                    />
-                  </div>
+            
+            {/* Gráfico de Rosca */}
+            <div className="flex flex-col items-center">
+              <div className="relative w-36 h-36">
+                <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+                  {(() => {
+                    let offset = 0;
+                    return mockUserActions.map((action, index) => {
+                      const strokeDasharray = `${action.percentage * 2.51} 251`;
+                      const strokeDashoffset = -offset * 2.51;
+                      offset += action.percentage;
+                      return (
+                        <circle
+                          key={index}
+                          cx="50"
+                          cy="50"
+                          r="40"
+                          fill="none"
+                          stroke={action.color}
+                          strokeWidth="10"
+                          strokeDasharray={strokeDasharray}
+                          strokeDashoffset={strokeDashoffset}
+                          className="transition-all duration-1000"
+                        />
+                      );
+                    });
+                  })()}
+                </svg>
+                {/* Texto central */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-bold text-theme-primary">{totalUserActions}</span>
+                  <span className="text-xs text-theme-muted">ações</span>
                 </div>
-              ))}
+              </div>
+              
+              {/* Legenda */}
+              <div className="mt-4 w-full space-y-2">
+                {mockUserActions.map((action, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: action.color }} />
+                      <span className="text-sm text-theme-muted truncate max-w-[140px]">{action.name}</span>
+                    </div>
+                    <span className="text-sm font-medium text-theme-primary whitespace-nowrap">{action.count} ({action.percentage}%)</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </Card>
 
