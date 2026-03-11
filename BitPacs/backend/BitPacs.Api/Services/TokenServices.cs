@@ -28,7 +28,7 @@ namespace BitPacs.Api.Services
                 new Claim(ClaimTypes.Name, user.Nome),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role), // Importante para saber se é Admin
-                new Claim("UnidadeId", user.UnidadeId ?? "") // Unidade do usuário
+                new Claim("UnidadeId", user.UnidadeId ?? "") // Unidades dos usuários
             };
 
             // 3. Configura a assinatura e criptografia
