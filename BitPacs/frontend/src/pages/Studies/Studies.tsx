@@ -585,31 +585,40 @@ export function Studies() {
         };
         const cpfFormatado = studyForDownload.patientId ? formatarCPF(studyForDownload.patientId) : '';
         
-        // Informações do paciente - layout em grid
+        // Informações do paciente - layout reorganizado
         pdf.setFontSize(11);
         pdf.text(`Paciente: ${studyForDownload.patient}`, margin, 34);
+        
+        // CPF na linha abaixo do nome
+        let currentY = 42;
         if (cpfFormatado) {
-          pdf.text(`CPF: ${cpfFormatado}`, pageWidth / 2, 34);
+          pdf.text(`CPF: ${cpfFormatado}`, margin, currentY);
+          currentY += 8;
         }
-        pdf.text(`Data de Nascimento: ${studyForDownload.birthDate}`, margin, 42);
-        pdf.text(`Modalidade: ${studyForDownload.modality}`, pageWidth / 2, 42);
-        pdf.text(`Data do Exame: ${studyForDownload.date}`, margin, 50);
+        
+        pdf.text(`Data de Nascimento: ${studyForDownload.birthDate}`, margin, currentY);
+        pdf.text(`Modalidade: ${studyForDownload.modality}`, pageWidth / 2, currentY);
+        currentY += 8;
+        
+        pdf.text(`Data do Exame: ${studyForDownload.date}`, margin, currentY);
         if (studyForDownload.bodyPartExamined) {
-          pdf.text(`Órgão: ${studyForDownload.bodyPartExamined}`, pageWidth / 2, 50);
+          pdf.text(`Órgão: ${studyForDownload.bodyPartExamined}`, pageWidth / 2, currentY);
         }
+        currentY += 10;
         
         // Unidade - com mais destaque
         pdf.setFontSize(11);
         pdf.setFont('helvetica', 'bold');
-        pdf.text(`Unidade: ${unidadeNome}`, margin, 60);
+        pdf.text(`Unidade: ${unidadeNome}`, margin, currentY);
         pdf.setFont('helvetica', 'normal');
+        currentY += 15;
         
         // Descrição do estudo
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(10);
-        pdf.text(`Descrição: ${studyForDownload.description}`, margin, 75);
+        pdf.text(`Descrição: ${studyForDownload.description}`, margin, currentY);
         
-        let yPosition = 85;
+        let yPosition = currentY + 10;
         let isFirstImage = true;
         
         for (const img of imagesToDownload) {
