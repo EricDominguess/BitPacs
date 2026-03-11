@@ -2,6 +2,19 @@ import { useState, useEffect, useCallback } from 'react';
 import { MainLayout } from '../../components/layout';
 import { Card } from '../../components/common';
 
+// Lista de unidades
+const unidades = [
+  { value: 'all',          label: 'Todas as Unidades' },
+  { value: 'riobranco',    label: 'CIS - Unidade de Rio Branco'    },
+  { value: 'foziguacu',    label: 'CIS - Unidade de Foz do Iguaçu' },
+  { value: 'fazenda',      label: 'CIS - Unidade de Fazenda'       },
+  { value: 'faxinal',      label: 'CIS - Unidade de Faxinal'       },
+  { value: 'santamariana', label: 'CIS - Unidade de Santa Mariana' },
+  { value: 'guarapuava',   label: 'CIS - Unidade de Guarapuava'    },
+  { value: 'carlopolis',   label: 'CIS - Unidade de Carlópolis'    },
+  { value: 'arapoti',      label: 'CIS - Unidade de Arapoti'       },
+];
+
 // Tipos
 interface ModalityData {
   name: string;
@@ -41,6 +54,15 @@ interface ReportsData {
 }
 
 export function Reports() {
+  // Obter dados do usuário logado
+  const currentUser = JSON.parse((sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user')) || '{}');
+  const isMaster = currentUser.role === 'Master';
+  
+  // Para Admin, sempre usar sua própria unidade; para Master, permitir escolher
+  const [selectedUnidade, setSelectedUnidade] = useState<string>(
+    isMaster ? 'all' : (currentUser.unidadeId || '')
+  );
+  
   const [selectedPeriod, setSelectedPeriod] = useState<string>('today');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -64,7 +86,7 @@ export function Reports() {
         return;
       }
 
-      let url = `/api/reports/statistics?period=${selectedPeriod}`;
+      let url = `/api/reports/statistics?period=${selectedPeriod}&unidade=${selectedUnidade}`;
       if (selectedPeriod === 'custom' && customStartDate && customEndDate) {
         url += `&startDate=${customStartDate}&endDate=${customEndDate}`;
       }
@@ -88,9 +110,9 @@ export function Reports() {
     } finally {
       setLoading(false);
     }
-  }, [selectedPeriod, customStartDate, customEndDate]);
+  }, [selectedPeriod, customStartDate, customEndDate, selectedUnidade]);
 
-  // Buscar dados quando período mudar
+  // Buscar dados quando período ou unidade mudar
   useEffect(() => {
     // Só busca se não for custom ou se tiver as datas preenchidas
     if (selectedPeriod !== 'custom' || (customStartDate && customEndDate)) {
@@ -189,6 +211,27 @@ export function Reports() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {/* Filtro de Unidade - Apenas para Master */}
+            {isMaster ? (
+              <div className="relative">
+                <select
+                  value={selectedUnidade}
+                  onChange={(e) => setSelectedUnidade(e.target.value)}
+                  className="px-4 py-2 bg-theme-card border border-theme-border rounded-lg text-theme-primary text-sm focus:outline-none focus:ring-2 focus:ring-nautico/50"
+                >
+                  {unidades.map((unidade) => (
+                    <option key={unidade.value} value={unidade.value}>
+                      {unidade.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="px-4 py-2 bg-theme-secondary rounded-lg text-theme-primary text-sm">
+                {unidades.find(u => u.value === selectedUnidade)?.label || 'Minha Unidade'}
+              </div>
+            )}
+            
             {/* Filtro de Período */}
             <div className="relative">
               <select

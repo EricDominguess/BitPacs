@@ -26,12 +26,19 @@ namespace BitPacs.Api.Controllers
         // GET: api/reports/statistics
         // Retorna estatísticas gerais para o dashboard de relatórios
         [HttpGet("statistics")]
-        public async Task<IActionResult> GetStatistics([FromQuery] string period = "today", [FromQuery] string? startDate = null, [FromQuery] string? endDate = null)
+        public async Task<IActionResult> GetStatistics([FromQuery] string period = "today", [FromQuery] string? startDate = null, [FromQuery] string? endDate = null, [FromQuery] string unidade = "all")
         {
             var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var currentUserUnidade = User.FindFirst("UnidadeId")?.Value;
 
             if (currentUserRole != "Master" && currentUserRole != "Admin")
                 return Forbid("Apenas administradores podem acessar relatórios.");
+
+            // Admin só pode ver sua própria unidade
+            if (currentUserRole == "Admin" && !string.IsNullOrEmpty(currentUserUnidade))
+            {
+                unidade = currentUserUnidade;
+            }
 
             // Define o intervalo de datas baseado no período
             DateTime startDateTime, endDateTime;
@@ -62,10 +69,17 @@ namespace BitPacs.Api.Controllers
                     break;
             }
 
-            // Buscar logs no período
-            var logsInPeriod = await _context.StudyLogs
-                .Where(l => l.Timestamp >= startDateTime && l.Timestamp <= endDateTime)
-                .ToListAsync();
+            // Buscar logs no período (filtrado por unidade se não for 'all')
+            var logsQuery = _context.StudyLogs
+                .Where(l => l.Timestamp >= startDateTime && l.Timestamp <= endDateTime);
+            
+            // Filtrar por unidade se especificado
+            if (!string.IsNullOrEmpty(unidade) && unidade.ToLower() != "all")
+            {
+                logsQuery = logsQuery.Where(l => l.UnidadeNome != null && l.UnidadeNome.ToLower() == unidade.ToLower());
+            }
+
+            var logsInPeriod = await logsQuery.ToListAsync();
 
             // Estatísticas por Modalidade (apenas VIEW e DOWNLOAD)
             var studyLogs = logsInPeriod.Where(l => l.ActionType == "VIEW" || l.ActionType == "DOWNLOAD").ToList();
@@ -136,12 +150,13 @@ namespace BitPacs.Api.Controllers
             // Total de instâncias (estimativa baseada nos logs)
             var totalInstances = studyLogs.Count * 15; // Média estimada de 15 instâncias por estudo
 
-            // Buscar armazenamento de todas as unidades
-            var storageData = await GetTotalStorageAsync();
+            // Buscar armazenamento (filtrado por unidade se necessário)
+            var storageData = await GetTotalStorageAsync(unidade);
 
             return Ok(new
             {
                 period = new { start = startDateTime, end = endDateTime },
+                unidade = unidade,
                 summary = new
                 {
                     totalStudies = studyLogs.Count,
@@ -196,26 +211,39 @@ namespace BitPacs.Api.Controllers
         // GET: api/reports/storage
         // Retorna informações de armazenamento de todas as unidades
         [HttpGet("storage")]
-        public async Task<IActionResult> GetStorage()
+        public async Task<IActionResult> GetStorage([FromQuery] string unidade = "all")
         {
             var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var currentUserUnidade = User.FindFirst("UnidadeId")?.Value;
 
             if (currentUserRole != "Master" && currentUserRole != "Admin")
                 return Forbid("Apenas administradores podem acessar relatórios.");
 
-            var storageData = await GetTotalStorageAsync();
+            // Admin só pode ver sua própria unidade
+            if (currentUserRole == "Admin" && !string.IsNullOrEmpty(currentUserUnidade))
+            {
+                unidade = currentUserUnidade;
+            }
+
+            var storageData = await GetTotalStorageAsync(unidade);
             return Ok(storageData);
         }
 
         // Método auxiliar para buscar armazenamento total
-        private async Task<object> GetTotalStorageAsync()
+        private async Task<object> GetTotalStorageAsync(string filtroUnidade = "all")
         {
-            var unidades = new[] { "foziguacu", "fazenda", "riobranco", "faxinal", "santamariana", "guarapuava", "carlopolis", "arapoti" };
+            var todasUnidades = new[] { "foziguacu", "fazenda", "riobranco", "faxinal", "santamariana", "guarapuava", "carlopolis", "arapoti" };
+            
+            // Se filtro específico, usar apenas essa unidade
+            var unidadesParaBuscar = filtroUnidade.ToLower() == "all" 
+                ? todasUnidades 
+                : new[] { filtroUnidade.ToLower() };
+            
             long totalUsed = 0;
             long totalCapacity = 500L * 1024 * 1024 * 1024; // 500 GB default por unidade
             var unidadeStorage = new List<object>();
 
-            foreach (var unidade in unidades)
+            foreach (var unidade in unidadesParaBuscar)
             {
                 try
                 {
@@ -251,7 +279,7 @@ namespace BitPacs.Api.Controllers
                 }
             }
 
-            var totalCapacityGB = (totalCapacity / 1024 / 1024 / 1024) * unidades.Length;
+            var totalCapacityGB = (totalCapacity / 1024 / 1024 / 1024) * unidadesParaBuscar.Length;
             var usedGB = totalUsed / 1024 / 1024 / 1024;
             var availableGB = totalCapacityGB - usedGB;
 
