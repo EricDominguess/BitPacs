@@ -440,8 +440,31 @@ export function Studies() {
     const patientName = studyForDownload.patient.replace(/[^a-zA-Z0-9]/g, '_');
     
     // Registra o log com o formato escolhido
-    const formatoLabel = downloadFormat === 'pdf' ? 'PDF' : 'JPEG (ZIP)';
+    const formatoLabel = downloadFormat === 'pdf' ? 'PDF' : downloadFormat === 'dicom' ? 'DICOM (ZIP)' : 'JPEG (ZIP)';
     registrarLog('DOWNLOAD', studyForDownload, `Formato: ${formatoLabel}`);
+    
+    // Download DICOM - baixa o estudo completo direto do Orthanc
+    if (downloadFormat === 'dicom') {
+      try {
+        const response = await fetch(`${prefixoProxy}/studies/${studyForDownload.id}/archive`);
+        const blob = await response.blob();
+        
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${patientName}_DICOM.zip`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Erro ao baixar DICOM:', err);
+      }
+      
+      setIsDownloading(false);
+      setShowDownloadModal(false);
+      return;
+    }
     
     // Coletar todas as imagens selecionadas
     const imagesToDownload: { blob: Blob; modality: string; index: number }[] = [];
@@ -520,7 +543,7 @@ export function Studies() {
         
         // Cabeçalho na primeira página
         pdf.setFillColor(30, 58, 138); // Azul escuro
-        pdf.rect(0, 0, pageWidth, 55, 'F');
+        pdf.rect(0, 0, pageWidth, 65, 'F');
         
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(18);
@@ -564,27 +587,29 @@ export function Studies() {
         
         // Informações do paciente - layout em grid
         pdf.setFontSize(11);
-        pdf.text(`Paciente: ${studyForDownload.patient}`, margin, 33);
+        pdf.text(`Paciente: ${studyForDownload.patient}`, margin, 34);
         if (cpfFormatado) {
-          pdf.text(`CPF: ${cpfFormatado}`, pageWidth / 2, 33);
+          pdf.text(`CPF: ${cpfFormatado}`, pageWidth / 2, 34);
         }
-        pdf.text(`Data de Nascimento: ${studyForDownload.birthDate}`, margin, 40);
-        pdf.text(`Modalidade: ${studyForDownload.modality}`, pageWidth / 2, 40);
-        pdf.text(`Data do Exame: ${studyForDownload.date}`, margin, 47);
+        pdf.text(`Data de Nascimento: ${studyForDownload.birthDate}`, margin, 42);
+        pdf.text(`Modalidade: ${studyForDownload.modality}`, pageWidth / 2, 42);
+        pdf.text(`Data do Exame: ${studyForDownload.date}`, margin, 50);
         if (studyForDownload.bodyPartExamined) {
-          pdf.text(`Órgão: ${studyForDownload.bodyPartExamined}`, pageWidth / 2, 47);
+          pdf.text(`Órgão: ${studyForDownload.bodyPartExamined}`, pageWidth / 2, 50);
         }
         
-        // Unidade
-        pdf.setFontSize(10);
-        pdf.text(`Unidade: ${unidadeNome}`, margin, 54);
+        // Unidade - com mais destaque
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(`Unidade: ${unidadeNome}`, margin, 60);
+        pdf.setFont('helvetica', 'normal');
         
         // Descrição do estudo
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(10);
-        pdf.text(`Descrição: ${studyForDownload.description}`, margin, 65);
+        pdf.text(`Descrição: ${studyForDownload.description}`, margin, 75);
         
-        let yPosition = 75;
+        let yPosition = 85;
         let isFirstImage = true;
         
         for (const img of imagesToDownload) {
