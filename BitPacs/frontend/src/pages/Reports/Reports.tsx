@@ -2,17 +2,17 @@ import { useState, useEffect, useCallback } from 'react';
 import { MainLayout } from '../../components/layout';
 import { Card } from '../../components/common';
 
-// Lista de unidades
+// Lista de unidades com configuração do proxy Orthanc
 const unidades = [
-  { value: 'all',          label: 'Todas as Unidades' },
-  { value: 'riobranco',    label: 'CIS - Unidade de Rio Branco'    },
-  { value: 'foziguacu',    label: 'CIS - Unidade de Foz do Iguaçu' },
-  { value: 'fazenda',      label: 'CIS - Unidade de Fazenda'       },
-  { value: 'faxinal',      label: 'CIS - Unidade de Faxinal'       },
-  { value: 'santamariana', label: 'CIS - Unidade de Santa Mariana' },
-  { value: 'guarapuava',   label: 'CIS - Unidade de Guarapuava'    },
-  { value: 'carlopolis',   label: 'CIS - Unidade de Carlópolis'    },
-  { value: 'arapoti',      label: 'CIS - Unidade de Arapoti'       },
+  { value: 'all',          label: 'Todas as Unidades',              orthancProxy: '' },
+  { value: 'riobranco',    label: 'CIS - Unidade de Rio Branco',    orthancProxy: '/orthanc-riobranco' },
+  { value: 'foziguacu',    label: 'CIS - Unidade de Foz do Iguaçu', orthancProxy: '/orthanc-foziguacu' },
+  { value: 'fazenda',      label: 'CIS - Unidade de Fazenda',       orthancProxy: '/orthanc-fazenda' },
+  { value: 'faxinal',      label: 'CIS - Unidade de Faxinal',       orthancProxy: '/orthanc-faxinal' },
+  { value: 'santamariana', label: 'CIS - Unidade de Santa Mariana', orthancProxy: '/orthanc-santamariana' },
+  { value: 'guarapuava',   label: 'CIS - Unidade de Guarapuava',    orthancProxy: '/orthanc-guarapuava' },
+  { value: 'carlopolis',   label: 'CIS - Unidade de Carlópolis',    orthancProxy: '/orthanc-carlopolis' },
+  { value: 'arapoti',      label: 'CIS - Unidade de Arapoti',       orthancProxy: '/orthanc-arapoti' },
 ];
 
 // Tipos
@@ -84,7 +84,42 @@ export function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Função para buscar dados da API
+  // Função para buscar estatísticas diretamente do Orthanc (igual ao Dashboard)
+  const fetchOrthancStats = useCallback(async (unidadeValue: string) => {
+    const unidadesParaBuscar = unidadeValue === 'all' 
+      ? unidades.filter(u => u.value !== 'all')
+      : unidades.filter(u => u.value === unidadeValue);
+    
+    let totalStudies = 0;
+    let totalSeries = 0;
+    let totalInstances = 0;
+    let totalPatients = 0;
+    let totalDiskSizeBytes = 0;
+
+    const timestamp = Date.now();
+
+    for (const unidade of unidadesParaBuscar) {
+      if (!unidade.orthancProxy) continue;
+      
+      try {
+        const response = await fetch(`${unidade.orthancProxy}/statistics?_t=${timestamp}`);
+        if (response.ok) {
+          const stats = await response.json();
+          totalStudies += stats.CountStudies || 0;
+          totalSeries += stats.CountSeries || 0;
+          totalInstances += stats.CountInstances || 0;
+          totalPatients += stats.CountPatients || 0;
+          totalDiskSizeBytes += stats.TotalDiskSize || 0;
+        }
+      } catch (err) {
+        console.warn(`[Reports] Erro ao buscar stats de ${unidade.value}:`, err);
+      }
+    }
+
+    return { totalStudies, totalSeries, totalInstances, totalPatients, totalDiskSizeBytes };
+  }, []);
+
+  // Função para buscar dados da API (logs) + Orthanc (estatísticas)
   const fetchReportsData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -96,10 +131,13 @@ export function Reports() {
         return;
       }
 
-      // Se unidade não especificada, usa 'all' para buscar de todas
+      // 1. Buscar estatísticas diretamente do Orthanc (igual ao Dashboard)
+      const orthancData = await fetchOrthancStats(selectedUnidade);
+      console.log('[Reports] Orthanc Stats:', orthancData);
+
+      // 2. Buscar dados de logs da API C# (ações dos usuários, etc)
       const unidadeParam = selectedUnidade || 'all';
       let url = `/api/reports/statistics?period=${selectedPeriod}&unidade=${unidadeParam}`;
-      console.log('[Reports] Fetching:', url, 'selectedUnidade:', selectedUnidade, 'userUnidadeId:', userUnidadeId);
       if (selectedPeriod === 'custom' && customStartDate && customEndDate) {
         url += `&startDate=${customStartDate}&endDate=${customEndDate}`;
       }
@@ -116,15 +154,38 @@ export function Reports() {
       }
 
       const result = await response.json();
-      console.log('[Reports] API Response:', result);
-      setData(result);
+      
+      // 3. Combinar dados do Orthanc com dados da API
+      const capacityPerUnitGB = 1075; // 1.05 TB por unidade
+      const numUnidades = selectedUnidade === 'all' ? unidades.length - 1 : 1;
+      const totalCapacityGB = capacityPerUnitGB * numUnidades;
+      const usedGB = Math.round(orthancData.totalDiskSizeBytes / 1024 / 1024 / 1024);
+      
+      const combinedData: ReportsData = {
+        ...result,
+        orthancStats: {
+          totalStudies: orthancData.totalStudies,
+          totalSeries: orthancData.totalSeries,
+          totalInstances: orthancData.totalInstances,
+          totalPatients: orthancData.totalPatients,
+        },
+        storage: {
+          usedGB: usedGB,
+          availableGB: totalCapacityGB - usedGB,
+          totalGB: totalCapacityGB,
+          usedPercentage: totalCapacityGB > 0 ? Math.round((usedGB / totalCapacityGB) * 100 * 10) / 10 : 0,
+        }
+      };
+
+      console.log('[Reports] Combined Data:', combinedData);
+      setData(combinedData);
     } catch (err) {
       console.error('Erro ao buscar relatórios:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
       setLoading(false);
     }
-  }, [selectedPeriod, customStartDate, customEndDate, selectedUnidade, userUnidadeId]);
+  }, [selectedPeriod, customStartDate, customEndDate, selectedUnidade, fetchOrthancStats]);
 
   // Buscar dados quando período ou unidade mudar
   useEffect(() => {
