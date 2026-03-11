@@ -84,8 +84,41 @@ export function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Função para buscar estatísticas diretamente do Orthanc (igual ao Dashboard)
-  const fetchOrthancStats = useCallback(async (unidadeValue: string) => {
+  // Calcular data limite baseado no período selecionado (formato YYYYMMDD para Orthanc)
+  const getDateLimits = useCallback(() => {
+    const now = new Date();
+    let startDate: Date;
+    
+    switch (selectedPeriod) {
+      case 'today':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'week':
+        startDate = new Date(now);
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case 'month':
+        startDate = new Date(now);
+        startDate.setDate(startDate.getDate() - 30);
+        break;
+      case 'custom':
+        startDate = customStartDate ? new Date(customStartDate) : new Date(now);
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    }
+    
+    const formatDate = (d: Date) => 
+      `${d.getFullYear()}${(d.getMonth() + 1).toString().padStart(2, '0')}${d.getDate().toString().padStart(2, '0')}`;
+    
+    return {
+      startDateStr: formatDate(startDate),
+      endDateStr: formatDate(now)
+    };
+  }, [selectedPeriod, customStartDate]);
+
+  // Função para buscar estatísticas e estudos diretamente do Orthanc
+  const fetchOrthancData = useCallback(async (unidadeValue: string) => {
     const unidadesParaBuscar = unidadeValue === 'all' 
       ? unidades.filter(u => u.value !== 'all')
       : unidades.filter(u => u.value === unidadeValue);
@@ -95,31 +128,91 @@ export function Reports() {
     let totalInstances = 0;
     let totalPatients = 0;
     let totalDiskSizeBytes = 0;
+    const allEstudos: any[] = [];
 
     const timestamp = Date.now();
+    const { startDateStr } = getDateLimits();
 
     for (const unidade of unidadesParaBuscar) {
       if (!unidade.orthancProxy) continue;
       
       try {
-        const response = await fetch(`${unidade.orthancProxy}/statistics?_t=${timestamp}`);
-        if (response.ok) {
-          const stats = await response.json();
+        // Buscar statistics
+        const statsResponse = await fetch(`${unidade.orthancProxy}/statistics?_t=${timestamp}`);
+        if (statsResponse.ok) {
+          const stats = await statsResponse.json();
           totalStudies += stats.CountStudies || 0;
           totalSeries += stats.CountSeries || 0;
           totalInstances += stats.CountInstances || 0;
           totalPatients += stats.CountPatients || 0;
           totalDiskSizeBytes += stats.TotalDiskSize || 0;
         }
+
+        // Buscar estudos para calcular modalidades
+        const estudosResponse = await fetch(`${unidade.orthancProxy}/studies?expand&_t=${timestamp}`);
+        if (estudosResponse.ok) {
+          const estudos = await estudosResponse.json();
+          allEstudos.push(...estudos);
+        }
       } catch (err) {
-        console.warn(`[Reports] Erro ao buscar stats de ${unidade.value}:`, err);
+        console.warn(`[Reports] Erro ao buscar dados de ${unidade.value}:`, err);
       }
     }
 
-    return { totalStudies, totalSeries, totalInstances, totalPatients, totalDiskSizeBytes };
-  }, []);
+    // Filtrar estudos pelo período e calcular modalidades
+    const estudosFiltrados = allEstudos.filter(e => {
+      const studyDate = e.MainDicomTags?.StudyDate || '';
+      return studyDate >= startDateStr;
+    });
 
-  // Função para buscar dados da API (logs) + Orthanc (estatísticas)
+    // Contar modalidades
+    const modalidadeContagem: Record<string, number> = {};
+    estudosFiltrados.forEach(estudo => {
+      let mod = 'OT';
+      if (estudo.MainDicomTags?.ModalitiesInStudy) {
+        mod = estudo.MainDicomTags.ModalitiesInStudy.split('\\')[0];
+      }
+      modalidadeContagem[mod] = (modalidadeContagem[mod] || 0) + 1;
+    });
+
+    // Cores das modalidades
+    const modalityColors: Record<string, string> = {
+      'DX': '#3B82F6', 'CR': '#3B82F6',
+      'CT': '#A855F7',
+      'MR': '#EC4899',
+      'US': '#10B981',
+      'MG': '#F59E0B',
+      'OT': '#94A3B8',
+    };
+
+    const modalityNames: Record<string, string> = {
+      'DX': 'Raio-X Digital', 'CR': 'Raio-X',
+      'CT': 'Tomografia',
+      'MR': 'Ressonância',
+      'US': 'Ultrassom',
+      'MG': 'Mamografia',
+      'OT': 'Outros',
+    };
+
+    const totalModalidades = Object.values(modalidadeContagem).reduce((a, b) => a + b, 0);
+    const modalityData = Object.entries(modalidadeContagem)
+      .map(([mod, count]) => ({
+        name: modalityNames[mod] || mod,
+        shortName: mod,
+        count,
+        percentage: totalModalidades > 0 ? Math.round((count / totalModalidades) * 100) : 0,
+        color: modalityColors[mod] || '#94A3B8'
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    return { 
+      totalStudies, totalSeries, totalInstances, totalPatients, totalDiskSizeBytes,
+      modalityData,
+      activeModalities: Object.keys(modalidadeContagem).length
+    };
+  }, [getDateLimits]);
+
+  // Função para buscar dados completos
   const fetchReportsData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -131,11 +224,11 @@ export function Reports() {
         return;
       }
 
-      // 1. Buscar estatísticas diretamente do Orthanc (igual ao Dashboard)
-      const orthancData = await fetchOrthancStats(selectedUnidade);
-      console.log('[Reports] Orthanc Stats:', orthancData);
+      // 1. Buscar dados do Orthanc (estatísticas + estudos para modalidades)
+      const orthancData = await fetchOrthancData(selectedUnidade);
+      console.log('[Reports] Orthanc Data:', orthancData);
 
-      // 2. Buscar dados de logs da API C# (ações dos usuários, etc)
+      // 2. Buscar logs de ações da API C#
       const unidadeParam = selectedUnidade || 'all';
       let url = `/api/reports/statistics?period=${selectedPeriod}&unidade=${unidadeParam}`;
       if (selectedPeriod === 'custom' && customStartDate && customEndDate) {
@@ -169,6 +262,12 @@ export function Reports() {
           totalInstances: orthancData.totalInstances,
           totalPatients: orthancData.totalPatients,
         },
+        // Usar modalidades do Orthanc em vez da API
+        modalityData: orthancData.modalityData,
+        summary: {
+          ...result.summary,
+          activeModalities: orthancData.activeModalities,
+        },
         storage: {
           usedGB: usedGB,
           availableGB: totalCapacityGB - usedGB,
@@ -185,7 +284,7 @@ export function Reports() {
     } finally {
       setLoading(false);
     }
-  }, [selectedPeriod, customStartDate, customEndDate, selectedUnidade, fetchOrthancStats]);
+  }, [selectedPeriod, customStartDate, customEndDate, selectedUnidade, fetchOrthancData]);
 
   // Buscar dados quando período ou unidade mudar
   useEffect(() => {
@@ -474,7 +573,9 @@ export function Reports() {
                     <p className="text-sm text-theme-muted">Modalidades Ativas</p>
                     <p className="text-3xl font-bold text-theme-primary mt-1">{summary.activeModalities}</p>
                     <p className="text-sm text-theme-muted mt-1">
-                      {modalityData.slice(0, 3).map(m => m.shortName).join(', ')}{modalityData.length > 3 ? '...' : ''}
+                      {modalityData.length > 0 
+                        ? modalityData.slice(0, 3).map(m => m.shortName).join(', ') + (modalityData.length > 3 ? '...' : '')
+                        : getPeriodLabel()}
                     </p>
                   </div>
                   <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
@@ -491,7 +592,7 @@ export function Reports() {
                   <div>
                     <p className="text-sm text-theme-muted">Ações de Usuários</p>
                     <p className="text-3xl font-bold text-theme-primary mt-1">{summary.totalUserActions.toLocaleString()}</p>
-                    <p className="text-sm text-theme-muted mt-1">Interações no sistema</p>
+                    <p className="text-sm text-theme-muted mt-1">{getPeriodLabel()}</p>
                   </div>
                   <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
                     <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -602,7 +703,10 @@ export function Reports() {
               {/* Estudos por Modalidade */}
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-theme-primary">Estudos por Modalidade</h2>
+                  <div>
+                    <h2 className="text-lg font-semibold text-theme-primary">Estudos por Modalidade</h2>
+                    <p className="text-xs text-theme-muted">{getPeriodLabel()}</p>
+                  </div>
                   <button className="p-2 text-theme-muted hover:text-theme-primary hover:bg-theme-secondary rounded-lg transition-colors">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -644,9 +748,11 @@ export function Reports() {
                           });
                         })()}
                       </svg>
-                      {/* Texto central */}
+                      {/* Texto central - Total de estudos no período */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-2xl font-bold text-theme-primary">{summary.totalStudies}</span>
+                        <span className="text-2xl font-bold text-theme-primary">
+                          {modalityData.reduce((acc, m) => acc + m.count, 0)}
+                        </span>
                         <span className="text-xs text-theme-muted">estudos</span>
                       </div>
                     </div>
@@ -657,9 +763,9 @@ export function Reports() {
                         <div key={modality.shortName} className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: modality.color }} />
-                            <span className="text-sm text-theme-muted">{modality.name} ({modality.shortName})</span>
+                            <span className="text-sm text-theme-muted">{modality.shortName}</span>
                           </div>
-                          <span className="text-sm font-medium text-theme-primary">{modality.count} ({modality.percentage}%)</span>
+                          <span className="text-sm font-medium text-theme-primary">{modality.count}</span>
                         </div>
                       ))}
                     </div>
@@ -670,7 +776,10 @@ export function Reports() {
               {/* Ações dos Usuários */}
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-theme-primary">Ações dos Usuários</h2>
+                  <div>
+                    <h2 className="text-lg font-semibold text-theme-primary">Ações dos Usuários</h2>
+                    <p className="text-xs text-theme-muted">{getPeriodLabel()}</p>
+                  </div>
                   <button className="p-2 text-theme-muted hover:text-theme-primary hover:bg-theme-secondary rounded-lg transition-colors">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
