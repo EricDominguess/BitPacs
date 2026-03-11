@@ -3,14 +3,6 @@ import { MainLayout } from '../../components/layout';
 import { Card } from '../../components/common';
 
 // Tipos
-interface ActivityLog {
-  id: string;
-  time: string;
-  user: string;
-  role: 'MÉDICO' | 'ADMIN' | 'TÉCNICO' | 'ENFERMEIRO';
-  action: string;
-}
-
 interface ModalityData {
   name: string;
   shortName: string;
@@ -26,15 +18,13 @@ interface UserActionData {
   color: string;
 }
 
-// Dados mockados (serão substituídos por dados reais da API)
-const mockActivityLogs: ActivityLog[] = [
-  { id: '1', time: '15:42', user: 'Dr. Roberto Silva', role: 'MÉDICO', action: 'Validou e assinou Laudo do Estudo #10928' },
-  { id: '2', time: '15:30', user: 'João Gonçalves', role: 'ADMIN', action: 'Criou acesso para "Dra. Paula"' },
-  { id: '3', time: '15:16', user: 'Carlos Mendes', role: 'TÉCNICO', action: 'Registrou rejeição no Estudo #10926' },
-  { id: '4', time: '14:50', user: 'Dra. Ana Costa', role: 'MÉDICO', action: 'Solicitou segunda opinião (Estudo #10911)' },
-  { id: '5', time: '14:32', user: 'Maria Santos', role: 'ENFERMEIRO', action: 'Visualizou Estudo #10905' },
-];
+interface StorageData {
+  label: string;
+  value: number;
+  color: string;
+}
 
+// Dados mockados (serão substituídos por dados reais da API)
 const mockModalityData: ModalityData[] = [
   { name: 'Raio-X', shortName: 'CR/DX', count: 420, percentage: 58, color: 'bg-nautico' },
   { name: 'Tomografia', shortName: 'CT', count: 185, percentage: 25, color: 'bg-purple-light' },
@@ -47,6 +37,12 @@ const mockUserActions: UserActionData[] = [
   { name: 'Exportação p/ Governo', count: 315, percentage: 23, color: 'bg-amber-500' },
   { name: 'Criação de Laudos', count: 180, percentage: 13, color: 'bg-purple-light' },
   { name: 'Ações Administrativas', count: 42, percentage: 3, color: 'bg-slate-400' },
+];
+
+// Dados de armazenamento mockados (GB)
+const mockStorageData: StorageData[] = [
+  { label: 'Utilizado', value: 320, color: '#3B82F6' },
+  { label: 'Disponível', value: 180, color: '#E5E7EB' },
 ];
 
 // Dados do gráfico de volume por hora (24 horas)
@@ -67,16 +63,10 @@ export function Reports() {
   const activeModalities = mockModalityData.length;
   const totalUserActions = useMemo(() => mockUserActions.reduce((acc, a) => acc + a.count, 0), []);
   
-  // Badge de role com cores
-  const getRoleBadgeClass = (role: ActivityLog['role']) => {
-    switch (role) {
-      case 'MÉDICO': return 'bg-emerald-500/20 text-emerald-400';
-      case 'ADMIN': return 'bg-amber-500/20 text-amber-400';
-      case 'TÉCNICO': return 'bg-purple-light/20 text-purple-light';
-      case 'ENFERMEIRO': return 'bg-nautico/20 text-nautico';
-      default: return 'bg-slate-500/20 text-slate-400';
-    }
-  };
+  // Cálculos de armazenamento
+  const totalStorage = useMemo(() => mockStorageData.reduce((acc, s) => acc + s.value, 0), []);
+  const usedStorage = mockStorageData[0].value;
+  const usedPercentage = Math.round((usedStorage / totalStorage) * 100);
 
   return (
     <MainLayout>
@@ -356,39 +346,74 @@ export function Reports() {
             </div>
           </Card>
 
-          {/* Log de Atividade */}
+          {/* Armazenamento do Sistema */}
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-theme-primary">Log de Atividade</h2>
+              <h2 className="text-lg font-semibold text-theme-primary">Armazenamento</h2>
               <button className="p-2 text-theme-muted hover:text-theme-primary hover:bg-theme-secondary rounded-lg transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>
             </div>
-            <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
-              {mockActivityLogs.map((log, index) => (
-                <div key={log.id} className="flex gap-3">
-                  {/* Timeline */}
-                  <div className="flex flex-col items-center">
-                    <div className={`w-2 h-2 rounded-full ${index === 0 ? 'bg-nautico' : 'bg-theme-muted/30'}`} />
-                    {index < mockActivityLogs.length - 1 && (
-                      <div className="w-0.5 h-full bg-theme-border mt-1" />
-                    )}
+            
+            {/* Gráfico de Rosca */}
+            <div className="flex flex-col items-center">
+              <div className="relative w-40 h-40">
+                <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+                  {/* Círculo de fundo */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="12"
+                    className="text-theme-secondary"
+                  />
+                  {/* Círculo de progresso */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="#3B82F6"
+                    strokeWidth="12"
+                    strokeLinecap="round"
+                    strokeDasharray={`${usedPercentage * 2.51} 251`}
+                    className="transition-all duration-1000"
+                  />
+                </svg>
+                {/* Texto central */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-bold text-theme-primary">{usedPercentage}%</span>
+                  <span className="text-xs text-theme-muted">utilizado</span>
+                </div>
+              </div>
+              
+              {/* Legenda */}
+              <div className="mt-6 w-full space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-500" />
+                    <span className="text-sm text-theme-muted">Utilizado</span>
                   </div>
-                  {/* Content */}
-                  <div className="flex-1 pb-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs text-theme-muted">{log.time}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getRoleBadgeClass(log.role)}`}>
-                        {log.role}
-                      </span>
-                    </div>
-                    <p className="text-sm font-medium text-theme-primary">{log.user}</p>
-                    <p className="text-sm text-theme-muted">{log.action}</p>
+                  <span className="text-sm font-medium text-theme-primary">{usedStorage} GB</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-theme-secondary" />
+                    <span className="text-sm text-theme-muted">Disponível</span>
+                  </div>
+                  <span className="text-sm font-medium text-theme-primary">{mockStorageData[1].value} GB</span>
+                </div>
+                <div className="pt-3 border-t border-theme-border">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-theme-muted">Total</span>
+                    <span className="text-sm font-bold text-theme-primary">{totalStorage} GB</span>
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
           </Card>
         </div>
