@@ -58,7 +58,7 @@ export function Reports() {
     setError(null);
     
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
       if (!token) {
         setError('Não autenticado');
         return;
@@ -110,7 +110,7 @@ export function Reports() {
     setShowExportMenu(false);
     
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
       if (!token) return;
 
       // Por enquanto, gera os dados no frontend
