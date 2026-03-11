@@ -300,7 +300,8 @@ export function Studies() {
       studyInstanceUID: study.studyInstanceUID,
       date: study.date,
       birthDate: study.birthDate,
-      bodyPartExamined: undefined // Será preenchido após buscar as tags
+      bodyPartExamined: undefined, // Será preenchido após buscar as tags
+      patientId: undefined // CPF - será preenchido após buscar as tags
     });
     setDownloadFormat('jpeg'); // Reset para JPEG ao abrir modal
     setShowDownloadModal(true);
@@ -313,8 +314,9 @@ export function Studies() {
       const seriesData = await carregarSeriesDoEstudo(study.id);
       
       // Para cada série, buscar as instâncias
-      // Buscar BodyPartExamined da primeira instância do estudo
+      // Buscar BodyPartExamined e PatientID (CPF) da primeira instância do estudo
       let bodyPartExamined = '';
+      let patientId = '';
       if (seriesData.length > 0) {
         try {
           const firstSeriesId = seriesData[0].ID;
@@ -324,16 +326,19 @@ export function Studies() {
             const tagsResponse = await fetch(`${prefixoProxy}/instances/${firstInstances[0].ID}/simplified-tags`);
             const tags = await tagsResponse.json();
             bodyPartExamined = tags.BodyPartExamined || '';
+            patientId = tags.PatientID || '';
           }
         } catch (e) {
-          console.warn('Não foi possível obter BodyPartExamined:', e);
+          console.warn('Não foi possível obter tags DICOM:', e);
         }
       }
       
-      // Atualizar o studyForDownload com a informação do órgão
-      if (bodyPartExamined) {
-        setStudyForDownload(prev => prev ? { ...prev, bodyPartExamined } : prev);
-      }
+      // Atualizar o studyForDownload com as informações extraídas
+      setStudyForDownload(prev => prev ? { 
+        ...prev, 
+        bodyPartExamined: bodyPartExamined || prev.bodyPartExamined,
+        patientId: patientId || prev.patientId
+      } : prev);
 
       const seriesWithInstances: SeriesForDownload[] = await Promise.all(
         seriesData.map(async (serie: any) => {
@@ -526,19 +531,53 @@ export function Studies() {
         pdf.setFont('helvetica', 'normal');
         pdf.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, margin, 23);
         
+        // Mapeamento de nomes das unidades
+        const UNIDADE_NOMES: Record<string, string> = {
+          '1': 'CIS - Rio Branco',
+          '2': 'CIS - Foz do Iguaçu',
+          '3': 'CIS - Fazenda Rio Grande',
+          '4': 'CIS - Faxinal',
+          '5': 'CIS - Santa Mariana',
+          '6': 'CIS - Guarapuava',
+          '7': 'CIS - Carlópolis',
+          '8': 'CIS - Arapoti',
+          'riobranco': 'CIS - Rio Branco',
+          'foziguacu': 'CIS - Foz do Iguaçu',
+          'fazenda': 'CIS - Fazenda Rio Grande',
+          'faxinal': 'CIS - Faxinal',
+          'santamariana': 'CIS - Santa Mariana',
+          'guarapuava': 'CIS - Guarapuava',
+          'carlopolis': 'CIS - Carlópolis',
+          'arapoti': 'CIS - Arapoti',
+        };
+        const unidadeNome = UNIDADE_NOMES[unidadeAtual] || 'CIS';
+        
+        // Formatar CPF se disponível
+        const formatarCPF = (cpf: string) => {
+          const numeros = cpf.replace(/\D/g, '');
+          if (numeros.length === 11) {
+            return numeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+          }
+          return cpf;
+        };
+        const cpfFormatado = studyForDownload.patientId ? formatarCPF(studyForDownload.patientId) : '';
+        
         // Informações do paciente - layout em grid
         pdf.setFontSize(11);
         pdf.text(`Paciente: ${studyForDownload.patient}`, margin, 33);
-        pdf.text(`Data de Nascimento: ${studyForDownload.birthDate}`, margin, 40);
-        pdf.text(`Data do Exame: ${studyForDownload.date}`, margin, 47);
-        
-        // Modalidade e Órgão Examinado na mesma linha
-        const modalidadeText = `Modalidade: ${studyForDownload.modality}`;
-        const orgaoText = studyForDownload.bodyPartExamined ? `Órgão: ${studyForDownload.bodyPartExamined}` : '';
-        pdf.text(modalidadeText, pageWidth / 2, 40);
-        if (orgaoText) {
-          pdf.text(orgaoText, pageWidth / 2, 47);
+        if (cpfFormatado) {
+          pdf.text(`CPF: ${cpfFormatado}`, pageWidth / 2, 33);
         }
+        pdf.text(`Data de Nascimento: ${studyForDownload.birthDate}`, margin, 40);
+        pdf.text(`Modalidade: ${studyForDownload.modality}`, pageWidth / 2, 40);
+        pdf.text(`Data do Exame: ${studyForDownload.date}`, margin, 47);
+        if (studyForDownload.bodyPartExamined) {
+          pdf.text(`Órgão: ${studyForDownload.bodyPartExamined}`, pageWidth / 2, 47);
+        }
+        
+        // Unidade
+        pdf.setFontSize(10);
+        pdf.text(`Unidade: ${unidadeNome}`, margin, 54);
         
         // Descrição do estudo
         pdf.setTextColor(0, 0, 0);
