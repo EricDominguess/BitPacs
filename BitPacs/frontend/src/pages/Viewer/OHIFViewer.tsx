@@ -23,55 +23,28 @@ const UNIT_NAMES: Record<string, string> = {
   'arapoti': 'arapoti',
 };
 
-// Detecta se está acessando externamente (HTTPS ou domínio externo)
-const isExternalAccess = () => {
-  const hostname = window.location.hostname;
-  const protocol = window.location.protocol;
-  
-  // Se está usando HTTPS ou acessando por domínio (não IP local), usa proxy
-  if (protocol === 'https:') return true;
-  if (hostname.includes('.com') || hostname.includes('.br')) return true;
-  if (!hostname.match(/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/)) return true;
-  
-  return false;
-};
-
 export function OHIFViewer() {
   const { studyId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [showExternalMessage, setShowExternalMessage] = useState(false);
+  
+  // 1. ADICIONE ESTE NOVO ESTADO
+  const [isCookieReady, setIsCookieReady] = useState(false); 
+  
   const iframeRef = useRef<HTMLIFrameElement>(null);
   
-  // Obtém a unidade da query string (passada pelo ViewerModal)
   const unidade = searchParams.get('unidade') || '1';
-
-  // Obtém o nome da unidade para usar nas rotas
   const unitName = UNIT_NAMES[unidade] || 'riobranco';
 
   // Define cookie para o nginx saber qual Orthanc usar nas requisições DICOM-web
   useEffect(() => {
+    // Salva o cookie com a unidade correta
     document.cookie = `orthanc_unit=${unitName};path=/;max-age=3600`;
+    // Avisa que o cookie está pronto para o iframe poder ser carregado
+    setIsCookieReady(true); 
   }, [unitName]);
-
-  // Para acesso externo, o OHIF não funciona bem em iframe devido aos paths relativos
-  // Redireciona diretamente para o OHIF na URL correta
-  useEffect(() => {
-    if (isExternalAccess()) {
-      setShowExternalMessage(true);
-      const studyParam = studyId ? `?StudyInstanceUIDs=${encodeURIComponent(studyId)}` : '';
-      const ohifUrl = `/ohif/viewer${studyParam}`;
-      
-      // Abre o OHIF diretamente (sem iframe) após um pequeno delay
-      const timer = setTimeout(() => {
-        window.location.href = ohifUrl;
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [studyId, unitName]);
 
   // Gera a URL do OHIF Viewer (usado apenas para acesso interno)
   const getViewerUrl = () => {
@@ -80,19 +53,6 @@ export function OHIFViewer() {
   };
 
   const viewerUrl = getViewerUrl();
-
-  // Mostra mensagem enquanto redireciona para acesso externo
-  if (showExternalMessage) {
-    return (
-      <div className="h-screen bg-black flex items-center justify-center">
-        <div className="text-center text-white">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple mx-auto mb-4"></div>
-          <p className="text-lg">Abrindo OHIF Viewer...</p>
-          <p className="text-sm text-white/60 mt-2">Redirecionando para o visualizador</p>
-        </div>
-      </div>
-    );
-  }
 
   const handleIframeLoad = () => {
     setIsLoading(false);
@@ -201,15 +161,17 @@ export function OHIFViewer() {
           </div>
         )}
         
-        <iframe 
-          ref={iframeRef}
-          src={viewerUrl}
-          className="w-full h-full border-none"
-          title="OHIF Viewer"
-          allowFullScreen
-          onLoad={handleIframeLoad}
-          onError={handleIframeError}
-        />
+        {isCookieReady && (
+          <iframe 
+            ref={iframeRef}
+            src={viewerUrl}
+            className="w-full h-full border-none"
+            title="OHIF Viewer"
+            allowFullScreen
+            onLoad={handleIframeLoad}
+            onError={handleIframeError}
+          />
+        )}
       </div>
     </div>
   );
