@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 // Mapeamento de IDs para nomes das unidades (usados nas rotas do nginx proxy)
 const UNIT_NAMES: Record<string, string> = {
@@ -61,6 +61,12 @@ export function OHIFViewer() {
 
   // Obtém o nome da unidade para usar nas rotas
   const unitName = UNIT_NAMES[unidade] || 'riobranco';
+
+  // Define cookie para o nginx saber qual Orthanc usar nas requisições DICOM-web
+  // Isso é necessário porque o OHIF faz requisições para a raiz (ex: /dicom-web/...)
+  useEffect(() => {
+    document.cookie = `orthanc_unit=${unitName};path=/;max-age=3600`;
+  }, [unitName]);
 
   // Gera a URL do OHIF Viewer baseado no tipo de acesso
   const getViewerUrl = () => {
