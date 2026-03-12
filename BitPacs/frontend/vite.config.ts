@@ -89,6 +89,7 @@ export default defineConfig(() => {
         },
         
         // Rotas que o Stone Webviewer exige na raiz
+        '/ohif': proxyConfig,
         '/series': proxyConfig,
         '/instances': proxyConfig,
         '/dicom-web': proxyConfig,

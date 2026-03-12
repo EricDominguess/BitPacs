@@ -62,7 +62,7 @@ export function OHIFViewer() {
     if (isExternalAccess()) {
       setShowExternalMessage(true);
       const studyParam = studyId ? `?StudyInstanceUIDs=${encodeURIComponent(studyId)}` : '';
-      const ohifUrl = `/orthanc-${unitName}/ohif/viewer${studyParam}`;
+      const ohifUrl = `/ohif/viewer${studyParam}`;
       
       // Abre o OHIF diretamente (sem iframe) após um pequeno delay
       const timer = setTimeout(() => {
@@ -76,7 +76,7 @@ export function OHIFViewer() {
   // Gera a URL do OHIF Viewer (usado apenas para acesso interno)
   const getViewerUrl = () => {
     const studyParam = studyId ? `?StudyInstanceUIDs=${encodeURIComponent(studyId)}` : '';
-    return `/orthanc-${unitName}/ohif/viewer${studyParam}`;
+    return `/ohif/viewer${studyParam}`;
   };
 
   const viewerUrl = getViewerUrl();
