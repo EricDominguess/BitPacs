@@ -23,18 +23,6 @@ const UNIT_NAMES: Record<string, string> = {
   'arapoti': 'arapoti',
 };
 
-// IPs diretos (usado apenas em desenvolvimento na rede interna)
-const ORTHANC_DIRECT_IPS: Record<string, string> = {
-  'riobranco': '10.31.0.36:8042',
-  'foziguacu': '10.31.0.39:8042',
-  'fazenda': '10.31.0.38:8042',
-  'faxinal': '10.31.0.37:8042',
-  'santamariana': '10.31.0.46:8042',
-  'guarapuava': '10.31.0.47:8042',
-  'carlopolis': '10.31.0.48:8042',
-  'arapoti': '10.31.0.49:8042',
-};
-
 // Detecta se está acessando externamente (HTTPS ou domínio externo)
 const isExternalAccess = () => {
   const hostname = window.location.hostname;
@@ -88,8 +76,7 @@ export function OHIFViewer() {
   // Gera a URL do OHIF Viewer (usado apenas para acesso interno)
   const getViewerUrl = () => {
     const studyParam = studyId ? `?StudyInstanceUIDs=${encodeURIComponent(studyId)}` : '';
-    const orthancIp = ORTHANC_DIRECT_IPS[unitName] || '10.31.0.36:8042';
-    return `http://${orthancIp}/ohif/viewer${studyParam}`;
+    return `/orthanc-${unitName}/ohif/viewer${studyParam}`;
   };
 
   const viewerUrl = getViewerUrl();
