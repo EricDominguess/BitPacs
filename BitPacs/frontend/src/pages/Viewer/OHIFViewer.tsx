@@ -54,6 +54,7 @@ export function OHIFViewer() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [showExternalMessage, setShowExternalMessage] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   
   // Obtém a unidade da query string (passada pelo ViewerModal)
@@ -63,26 +64,48 @@ export function OHIFViewer() {
   const unitName = UNIT_NAMES[unidade] || 'riobranco';
 
   // Define cookie para o nginx saber qual Orthanc usar nas requisições DICOM-web
-  // Isso é necessário porque o OHIF faz requisições para a raiz (ex: /dicom-web/...)
   useEffect(() => {
     document.cookie = `orthanc_unit=${unitName};path=/;max-age=3600`;
   }, [unitName]);
 
-  // Gera a URL do OHIF Viewer baseado no tipo de acesso
+  // Para acesso externo, o OHIF não funciona bem em iframe devido aos paths relativos
+  // Redireciona diretamente para o OHIF na URL correta
+  useEffect(() => {
+    if (isExternalAccess()) {
+      setShowExternalMessage(true);
+      const studyParam = studyId ? `?StudyInstanceUIDs=${encodeURIComponent(studyId)}` : '';
+      const ohifUrl = `/orthanc-${unitName}/ohif/viewer${studyParam}`;
+      
+      // Abre o OHIF diretamente (sem iframe) após um pequeno delay
+      const timer = setTimeout(() => {
+        window.location.href = ohifUrl;
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [studyId, unitName]);
+
+  // Gera a URL do OHIF Viewer (usado apenas para acesso interno)
   const getViewerUrl = () => {
     const studyParam = studyId ? `?StudyInstanceUIDs=${encodeURIComponent(studyId)}` : '';
-    
-    if (isExternalAccess()) {
-      // Acesso externo via HTTPS: usa proxy do nginx (mesma origem)
-      return `/orthanc-${unitName}/ohif/viewer${studyParam}`;
-    } else {
-      // Acesso interno na rede: usa IP direto
-      const orthancIp = ORTHANC_DIRECT_IPS[unitName] || '10.31.0.36:8042';
-      return `http://${orthancIp}/ohif/viewer${studyParam}`;
-    }
+    const orthancIp = ORTHANC_DIRECT_IPS[unitName] || '10.31.0.36:8042';
+    return `http://${orthancIp}/ohif/viewer${studyParam}`;
   };
 
   const viewerUrl = getViewerUrl();
+
+  // Mostra mensagem enquanto redireciona para acesso externo
+  if (showExternalMessage) {
+    return (
+      <div className="h-screen bg-black flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple mx-auto mb-4"></div>
+          <p className="text-lg">Abrindo OHIF Viewer...</p>
+          <p className="text-sm text-white/60 mt-2">Redirecionando para o visualizador</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleIframeLoad = () => {
     setIsLoading(false);
