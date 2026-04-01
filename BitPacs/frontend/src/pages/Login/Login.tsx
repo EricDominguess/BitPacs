@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button, Input, ContactModal } from '../../components/common';
 
 export function Login() {
@@ -11,16 +11,57 @@ export function Login() {
   // Estados de Controle
   const [isLoading, setIsLoading] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
-  const [error, setError] = useState(''); // <--- Novo estado para erros
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  // Verifica auto-login ao carregar a página
+  useEffect(() => {
+    const checkSavedSession = () => {
+      // Tenta localStorage primeiro (Lembrar de mim)
+      let token = localStorage.getItem('bitpacs_token');
+      let user = localStorage.getItem('bitpacs_user');
+      let expiryTime = localStorage.getItem('bitpacs_token_expiry');
+
+      // Se não encontrar, tenta sessionStorage
+      if (!token) {
+        token = sessionStorage.getItem('bitpacs_token');
+        user = sessionStorage.getItem('bitpacs_user');
+        expiryTime = sessionStorage.getItem('bitpacs_token_expiry');
+      }
+
+      // Se encontrou token, verifica se ainda é válido
+      if (token && expiryTime) {
+        const now = new Date().getTime();
+        const expiry = parseInt(expiryTime);
+
+        if (now < expiry) {
+          // Token ainda é válido, faz auto-login
+          if (user) {
+            const userData = JSON.parse(user);
+            const isAdminOrMaster = userData.role === 'Master' || userData.role === 'Admin';
+            window.location.href = isAdminOrMaster ? '/dashboard' : '/user-dashboard';
+          }
+        } else {
+          // Token expirou, limpa os dados
+          localStorage.removeItem('bitpacs_token');
+          localStorage.removeItem('bitpacs_user');
+          localStorage.removeItem('bitpacs_token_expiry');
+          sessionStorage.removeItem('bitpacs_token');
+          sessionStorage.removeItem('bitpacs_user');
+          sessionStorage.removeItem('bitpacs_token_expiry');
+        }
+      }
+    };
+
+    checkSavedSession();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(''); // Limpa erro anterior ao tentar de novo
+    setError('');
 
     try {
-      // 1. Conexão real com sua API .NET (que fala com o Postgres)
-      // Ajuste a URL '...' para a porta da sua API C#
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -33,27 +74,28 @@ export function Login() {
       });
 
       if (response.ok) {
-        // Sucesso: Pega o token que o C# devolveu
         const data = await response.json();
         
-        // Salva no navegador para manter logado
-        // Se "Lembrar de mim" estiver marcado, usa localStorage (persiste após fechar navegador)
-        // Caso contrário, usa sessionStorage (limpa ao fechar navegador)
+        // Calcula o tempo de expiração (8 horas = 28.800.000 ms)
+        const expiryTime = new Date().getTime() + (8 * 60 * 60 * 1000);
+        
+        // Seleciona o storage baseado em "Lembrar de mim"
         const storage = rememberMe ? localStorage : sessionStorage;
+        
         storage.setItem('bitpacs_token', data.token);
         storage.setItem('bitpacs_user', JSON.stringify(data.user));
+        storage.setItem('bitpacs_token_expiry', expiryTime.toString());
+        
+        // Salva tema sempre em localStorage
         localStorage.setItem('bitpacs-theme', 'light');        
 
         // Redireciona baseado no role do usuário
-        // Master e Admin vão para /dashboard, outros vão para /user-dashboard
         const isAdminOrMaster = data.user.role === 'Master' || data.user.role === 'Admin';
         window.location.href = isAdminOrMaster ? '/dashboard' : '/user-dashboard';
       } else {
-        // Erro: Senha errada ou usuário não existe
         setError('E-mail ou senha incorretos.');
       }
     } catch (err) {
-      // Erro de Rede (API fora do ar)
       setError('Erro de conexão com o servidor.');
       console.error(err);
     } finally {

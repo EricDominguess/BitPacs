@@ -11,10 +11,12 @@ export function Header() {
     // 1. Limpa a gaveta da Sessão
     sessionStorage.removeItem('bitpacs_token');
     sessionStorage.removeItem('bitpacs_user');
+    sessionStorage.removeItem('bitpacs_token_expiry');
 
     // 2. Limpa a gaveta Local
     localStorage.removeItem('bitpacs_token');
     localStorage.removeItem('bitpacs_user');
+    localStorage.removeItem('bitpacs_token_expiry');
     localStorage.removeItem('bitpacs-unidade-master'); // Limpa unidade selecionada para Master
 
     // 3. Redireciona para a página de login/home 
