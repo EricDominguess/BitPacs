@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button, Input, ContactModal } from '../../components/common';
 
 export function Login() {
@@ -12,7 +12,6 @@ export function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
   // Verifica auto-login ao carregar a página
   useEffect(() => {
