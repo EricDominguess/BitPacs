@@ -1,35 +1,8 @@
-import { useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useCallback, useRef } from 'react';
 import { fetchWithAuth } from '../utils/fetchWithAuth';
 
 export const useTokenValidator = () => {
-  const navigate = useNavigate();
-
-  const validateToken = useCallback(async () => {
-    const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
-    
-    if (!token) return;
-
-    try {
-      const response = await fetchWithAuth('/api/auth/validate-token', {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        // Token foi invalidado (novo login em outro lugar)
-        handleTokenInvalidation();
-        return;
-      }
-
-      const data = await response.json();
-      if (!data.valid) {
-        handleTokenInvalidation();
-      }
-    } catch (error) {
-      console.error('Erro ao validar token:', error);
-      // Em caso de erro de rede, não faz logout (pode ser temporário)
-    }
-  }, []);
+  const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleTokenInvalidation = useCallback(() => {
     // Remove tokens do storage
@@ -41,15 +14,69 @@ export const useTokenValidator = () => {
     sessionStorage.removeItem('bitpacs_user');
     sessionStorage.removeItem('bitpacs_token_expiry');
 
-    // Redireciona para login com mensagem
-    navigate('/', { state: { message: 'Sua sessão foi encerrada. Faça login novamente.' } });
-  }, [navigate]);
+    // Redireciona para login
+    window.location.href = '/';
+  }, []);
 
-  // Valida token a cada 30 segundos
+  const validateToken = useCallback(async () => {
+    const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
+    
+    if (!token) {
+      return;
+    }
+
+    try {
+      const response = await fetchWithAuth('/api/auth/validate-token', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        // Token foi invalidado (novo login em outro lugar)
+        console.log('Token inválido - fazendo logout');
+        handleTokenInvalidation();
+        return;
+      }
+
+      const data = await response.json();
+      if (!data.valid) {
+        console.log('Token não é válido - fazendo logout');
+        handleTokenInvalidation();
+        return;
+      }
+
+      // Se tudo ok, agenda próxima validação
+      scheduleNextValidation();
+    } catch (error) {
+      console.error('Erro ao validar token:', error);
+      // Em caso de erro de rede, agenda nova tentativa
+      scheduleNextValidation();
+    }
+  }, [handleTokenInvalidation]);
+
+  const scheduleNextValidation = useCallback(() => {
+    // Limpa timeout anterior se existir
+    if (validationTimeoutRef.current) {
+      clearTimeout(validationTimeoutRef.current);
+    }
+    
+    // Agenda próxima validação em 30 segundos
+    validationTimeoutRef.current = setTimeout(validateToken, 30000);
+  }, [validateToken]);
+
+  // Configura validação inicial
   useEffect(() => {
-    validateToken(); // Valida imediatamente ao montar
-    const interval = setInterval(validateToken, 30000);
+    const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
+    
+    if (token) {
+      // Valida imediatamente
+      validateToken();
+    }
 
-    return () => clearInterval(interval);
+    // Cleanup
+    return () => {
+      if (validationTimeoutRef.current) {
+        clearTimeout(validationTimeoutRef.current);
+      }
+    };
   }, [validateToken]);
 };
