@@ -6,6 +6,12 @@ using BitPacs.Api.Models;
 
 namespace BitPacs.Api.Services
 {
+    public class TokenResult
+    {
+        public string Token { get; set; } = string.Empty;
+        public string TokenId { get; set; } = string.Empty;
+    }
+
     public class TokenService
     {
         private readonly IConfiguration _configuration;
@@ -15,7 +21,7 @@ namespace BitPacs.Api.Services
             _configuration = configuration;
         }
 
-        public string GenerateToken(User user)
+        public TokenResult GenerateToken(User user)
         {
             // 1. Pega a chave secreta do appsettings.json
             var secretKey = _configuration["JwtSettings:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey não configurada");
@@ -52,8 +58,13 @@ namespace BitPacs.Api.Services
             // 4. Gera a string do Token
             var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.CreateToken(tokenDescriptor);
+            var tokenString = tokenHandler.WriteToken(token);
 
-            return tokenHandler.WriteToken(token);
+            return new TokenResult
+            {
+                Token = tokenString,
+                TokenId = tokenId
+            };
         }
 
         public string? GetTokenIdFromClaims(System.Security.Claims.ClaimsPrincipal user)

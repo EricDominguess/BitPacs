@@ -31,18 +31,17 @@ namespace BitPacs.Api.Controllers
             if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 return Unauthorized("Senha incorreta.");
 
-            // Gera um ID único para este novo token
-            var newTokenId = Guid.NewGuid().ToString();
-            var token = _tokenService.GenerateToken(user);
+            // Gera token e obtém o TokenId
+            var tokenResult = _tokenService.GenerateToken(user);
 
             // Atualiza no banco o novo TokenId para invalidar tokens antigos
-            user.LastLoginTokenId = newTokenId;
+            user.LastLoginTokenId = tokenResult.TokenId;
             user.LastLoginAt = DateTime.UtcNow;
             _context.SaveChanges();
 
             return Ok(new
             {
-                token = token,
+                token = tokenResult.Token,
                 user = new { user.Id, user.Nome, user.Email, user.Role, user.UnidadeId, user.AvatarUrl }
             });
         }
