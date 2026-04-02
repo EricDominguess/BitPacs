@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Badge } from './Badge';
 import { useUnidade } from '../../contexts';
 
@@ -18,6 +19,7 @@ const roleColors: Record<string, { badge: 'default' | 'success' | 'warning' | 'e
 export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   // Usa o hook de unidade para obter o label correto
   const { unidadeLabel, isMaster } = useUnidade();
+  const navigate = useNavigate();
 
   // Determina qual storage está sendo usado
   const useSessionStorage = !!sessionStorage.getItem('bitpacs_user');
@@ -59,6 +61,21 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   };
 
   if (!isOpen) return null;
+
+  const handleLogout = () => {
+    // Remove de localStorage
+    localStorage.removeItem('bitpacs_token');
+    localStorage.removeItem('bitpacs_user');
+    localStorage.removeItem('bitpacs_token_expiry');
+
+    // Remove de sessionStorage
+    sessionStorage.removeItem('bitpacs_token');
+    sessionStorage.removeItem('bitpacs_user');
+    sessionStorage.removeItem('bitpacs_token_expiry');
+
+    onClose();
+    navigate('/');
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -232,6 +249,17 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               </div>
 
             </div>
+
+            {/* Botão de Sair */}
+            <button
+              onClick={handleLogout}
+              className="w-full mt-6 px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 text-red-500 hover:text-red-600 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Sair
+            </button>
           </div>
 
 
