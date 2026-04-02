@@ -30,7 +30,7 @@ export function Viewer() {
   const { studyId } = useParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  const [stoneAvailable, setStoneAvailable] = useState(true);
+  const [useFallback, setUseFallback] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { unidade } = useUnidade();
@@ -48,27 +48,6 @@ export function Viewer() {
   const ohifViewerUrl = studyId
     ? `/ohif/?StudyInstanceUIDs=${encodeURIComponent(studyId)}`
     : '/ohif/';
-
-  // Verifica se o Stone Viewer está disponível
-  useEffect(() => {
-    if (!stoneViewerUrl) return;
-
-    const checkStoneAvailability = async () => {
-      try {
-        const response = await fetch(stoneViewerUrl, { method: 'HEAD' });
-        if (!response.ok && response.status === 404) {
-          setStoneAvailable(false);
-          setError('Stone Viewer não disponível. Usando OHIF Viewer...');
-        }
-      } catch (err) {
-        // Se não conseguir acessar, tenta com OHIF
-        setStoneAvailable(false);
-      }
-    };
-
-    const timer = setTimeout(checkStoneAvailability, 500);
-    return () => clearTimeout(timer);
-  }, [stoneViewerUrl]);
 
   const handleIframeLoad = () => {
     setIsLoading(false);
@@ -133,14 +112,14 @@ export function Viewer() {
   };
 
   const handleIframeError = () => {
-    console.error('Erro ao carregar iframe');
-    setStoneAvailable(false);
-    setError('Erro ao carregar visualizador');
+    console.error('Erro ao carregar iframe - tentando com OHIF');
+    setUseFallback(true);
+    setError('Stone Viewer indisponível. Usando OHIF Viewer...');
     setIsLoading(false);
   };
 
-  // Se Stone não está disponível, usa OHIF
-  const viewerUrl = stoneAvailable ? stoneViewerUrl : ohifViewerUrl;
+  // Se falhou ao carregar Stone, usa OHIF
+  const viewerUrl = useFallback ? ohifViewerUrl : stoneViewerUrl;
 
   return (
     <div className="h-screen bg-black flex flex-col overflow-hidden">
