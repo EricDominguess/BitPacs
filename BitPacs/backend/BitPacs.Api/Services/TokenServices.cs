@@ -21,6 +21,9 @@ namespace BitPacs.Api.Services
             var secretKey = _configuration["JwtSettings:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey não configurada");
             var key = Encoding.ASCII.GetBytes(secretKey);
 
+            // Gera um ID único para este token (para controlar single login)
+            var tokenId = Guid.NewGuid().ToString();
+
             // 2. Define as "Claims" (os dados que vão dentro do Token)
             var claims = new List<Claim>
             {
@@ -28,7 +31,8 @@ namespace BitPacs.Api.Services
                 new Claim(ClaimTypes.Name, user.Nome),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role), // Importante para saber se é Admin
-                new Claim("UnidadeId", user.UnidadeId ?? "") // Unidades dos usuários
+                new Claim("UnidadeId", user.UnidadeId ?? ""), // Unidades dos usuários
+                new Claim("TokenId", tokenId) // ID único do token para validação de single login
             };
 
             // 3. Configura a assinatura e criptografia
@@ -50,6 +54,11 @@ namespace BitPacs.Api.Services
             var token = tokenHandler.CreateToken(tokenDescriptor);
 
             return tokenHandler.WriteToken(token);
+        }
+
+        public string? GetTokenIdFromClaims(System.Security.Claims.ClaimsPrincipal user)
+        {
+            return user.FindFirst("TokenId")?.Value;
         }
     }
 }

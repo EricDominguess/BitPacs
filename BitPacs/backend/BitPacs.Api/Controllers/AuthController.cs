@@ -31,7 +31,14 @@ namespace BitPacs.Api.Controllers
             if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 return Unauthorized("Senha incorreta.");
 
+            // Gera um ID único para este novo token
+            var newTokenId = Guid.NewGuid().ToString();
             var token = _tokenService.GenerateToken(user);
+
+            // Atualiza no banco o novo TokenId para invalidar tokens antigos
+            user.LastLoginTokenId = newTokenId;
+            user.LastLoginAt = DateTime.UtcNow;
+            _context.SaveChanges();
 
             return Ok(new
             {
@@ -339,6 +346,34 @@ namespace BitPacs.Api.Controllers
             _context.SaveChanges();
 
             return Ok(new { message = "Avatar removido com sucesso." });
+        }
+
+        [HttpPost("validate-token")]
+        [Authorize]
+        public IActionResult ValidateToken()
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var tokenIdClaim = User.FindFirst("TokenId")?.Value;
+
+                if (!int.TryParse(userIdClaim, out int userId))
+                    return Unauthorized(new { valid = false, message = "Token inválido" });
+
+                var user = _context.Users.Find(userId);
+                if (user == null)
+                    return Unauthorized(new { valid = false, message = "Usuário não encontrado" });
+
+                // Verifica se o TokenId do token corresponde ao LastLoginTokenId no banco
+                if (tokenIdClaim != user.LastLoginTokenId)
+                    return Unauthorized(new { valid = false, message = "Token foi invalidado por um novo login" });
+
+                return Ok(new { valid = true, message = "Token válido" });
+            }
+            catch
+            {
+                return Unauthorized(new { valid = false, message = "Erro ao validar token" });
+            }
         }
     }
 

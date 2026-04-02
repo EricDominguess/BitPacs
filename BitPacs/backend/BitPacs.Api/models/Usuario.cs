@@ -31,6 +31,10 @@ namespace BitPacs.Api.Models
         
         public string? AvatarUrl { get; set; }
         
+        // Para controlar single login
+        public string? LastLoginTokenId { get; set; }
+        public DateTime? LastLoginAt { get; set; }
+        
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         
         public DateTime? UpdatedAt { get; set; }
