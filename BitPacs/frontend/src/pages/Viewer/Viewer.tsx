@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useUnidade } from '../../contexts';
 
 // Configuração dos proxies por unidade (deve corresponder ao vite.config.ts)
