@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useUnidade } from '../../contexts';
 
 // Configuração dos proxies por unidade (deve corresponder ao vite.config.ts)
@@ -30,6 +30,8 @@ export function Viewer() {
   const { studyId } = useParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const [stoneAvailable, setStoneAvailable] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { unidade } = useUnidade();
 
@@ -38,12 +40,39 @@ export function Viewer() {
 
   // URL do Stone Viewer - usa StudyInstanceUID como parâmetro
   // O Stone WebViewer espera o StudyInstanceUID do DICOM, não o ID interno do Orthanc
-  const viewerUrl = studyId 
+  const stoneViewerUrl = studyId 
     ? `${proxyPrefix}/stone-webviewer/index.html?study=${encodeURIComponent(studyId)}`
     : `${proxyPrefix}/stone-webviewer/index.html`;
 
+  // URL alternativa do OHIF Viewer se Stone não estiver disponível
+  const ohifViewerUrl = studyId
+    ? `/ohif/?StudyInstanceUIDs=${encodeURIComponent(studyId)}`
+    : '/ohif/';
+
+  // Verifica se o Stone Viewer está disponível
+  useEffect(() => {
+    if (!stoneViewerUrl) return;
+
+    const checkStoneAvailability = async () => {
+      try {
+        const response = await fetch(stoneViewerUrl, { method: 'HEAD' });
+        if (!response.ok && response.status === 404) {
+          setStoneAvailable(false);
+          setError('Stone Viewer não disponível. Usando OHIF Viewer...');
+        }
+      } catch (err) {
+        // Se não conseguir acessar, tenta com OHIF
+        setStoneAvailable(false);
+      }
+    };
+
+    const timer = setTimeout(checkStoneAvailability, 500);
+    return () => clearTimeout(timer);
+  }, [stoneViewerUrl]);
+
   const handleIframeLoad = () => {
     setIsLoading(false);
+    setError(null);
     try {
       const iframe = iframeRef.current;
       if (!iframe || !iframe.contentWindow) return;
@@ -98,12 +127,20 @@ export function Viewer() {
       translateWarnings();
       setTimeout(translateWarnings, 500);
       setTimeout(translateWarnings, 1500);
-      setTimeout(translateWarnings, 3000);
-
-    } catch (e) {
-      // Ignora erros de cross-origin se ocorrerem
+    } catch (err) {
+      console.error('Erro ao injetar estilos:', err);
     }
   };
+
+  const handleIframeError = () => {
+    console.error('Erro ao carregar iframe');
+    setStoneAvailable(false);
+    setError('Erro ao carregar visualizador');
+    setIsLoading(false);
+  };
+
+  // Se Stone não está disponível, usa OHIF
+  const viewerUrl = stoneAvailable ? stoneViewerUrl : ohifViewerUrl;
 
   return (
     <div className="h-screen bg-black flex flex-col overflow-hidden">
@@ -138,6 +175,11 @@ export function Viewer() {
              </div>
           </div>
         )}
+        {error && (
+          <div className="absolute top-4 left-4 right-4 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg text-yellow-400 text-sm z-20">
+            {error}
+          </div>
+        )}
         <iframe 
           ref={iframeRef}
           src={viewerUrl}
@@ -145,6 +187,7 @@ export function Viewer() {
           title="DICOM Viewer"
           allowFullScreen
           onLoad={handleIframeLoad}
+          onError={handleIframeError}
         />
       </div>
     </div>
