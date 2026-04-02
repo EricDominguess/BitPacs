@@ -6,29 +6,12 @@ export function Header() {
   const [showSettings, setShowSettings] = useState(false);
   const { unidadeLabel, isUnidadeSelected } = useUnidade();
 
-  // Função de logout
-  const handleLogout = () => {
-    // 1. Limpa a gaveta da Sessão
-    sessionStorage.removeItem('bitpacs_token');
-    sessionStorage.removeItem('bitpacs_user');
-    sessionStorage.removeItem('bitpacs_token_expiry');
-
-    // 2. Limpa a gaveta Local
-    localStorage.removeItem('bitpacs_token');
-    localStorage.removeItem('bitpacs_user');
-    localStorage.removeItem('bitpacs_token_expiry');
-    localStorage.removeItem('bitpacs-unidade-master'); // Limpa unidade selecionada para Master
-
-    // 3. Redireciona para a página de login/home 
-    window.location.href = '/'; // Redireciona para a home pública (pode ser /login ou / dependendo do fluxo)
-  };
-
   return (
     <>
     <header className="h-[72px] bg-theme-primary/95 backdrop-blur-md border-b border-theme-light sticky top-0 z-50 transition-colors duration-300">
       <div className="h-full px-6 flex items-center justify-between">
         {/* Logo - Clica para fazer logout e voltar para home */}
-        <button onClick={handleLogout} className="flex items-center gap-2 group">
+        <button className="flex items-center gap-2 group">
           {/* Ícone estilizado baseado na identidade */}
           <div className="relative w-10 h-10">
             <div className="absolute inset-0 bg-ultra rounded-lg transform rotate-45 group-hover:rotate-90 transition-transform duration-300" />
