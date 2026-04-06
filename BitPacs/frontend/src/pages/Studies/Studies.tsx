@@ -33,6 +33,9 @@ export function Studies() {
   // Usa o índice de séries por estudo para busca O(1)
   const { estudos, isLoading, unidadeAtual, carregarSeriesDoEstudo, buscarEstudosNoServidor, buscarModalidadeNoServidor } = useOrthancData();
   
+  // ✅ NOVO: Obter usuário logado para verificar se é Master
+  const [currentUser, setCurrentUser] = useState<{ id: number; nome: string; role: string } | null>(null);
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedModality, setSelectedModality] = useState<string>('all');
   
@@ -62,6 +65,54 @@ export function Studies() {
   const [isLoadingSeries, setIsLoadingSeries] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<DownloadFormat>('jpeg');
+
+  // ✅ NOVO: Estado para modal de confirmação de delete
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [studyToDelete, setStudyToDelete] = useState<{ id: string; patient: string } | null>(null);
+  const [isDeletingStudy, setIsDeletingStudy] = useState(false);
+
+  // ✅ NOVO: Carregar usuário logado ao inicializar
+  useEffect(() => {
+    const userStr = sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      setCurrentUser(user);
+    }
+  }, []);
+
+  // ✅ NOVO: Função para deletar estudo
+  const handleDeleteStudy = async () => {
+    if (!studyToDelete) return;
+    
+    setIsDeletingStudy(true);
+    try {
+      const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
+      const response = await fetch(`/api/dashboard/study/${unidadeAtual}/${studyToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        // ✅ Log de deleção será registrado direto no backend
+        setShowDeleteConfirm(false);
+        setStudyToDelete(null);
+        
+        // Recarregar dados
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        alert(`Erro ao deletar estudo: ${error.message}`);
+      }
+    } catch (err) {
+      console.error('Erro ao deletar estudo:', err);
+      alert('Erro ao deletar estudo. Verifique o console.');
+    } finally {
+      setIsDeletingStudy(false);
+    }
+  };
 
   // Função que o botão vai chamar
   const handleServerSearch = async () => {
@@ -856,6 +907,23 @@ export function Studies() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
                           </Button>
+                          {/* ✅ NOVO: Botão de delete exclusivo para Master */}
+                          {currentUser?.role === 'Master' && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              title="Deletar estudo (apenas Master)" 
+                              onClick={() => {
+                                setStudyToDelete({ id: study.id, patient: study.patient });
+                                setShowDeleteConfirm(true);
+                              }}
+                              className="text-red-500 hover:text-red-600"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -928,6 +996,55 @@ export function Studies() {
         onDownload={executeDownload}
         countSelected={countSelected}
       />
+
+      {/* ✅ NOVO: Modal de Confirmação de Delete */}
+      {showDeleteConfirm && studyToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-theme-secondary border border-theme-border rounded-lg shadow-lg max-w-sm w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-center mb-4">
+                <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              
+              <h3 className="text-lg font-semibold text-theme-text text-center mb-2">
+                Deletar Estudo
+              </h3>
+              
+              <p className="text-theme-muted text-center mb-4">
+                Tem certeza que deseja deletar o estudo de <strong>{studyToDelete.patient}</strong>?
+              </p>
+              
+              <p className="text-sm text-red-500 text-center mb-6">
+                ⚠️ Esta ação não pode ser desfeita.
+              </p>
+              
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setStudyToDelete(null);
+                  }}
+                  disabled={isDeletingStudy}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="primary"
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                  onClick={handleDeleteStudy}
+                  disabled={isDeletingStudy}
+                >
+                  {isDeletingStudy ? 'Deletando...' : 'Confirmar'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 }

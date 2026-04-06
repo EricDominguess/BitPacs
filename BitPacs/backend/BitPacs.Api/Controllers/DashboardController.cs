@@ -32,6 +32,39 @@ namespace BitPacs.API.Controllers
             return Content(data, "application/json");
         }
 
+        // ✅ NOVO: Endpoint para deletar um estudo (apenas Master)
+        [HttpDelete("study/{unidade}/{studyId}")]
+        public async Task<IActionResult> DeleteStudy(string unidade, string studyId)
+        {
+            try
+            {
+                // 1. Descobre a URL do Orthanc baseado na unidade
+                string orthancUrl = GetOrthancUrl(unidade);
+                
+                // 2. Faz a requisição DELETE ao Orthanc
+                var client = new HttpClient();
+                client.Timeout = TimeSpan.FromSeconds(15);
+                
+                var authString = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes("admin:@BitFix123"));
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authString);
+                
+                var response = await client.DeleteAsync($"{orthancUrl}/studies/{studyId}");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    return Ok(new { message = "Estudo deletado com sucesso", studyId = studyId });
+                }
+                else
+                {
+                    return BadRequest(new { message = $"Erro ao deletar estudo: {response.StatusCode}", statusCode = response.StatusCode });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao deletar estudo", error = ex.Message });
+            }
+        }
+
         // Função auxiliar para mapear o nome da unidade para o IP/URL real
         private string GetOrthancUrl(string unidade)
         {
