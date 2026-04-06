@@ -326,7 +326,14 @@ export function Studies() {
             const tagsResponse = await fetch(`${prefixoProxy}/instances/${firstInstances[0].ID}/simplified-tags`);
             const tags = await tagsResponse.json();
             bodyPartExamined = tags.BodyPartExamined || '';
-            patientId = tags.PatientID || '';
+            // ✅ CORREÇÃO: Adicionar .trim() para remover espaços em branco da Tag DICOM
+            // Evita truncamento silencioso ao salvar a URL de integração (ex: "12410 " → "12410")
+            patientId = (tags.PatientID || '').trim();
+            
+            // 🔍 LOG PARA DEBUG: Validar tamanho do PatientID antes de enviar
+            if (patientId.length > 50) {
+              console.warn(`⚠️ PatientID truncado potencial: ${patientId.length} caracteres. Valor: ${patientId.substring(0, 60)}...`);
+            }
           }
         } catch (e) {
           console.warn('Não foi possível obter tags DICOM:', e);
