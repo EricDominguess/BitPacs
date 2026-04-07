@@ -42,11 +42,10 @@ const navItems = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({ isMinimized, setIsMinimized }: { isMinimized: boolean; setIsMinimized: (value: boolean) => void }) {
   const location = useLocation();
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
   
   // Pegando usuário logado dentro do componente para garantir dados atualizados
   const user = JSON.parse((sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user')) || '{}');
