@@ -53,7 +53,8 @@ export function Sidebar() {
   return (
     <>
     <aside className="w-64 bg-theme-secondary/50 border-r border-theme-light min-h-[calc(100vh-72px)] flex flex-col transition-colors duration-300">
-      <nav className="p-4 flex flex-col gap-1 flex-1">
+      {/* Navegação scrollável */}
+      <nav className="p-4 flex flex-col gap-1 flex-1 overflow-y-auto">
         {navItems
           .filter(item => {
             if (item.href === '/dashboard') return user.role === 'Master' || user.role === 'Admin';
@@ -87,8 +88,8 @@ export function Sidebar() {
           })}
       </nav>
 
-      {/* Botão Contatar Suporte */}
-      <div className="px-4 pb-2">
+      {/* Botão Contatar Suporte - Fixo */}
+      <div className="px-4 pb-2 flex-shrink-0">
         <button
           onClick={() => setShowSupportModal(true)}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-theme-muted hover:text-ultra hover:bg-ultra/10 transition-all duration-200 group"
@@ -102,8 +103,8 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Footer do Sidebar */}
-      <div className="p-4 border-t border-theme-light">
+      {/* Footer do Sidebar - Fixo */}
+      <div className="p-4 border-t border-theme-light flex-shrink-0">
         <button 
           onClick={() => setShowProfileModal(true)}
           className="w-full flex items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group"
