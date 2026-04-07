@@ -78,11 +78,11 @@ export function Sidebar() {
                 to={item.href}
                 title={isMinimized ? item.label : undefined}
                 className={cn(
-                  'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group justify-center md:justify-start',
+                  'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group',
                   isActive
                     ? 'bg-nautico text-white shadow-brand'
                     : 'text-theme-muted hover:text-theme-primary hover:bg-nautico/10',
-                  isMinimized && "px-3"
+                  isMinimized && "px-3 justify-center"
                 )}
               >
                 <span className={cn(
@@ -106,8 +106,8 @@ export function Sidebar() {
           onClick={() => setShowSupportModal(true)}
           title={isMinimized ? "Contatar Suporte" : undefined}
           className={cn(
-            "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-theme-muted hover:text-ultra hover:bg-ultra/10 transition-all duration-200 group justify-center md:justify-start",
-            isMinimized && "px-3"
+            "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-theme-muted hover:text-ultra hover:bg-ultra/10 transition-all duration-200 group",
+            isMinimized && "px-3 justify-center"
           )}
         >
           <span className="text-theme-muted group-hover:text-ultra transition-colors flex-shrink-0">
@@ -127,8 +127,8 @@ export function Sidebar() {
         <button 
           onClick={() => setShowProfileModal(true)}
           className={cn(
-            "w-full flex items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group justify-center md:justify-start",
-            isMinimized && "px-1"
+            "w-full flex items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group",
+            isMinimized && "px-1 justify-center"
           )}
         >
           {user.avatarUrl ? (
@@ -164,7 +164,8 @@ export function Sidebar() {
           onClick={() => setIsMinimized(!isMinimized)}
           title={isMinimized ? "Expandir" : "Minimizar"}
           className={cn(
-            "w-full flex items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group mt-2 justify-center md:justify-start"
+            "w-full flex items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group mt-2",
+            isMinimized && "justify-center"
           )}
         >
           <span className="text-theme-muted group-hover:text-ultra transition-colors flex-shrink-0">
