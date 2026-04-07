@@ -1,7 +1,7 @@
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { useTokenValidator } from '../../hooks';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -10,7 +10,14 @@ interface MainLayoutProps {
 export function MainLayout({ children }: MainLayoutProps) {
   // Valida token periodicamente para garantir single login
   useTokenValidator();
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(() => {
+    const saved = localStorage.getItem('bitpacs_sidebar_minimized');
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('bitpacs_sidebar_minimized', JSON.stringify(isMinimized));
+  }, [isMinimized]);
 
   return (
     <div className="min-h-screen bg-theme-primary transition-colors duration-300">
