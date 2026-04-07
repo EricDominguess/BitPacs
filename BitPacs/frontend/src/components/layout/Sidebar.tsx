@@ -54,7 +54,7 @@ export function Sidebar() {
     <>
     <aside className="w-64 bg-theme-secondary/50 border-r border-theme-light min-h-[calc(100vh-72px)] flex flex-col transition-colors duration-300 relative">
       {/* Navegação scrollável */}
-      <nav className="p-4 flex flex-col gap-1 flex-1 overflow-y-auto pb-40">
+      <nav className="p-4 flex flex-col gap-1 overflow-y-auto">
         {navItems
           .filter(item => {
             if (item.href === '/dashboard') return user.role === 'Master' || user.role === 'Admin';
