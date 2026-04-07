@@ -52,9 +52,9 @@ export function Sidebar() {
 
   return (
     <>
-    <aside className="w-64 bg-theme-secondary/50 border-r border-theme-light min-h-[calc(100vh-72px)] flex flex-col transition-colors duration-300">
+    <aside className="w-64 bg-theme-secondary/50 border-r border-theme-light min-h-[calc(100vh-72px)] flex flex-col transition-colors duration-300 relative">
       {/* Navegação scrollável */}
-      <nav className="p-4 flex flex-col gap-1 flex-1 overflow-y-auto">
+      <nav className="p-4 flex flex-col gap-1 flex-1 overflow-y-auto pb-40">
         {navItems
           .filter(item => {
             if (item.href === '/dashboard') return user.role === 'Master' || user.role === 'Admin';
@@ -88,8 +88,8 @@ export function Sidebar() {
           })}
       </nav>
 
-      {/* Botão Contatar Suporte - Sticky */}
-      <div className="px-4 pb-2 sticky bottom-16 bg-theme-secondary/50 z-10">
+      {/* Botão Contatar Suporte - Posicionado fixo */}
+      <div className="absolute bottom-16 left-0 right-0 px-4 py-2 bg-theme-secondary/50">
         <button
           onClick={() => setShowSupportModal(true)}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-theme-muted hover:text-ultra hover:bg-ultra/10 transition-all duration-200 group"
@@ -103,8 +103,8 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Footer do Sidebar - Sticky */}
-      <div className="p-4 border-t border-theme-light sticky bottom-0 bg-theme-secondary/50 z-10">
+      {/* Footer do Sidebar - Posicionado fixo */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-theme-light bg-theme-secondary/50">
         <button 
           onClick={() => setShowProfileModal(true)}
           className="w-full flex items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group"
