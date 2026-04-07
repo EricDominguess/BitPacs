@@ -88,8 +88,8 @@ export function Sidebar() {
           })}
       </nav>
 
-      {/* Botão Contatar Suporte - Fixo */}
-      <div className="px-4 pb-2 flex-shrink-0">
+      {/* Botão Contatar Suporte - Sticky */}
+      <div className="px-4 pb-2 sticky bottom-16 bg-theme-secondary/50 z-10">
         <button
           onClick={() => setShowSupportModal(true)}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-theme-muted hover:text-ultra hover:bg-ultra/10 transition-all duration-200 group"
@@ -103,8 +103,8 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Footer do Sidebar - Fixo */}
-      <div className="p-4 border-t border-theme-light flex-shrink-0">
+      {/* Footer do Sidebar - Sticky */}
+      <div className="p-4 border-t border-theme-light sticky bottom-0 bg-theme-secondary/50 z-10">
         <button 
           onClick={() => setShowProfileModal(true)}
           className="w-full flex items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group"
