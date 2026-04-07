@@ -89,7 +89,7 @@ export function Sidebar() {
       </nav>
 
       {/* Botão Contatar Suporte - Posicionado fixo */}
-      <div className="absolute bottom-16 left-0 right-0 px-4 py-2 bg-theme-secondary/50">
+      <div className="absolute bottom-20 left-0 right-0 px-4 py-2 bg-theme-secondary/50">
         <button
           onClick={() => setShowSupportModal(true)}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-theme-muted hover:text-ultra hover:bg-ultra/10 transition-all duration-200 group"
