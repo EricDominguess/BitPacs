@@ -10,7 +10,6 @@ export function Header() {
     <>
     <header className="h-[72px] bg-theme-primary/95 backdrop-blur-md border-b border-theme-light sticky top-0 z-50 transition-colors duration-300">
       <div className="h-full px-6 flex items-center justify-between">
-        {/* Logo - Clica para fazer logout e voltar para home */}
         <button className="flex items-center gap-2 group">
           {/* Ícone estilizado baseado na identidade */}
           <div className="relative w-10 h-10">
@@ -22,7 +21,7 @@ export function Header() {
             <span className="text-xl font-bold text-theme-primary tracking-tight">
               Bit<span className="text-ultra">Pacs</span>
             </span>
-            <span className="text-[10px] text-theme-muted -mt-1">suporte sob medida</span>
+            <span className="text-[10px] text-theme-muted -mt-1">Diagnóstico em Nuvem</span>
           </div>
         </button>
 
