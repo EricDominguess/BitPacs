@@ -362,7 +362,7 @@ export function Studies() {
   // const currentUser = JSON.parse((sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user')) || '{}');
 
   // 2. FUNÇÃO DE LOG (Auditoria) - Envia para o backend
-  const registrarLog = async (actionType: 'VIEW' | 'DOWNLOAD' | 'DELETE', study: any, details?: string) => {
+  const registrarLog = async (actionType: 'VIEW' | 'DOWNLOAD' | 'DELETE' | 'UPLOAD', study: any, details?: string) => {
     try {
       // 1. Mapeamento para nomes amigáveis (ajuste conforme suas unidades)
       const nomesUnidades: Record<string, string> = {
