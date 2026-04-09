@@ -17,12 +17,9 @@ export function Header() {
             <div className="absolute inset-1 bg-nautico rounded-md transform rotate-45 group-hover:rotate-90 transition-transform duration-300" />
             <div className="absolute inset-2 bg-ultra rounded-sm transform rotate-45 group-hover:rotate-90 transition-transform duration-300" />
           </div>
-          <div className="flex flex-col">
-            <span className="text-xl font-bold text-theme-primary tracking-tight">
-              Bit<span className="text-ultra">Pacs</span>
-            </span>
-            <span className="text-[10px] text-theme-muted -mt-1">Diagnóstico em Nuvem</span>
-          </div>
+          <span className="text-2xl font-bold text-theme-primary tracking-tight">
+            Bit<span className="text-ultra">Pacs</span>
+          </span>
         </button>
 
         <div className="flex-1 flex justify-center items-center">
