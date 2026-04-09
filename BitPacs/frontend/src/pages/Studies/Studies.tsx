@@ -80,6 +80,10 @@ export function Studies() {
     }
   }, []);
 
+  // ✅ NOVO: Ref para input de arquivo PDF para laudo
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedStudyForReport, setSelectedStudyForReport] = useState<typeof studiesFormatted[0] | null>(null);
+
   // ✅ NOVO: Função para deletar estudo
   const handleDeleteStudy = async () => {
     if (!studyToDelete) return;
@@ -113,6 +117,58 @@ export function Studies() {
       alert('Erro ao deletar estudo. Verifique o console.');
     } finally {
       setIsDeletingStudy(false);
+    }
+  };
+
+  // ✅ NOVO: Função para anexar laudo (abrir seletor de arquivo)
+  const handleAttachReportClick = (study: typeof studiesFormatted[0]) => {
+    setSelectedStudyForReport(study);
+    fileInputRef.current?.click();
+  };
+
+  // ✅ NOVO: Função para processar upload do laudo
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedStudyForReport) return;
+
+    // Validar se é PDF
+    if (file.type !== 'application/pdf') {
+      alert('Por favor, selecione um arquivo PDF válido.');
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('studyId', selectedStudyForReport.id);
+      formData.append('patientName', selectedStudyForReport.patient);
+
+      const response = await fetch(`/api/reports/${unidadeAtual}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        alert(`Laudo anexado com sucesso para ${selectedStudyForReport.patient}!`);
+        // Registrar log
+        registrarLog('UPLOAD', selectedStudyForReport, `Laudo anexado: ${file.name}`);
+      } else {
+        const error = await response.json();
+        alert(`Erro ao anexar laudo: ${error.message}`);
+      }
+    } catch (err) {
+      console.error('Erro ao fazer upload do laudo:', err);
+      alert('Erro ao anexar laudo. Verifique o console.');
+    } finally {
+      // Limpar estados
+      setSelectedStudyForReport(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -893,6 +949,17 @@ export function Studies() {
                         onClick: () => handleOpenDownloadModal(study),
                         variant: 'default' as const
                       },
+                      {
+                        label: 'Anexar Laudo',
+                        icon: (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        ),
+                        onClick: () => handleAttachReportClick(study),
+                        variant: 'default' as const,
+                        divider: true
+                      },
                       ...(currentUser?.role === 'Master' ? [{
                         label: 'Deletar',
                         icon: (
@@ -1061,6 +1128,15 @@ export function Studies() {
           </div>
         </div>
       )}
+
+      {/* ✅ NOVO: Input file hidden para upload de laudo */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
     </MainLayout>
   );
 }
