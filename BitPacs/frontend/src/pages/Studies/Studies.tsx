@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import JSZip from 'jszip';
 import { jsPDF } from 'jspdf';
 import { MainLayout } from '../../components/layout';
-import { Card, Button, Input } from '../../components/common';
+import { Card, Button, Input, ActionDropdown } from '../../components/common';
 import { PeriodFilter, useFilteredStudies } from '../../components/dashboard';
 import type { PeriodType } from '../../components/dashboard';
 import { useOrthancData } from '../../hooks';
@@ -849,9 +849,9 @@ export function Studies() {
                   <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Modalidade</th>
                   <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Descrição</th>
                   <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Data</th>
-                  <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Séries</th>
-                  <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Imagens</th>
-                  <th className="text-right text-sm font-semibold text-theme-secondary px-6 py-4">Ações</th>
+                  <th className="text-center text-sm font-semibold text-theme-secondary px-6 py-4">Séries</th>
+                  <th className="text-center text-sm font-semibold text-theme-secondary px-6 py-4">Imagens</th>
+                  <th className="text-center text-sm font-semibold text-theme-secondary px-6 py-4">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme-light">
@@ -869,67 +869,81 @@ export function Studies() {
                     </tr>
                 ) : (
                   // 4. Usamos 'currentItems' em vez de 'filteredStudies' aqui
-                  currentItems.map((study) => (
-                    <tr 
-                      key={study.id} 
-                      className="hover:bg-nautico/10 transition-colors group"
-                    >
-                      <td className="px-6 py-4">
-                        <span className="font-medium text-theme-primary">{study.patient}</span>
-                      </td>
-                      {/* ... restante das células da tabela (id, modality, etc) ... */}
-                      <td className="px-6 py-4">
-                        <span className="text-theme-muted text-sm">{study.birthDate}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <ModalityBadge modality={study.modality} />
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-theme-secondary">{study.description}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-theme-muted">{study.date}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-theme-secondary">{study.seriesCount}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-theme-secondary">{study.imagesCount}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
-                          <Button variant="ghost" size="sm" title="Visualizar estudo" onClick={() => handleOpenViewerModal(study)}>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          </Button>
-                          <Button variant="ghost" size="sm" title="Baixar estudo" onClick={() => handleOpenDownloadModal(study)}>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                          </Button>
-                          {/* ✅ NOVO: Botão de delete exclusivo para Master */}
-                          {currentUser?.role === 'Master' && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              title="Deletar estudo (apenas Master)" 
-                              onClick={() => {
-                                setStudyToDelete({ id: study.id, patient: study.patient });
-                                setShowDeleteConfirm(true);
-                              }}
-                              className="text-red-500 hover:text-red-600"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  currentItems.map((study) => {
+                    // Prepare action items for dropdown
+                    const actionItems = [
+                      {
+                        label: 'Visualizar',
+                        icon: (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        ),
+                        onClick: () => handleOpenViewerModal(study),
+                        variant: 'default' as const
+                      },
+                      {
+                        label: 'Baixar',
+                        icon: (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                        ),
+                        onClick: () => handleOpenDownloadModal(study),
+                        variant: 'default' as const
+                      },
+                      ...(currentUser?.role === 'Master' ? [{
+                        label: 'Deletar',
+                        icon: (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        ),
+                        onClick: () => {
+                          setStudyToDelete({ id: study.id, patient: study.patient });
+                          setShowDeleteConfirm(true);
+                        },
+                        variant: 'danger' as const,
+                        divider: true
+                      }] : [])
+                    ];
+
+                    return (
+                      <tr 
+                        key={study.id} 
+                        className="hover:bg-nautico/10 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <span className="font-medium text-theme-primary">{study.patient}</span>
+                        </td>
+                        {/* ... restante das células da tabela (id, modality, etc) ... */}
+                        <td className="px-6 py-4">
+                          <span className="text-theme-muted text-sm">{study.birthDate}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <ModalityBadge modality={study.modality} />
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-theme-secondary">{study.description}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-theme-muted">{study.date}</span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className="text-theme-secondary">{study.seriesCount}</span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className="text-theme-secondary">{study.imagesCount}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center">
+                            <ActionDropdown actions={actionItems} />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
