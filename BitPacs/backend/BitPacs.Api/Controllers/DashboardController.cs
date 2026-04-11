@@ -80,6 +80,8 @@ namespace BitPacs.API.Controllers
         {
             try
             {
+                await EnsureReportsTableExistsAsync();
+
                 // 0. Validar campos essenciais
                 if (string.IsNullOrWhiteSpace(unidade) || string.IsNullOrWhiteSpace(studyId))
                 {
@@ -169,6 +171,32 @@ namespace BitPacs.API.Controllers
         {
             var text = value ?? string.Empty;
             return text.Length <= maxLength ? text : text.Substring(0, maxLength);
+        }
+
+        private async Task EnsureReportsTableExistsAsync()
+        {
+            await _dbContext.Database.ExecuteSqlRawAsync(@"
+                CREATE TABLE IF NOT EXISTS ""Reports"" (
+                    ""Id"" SERIAL PRIMARY KEY,
+                    ""StudyId"" varchar(512) NOT NULL,
+                    ""StudyInstanceUID"" varchar(512) NOT NULL,
+                    ""PatientName"" varchar(256) NOT NULL,
+                    ""FileName"" varchar(512) NOT NULL,
+                    ""FilePath"" varchar(1024) NOT NULL,
+                    ""FileSize"" bigint NOT NULL,
+                    ""UnidadeNome"" varchar(100) NOT NULL,
+                    ""UserId"" integer NULL,
+                    ""UploadedAt"" timestamp with time zone NOT NULL,
+                    ""DeletedAt"" timestamp with time zone NULL,
+                    ""DeletedByUserId"" integer NULL,
+                    ""DeletedByUserName"" varchar(256) NULL,
+                    ""Status"" varchar(50) NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS ""IX_Reports_StudyId"" ON ""Reports"" (""StudyId"");
+                CREATE INDEX IF NOT EXISTS ""IX_Reports_UnidadeNome"" ON ""Reports"" (""UnidadeNome"");
+                CREATE INDEX IF NOT EXISTS ""IX_Reports_Status"" ON ""Reports"" (""Status"");
+            ");
         }
 
         // ✅ NOVO: Endpoint para deletar laudo

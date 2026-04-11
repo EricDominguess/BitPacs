@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BitPacs.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+68be320920f46b370e3ff75eaf89e2dae37bc541")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1dae1d99862fd87ac7ff6c63fccf5d88895fba3a")]
 [assembly: System.Reflection.AssemblyProductAttribute("BitPacs.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BitPacs.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

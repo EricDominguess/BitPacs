@@ -172,6 +172,7 @@ export function Studies() {
     patient: normalizePatientName(s.PatientMainDicomTags?.PatientName),
     birthDate: formatDicomDate(s.PatientMainDicomTags?.PatientBirthDate),
     rawStudyDate: s.MainDicomTags?.StudyDate || '',
+    rawModalities: s.MainDicomTags?.ModalitiesInStudy || s.ModalitiesInStudy || s.MainDicomTags?.Modality || '',
     modality: getPrimaryModality(s),
     description: (s.MainDicomTags?.StudyDescription || '').trim() || 'sem descrição',
     date: formatDicomDate(s.MainDicomTags?.StudyDate),
@@ -219,7 +220,31 @@ export function Studies() {
 
   const studiesAfterFilters = useMemo(() => {
     if (selectedModality === 'all') return studiesBeforeModality;
-    return studiesByModality.get(selectedModality.toUpperCase()) || [];
+    const selected = selectedModality.toUpperCase();
+    const byIndexed = studiesByModality.get(selected) || [];
+
+    // Fallback robusto usando os dados crus de modalidade no estudo
+    const byRaw = studiesBeforeModality.filter((study) => {
+      if (study.modality?.toUpperCase() === selected) return true;
+
+      const raw = study.rawModalities;
+      if (Array.isArray(raw)) {
+        return raw.some((m: string) => String(m).toUpperCase() === selected);
+      }
+
+      if (typeof raw === 'string') {
+        const tokens = raw
+          .toUpperCase()
+          .split(/\\|,|\+/)
+          .map((t: string) => t.trim())
+          .filter(Boolean);
+        return tokens.includes(selected);
+      }
+
+      return false;
+    });
+
+    return byRaw.length > byIndexed.length ? byRaw : byIndexed;
   }, [studiesBeforeModality, studiesByModality, selectedModality]);
 
   // Paginação
