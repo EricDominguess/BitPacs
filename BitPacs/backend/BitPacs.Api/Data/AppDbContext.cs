@@ -14,6 +14,9 @@ namespace BitPacs.Api.Data
         
         // Logs de visualização e download de estudos
         public DbSet<StudyLog> StudyLogs { get; set; }
+        
+        // Laudos/Relatórios anexados aos estudos
+        public DbSet<Report> Reports { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -79,6 +82,62 @@ namespace BitPacs.Api.Data
 
             modelBuilder.Entity<StudyLog>()
                 .HasIndex(sl => sl.Timestamp);
+
+            // ✅ CONFIGURAÇÃO DA TABELA REPORT
+            modelBuilder.Entity<Report>()
+                .HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Report>()
+                .Property(r => r.StudyId)
+                .HasMaxLength(512)
+                .IsRequired();
+
+            modelBuilder.Entity<Report>()
+                .Property(r => r.StudyInstanceUID)
+                .HasMaxLength(512)
+                .IsRequired();
+
+            modelBuilder.Entity<Report>()
+                .Property(r => r.PatientName)
+                .HasMaxLength(256)
+                .IsRequired();
+
+            modelBuilder.Entity<Report>()
+                .Property(r => r.FileName)
+                .HasMaxLength(512)
+                .IsRequired();
+
+            modelBuilder.Entity<Report>()
+                .Property(r => r.FilePath)
+                .HasMaxLength(1024)
+                .IsRequired();
+
+            modelBuilder.Entity<Report>()
+                .Property(r => r.UnidadeNome)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            modelBuilder.Entity<Report>()
+                .Property(r => r.Status)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            modelBuilder.Entity<Report>()
+                .Property(r => r.DeletedByUserName)
+                .HasMaxLength(256);
+
+            // Índices para melhorar performance
+            modelBuilder.Entity<Report>()
+                .HasIndex(r => r.StudyId);
+
+            modelBuilder.Entity<Report>()
+                .HasIndex(r => r.UnidadeNome);
+
+            modelBuilder.Entity<Report>()
+                .HasIndex(r => r.Status);
         }
     }
 }

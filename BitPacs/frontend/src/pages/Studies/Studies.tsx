@@ -83,6 +83,10 @@ export function Studies() {
   // ✅ NOVO: Ref para input de arquivo PDF para laudo
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedStudyForReport, setSelectedStudyForReport] = useState<typeof studiesFormatted[0] | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [showReportsModal, setShowReportsModal] = useState(false);
+  const [studyReports, setStudyReports] = useState<any[]>([]);
+  const [selectedStudyForReports, setSelectedStudyForReports] = useState<typeof studiesFormatted[0] | null>(null);
 
   // ✅ NOVO: Função para deletar estudo
   const handleDeleteStudy = async () => {
@@ -126,6 +130,69 @@ export function Studies() {
     fileInputRef.current?.click();
   };
 
+  // ✅ NOVO: Função para visualizar laudos anexados
+  const handleViewReports = async (study: typeof studiesFormatted[0]) => {
+    setReportLoading(true);
+    try {
+      const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
+      const response = await fetch(`/api/dashboard/reports/${unidadeAtual}/${study.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+
+      if (response.ok) {
+        const reports = await response.json();
+        setStudyReports(reports);
+        setSelectedStudyForReports(study);
+        setShowReportsModal(true);
+      } else {
+        alert('Erro ao carregar laudos');
+      }
+    } catch (err) {
+      console.error('Erro ao buscar laudos:', err);
+      alert('Erro ao carregar laudos. Verifique o console.');
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  // ✅ NOVO: Função para deletar laudo
+  const handleDeleteReport = async (reportId: number) => {
+    if (!window.confirm('Tem certeza que deseja deletar este laudo?')) {
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
+      const response = await fetch(`/api/dashboard/reports/${unidadeAtual}/${selectedStudyForReports?.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        alert('Laudo deletado com sucesso!');
+        // Registrar log de exclusão
+        if (selectedStudyForReports) {
+          registrarLog('DELETE', selectedStudyForReports, 'Laudo deletado');
+        }
+        // Recarregar laudos
+        if (selectedStudyForReports) {
+          handleViewReports(selectedStudyForReports);
+        }
+      } else {
+        const error = await response.json();
+        alert(`Erro ao deletar laudo: ${error.message}`);
+      }
+    } catch (err) {
+      console.error('Erro ao deletar laudo:', err);
+      alert('Erro ao deletar laudo. Verifique o console.');
+    }
+  };
+
   // ✅ NOVO: Função para processar upload do laudo
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -137,6 +204,7 @@ export function Studies() {
       return;
     }
 
+    setReportLoading(true);
     try {
       const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
       const formData = new FormData();
@@ -144,7 +212,7 @@ export function Studies() {
       formData.append('studyId', selectedStudyForReport.id);
       formData.append('patientName', selectedStudyForReport.patient);
 
-      const response = await fetch(`/api/reports/${unidadeAtual}`, {
+      const response = await fetch(`/api/dashboard/reports/${unidadeAtual}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -153,6 +221,7 @@ export function Studies() {
       });
 
       if (response.ok) {
+        const result = await response.json();
         alert(`Laudo anexado com sucesso para ${selectedStudyForReport.patient}!`);
         // Registrar log
         registrarLog('UPLOAD', selectedStudyForReport, `Laudo anexado: ${file.name}`);
@@ -164,6 +233,7 @@ export function Studies() {
       console.error('Erro ao fazer upload do laudo:', err);
       alert('Erro ao anexar laudo. Verifique o console.');
     } finally {
+      setReportLoading(false);
       // Limpar estados
       setSelectedStudyForReport(null);
       if (fileInputRef.current) {
@@ -957,6 +1027,16 @@ export function Studies() {
                           </svg>
                         ),
                         onClick: () => handleAttachReportClick(study),
+                        variant: 'default' as const
+                      },
+                      {
+                        label: 'Visualizar Laudos',
+                        icon: (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        ),
+                        onClick: () => handleViewReports(study),
                         variant: 'default' as const,
                         divider: true
                       },
@@ -1122,6 +1202,78 @@ export function Studies() {
                   disabled={isDeletingStudy}
                 >
                   {isDeletingStudy ? 'Deletando...' : 'Confirmar'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ NOVO: Modal de Laudos */}
+      {showReportsModal && selectedStudyForReports && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-theme-secondary border border-theme-border rounded-lg shadow-lg max-w-lg w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-theme-text">
+                  Laudos - {selectedStudyForReports.patient}
+                </h3>
+                <button
+                  onClick={() => setShowReportsModal(false)}
+                  className="text-theme-muted hover:text-theme-primary"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {reportLoading ? (
+                <div className="text-center py-8 text-theme-muted">
+                  Carregando laudos...
+                </div>
+              ) : studyReports.length === 0 ? (
+                <div className="text-center py-8 text-theme-muted">
+                  Nenhum laudo anexado.
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {studyReports.map((report, index) => (
+                    <div key={report.id} className="flex items-center justify-between p-4 bg-theme-card border border-theme-border rounded-lg hover:bg-nautico/5 transition-colors">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <svg className="w-4 h-4 text-nautico" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M4 4a2 2 0 012-2h6a1 1 0 01.707.293l6 6a1 1 0 01.293.707v8a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 3a1 1 0 000 2h.01a1 1 0 000-2H6zm0 4a1 1 0 000 2h.01a1 1 0 000-2H6z" />
+                          </svg>
+                          <p className="font-medium text-theme-primary text-sm">
+                            {report.fileName}
+                          </p>
+                        </div>
+                        <div className="text-xs text-theme-muted space-y-1">
+                          <p>Tamanho: {(report.fileSize / 1024).toFixed(2)} KB</p>
+                          <p>Anexado em: {new Date(report.uploadedAt).toLocaleString('pt-BR')}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteReport(report.id)}
+                        className="ml-4 p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                        title="Deletar laudo"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLineCap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowReportsModal(false)}
+                >
+                  Fechar
                 </Button>
               </div>
             </div>
