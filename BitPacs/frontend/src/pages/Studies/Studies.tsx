@@ -10,6 +10,7 @@ import { ReportsModal, DeleteConfirmModal } from './components';
 import { useStudiesLogic } from './useStudiesLogic';
 
 const ITEMS_PER_PAGE = 8;
+const MODALITY_OPTIONS = ['all', 'CT', 'MR', 'CR', 'US', 'DR', 'DX', 'OT'] as const;
 
 interface SelectedStudyForViewer {
   id: string;
@@ -80,19 +81,24 @@ export function Studies() {
     studyInstanceUID: s.MainDicomTags?.StudyInstanceUID || '',
     patient: normalizePatientName(s.PatientMainDicomTags?.PatientName),
     birthDate: formatDicomDate(s.PatientMainDicomTags?.PatientBirthDate),
-    modality: detailsCache[s.ID]?.modality || 'Carregando...',
+    modality: (() => {
+      const rawModalities = s.MainDicomTags?.ModalitiesInStudy;
+      if (Array.isArray(rawModalities) && rawModalities.length > 0) {
+        return String(rawModalities[0]).toUpperCase();
+      }
+      if (typeof rawModalities === 'string' && rawModalities.trim()) {
+        return rawModalities.split('\\')[0].split(',')[0].trim().toUpperCase();
+      }
+      return (detailsCache[s.ID]?.modality || 'Carregando...').toUpperCase();
+    })(),
     description: s.MainDicomTags?.StudyDescription || '',
     date: formatDicomDate(s.MainDicomTags?.StudyDate),
     seriesCount: detailsCache[s.ID]?.seriesCount || 0,
     imagesCount: detailsCache[s.ID]?.imagesCount || 0
   })), [periodFilteredStudies, detailsCache]);
 
-  const studiesAfterFilters = useMemo(() => {
+  const studiesBeforeModality = useMemo(() => {
     let base = studiesFormatted;
-
-    if (selectedModality !== 'all') {
-      base = base.filter((study) => study.modality?.toUpperCase() === selectedModality.toUpperCase());
-    }
 
     const term = searchTerm.trim().toLowerCase();
     if (term) {
@@ -110,7 +116,20 @@ export function Studies() {
     }
 
     return base;
-  }, [studiesFormatted, selectedModality, searchTerm, logic.serverSearchResults]);
+  }, [studiesFormatted, searchTerm, logic.serverSearchResults]);
+
+  const modalityCounts = useMemo(() => {
+    return studiesBeforeModality.reduce<Record<string, number>>((acc, study) => {
+      const mod = (study.modality || 'OT').toUpperCase();
+      acc[mod] = (acc[mod] || 0) + 1;
+      return acc;
+    }, {});
+  }, [studiesBeforeModality]);
+
+  const studiesAfterFilters = useMemo(() => {
+    if (selectedModality === 'all') return studiesBeforeModality;
+    return studiesBeforeModality.filter((study) => study.modality?.toUpperCase() === selectedModality.toUpperCase());
+  }, [studiesBeforeModality, selectedModality]);
 
   // Paginação
   const totalPages = Math.ceil(studiesAfterFilters.length / ITEMS_PER_PAGE);
@@ -314,16 +333,18 @@ export function Studies() {
           </div>
 
           <div className="mt-4">
-            <PeriodFilter
-              selectedPeriod={selectedPeriod}
-              onPeriodChange={setSelectedPeriod}
-              customStartDate={customStartDate}
-              customEndDate={customEndDate}
-              onCustomDateChange={(start, end) => {
-                setCustomStartDate(start);
-                setCustomEndDate(end);
-              }}
-            />
+            <div className="flex justify-end">
+              <PeriodFilter
+                selectedPeriod={selectedPeriod}
+                onPeriodChange={setSelectedPeriod}
+                customStartDate={customStartDate}
+                customEndDate={customEndDate}
+                onCustomDateChange={(start, end) => {
+                  setCustomStartDate(start);
+                  setCustomEndDate(end);
+                }}
+              />
+            </div>
           </div>
 
           <div className="mt-4">
@@ -331,7 +352,7 @@ export function Studies() {
               Filtrar por Modalidade
             </label>
             <div className="flex flex-wrap gap-2">
-              {['all', 'CT', 'MR', 'CR', 'US', 'DR', 'DX', 'OT'].map((mod) => (
+              {MODALITY_OPTIONS.map((mod) => (
                 <button
                   key={mod}
                   onClick={() => handleModalityClick(mod)}
@@ -341,10 +362,17 @@ export function Studies() {
                       : 'bg-theme-card text-theme-muted hover:text-theme-primary border border-theme-border'
                   }`}
                 >
-                  {mod === 'all' ? 'Todos' : mod}
+                  {mod === 'all'
+                    ? `Todos (${studiesBeforeModality.length})`
+                    : `${mod} (${modalityCounts[mod] || 0})`}
                 </button>
               ))}
             </div>
+            {selectedModality !== 'all' && (
+              <p className="mt-2 text-sm text-theme-muted">
+                {`Total de exames ${selectedModality}: ${studiesAfterFilters.length}`}
+              </p>
+            )}
           </div>
         </Card>
 
