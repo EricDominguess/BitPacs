@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../../components/layout';
 import { Card, Button, ActionDropdown } from '../../components/common';
 import { useFilteredStudies } from '../../components/dashboard';
+import { PeriodFilter, type PeriodType } from '../../components/dashboard';
 import { useOrthancData } from '../../hooks';
 import { ModalityBadge, ViewerModal, DownloadModal, type SeriesForDownload, type StudyForDownload, type DownloadFormat } from '../../components/studies';
 import { ReportsModal, DeleteConfirmModal } from './components';
@@ -29,6 +30,9 @@ export function Studies() {
   const [currentUser, setCurrentUser] = useState<{ id: number; nome: string; role: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedModality, setSelectedModality] = useState<string>('all');
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [detailsCache, setDetailsCache] = useState<Record<string, any>>({});
   const [showViewerModal, setShowViewerModal] = useState(false);
@@ -43,28 +47,76 @@ export function Studies() {
   const fetchingRef = useRef<Set<string>>(new Set());
   
   // Filtra estudos
-  const { estudosFiltrados: filteredStudies } = useFilteredStudies(
+  const { estudosFiltrados: periodFilteredStudies } = useFilteredStudies(
     estudos,
-    'all' as const
+    selectedPeriod,
+    customStartDate,
+    customEndDate
   );
 
-  const studiesFormatted = useMemo(() => filteredStudies.map(s => ({
+  const normalizePatientName = (name?: string) => {
+    if (!name) return 'Desconhecido';
+    return name
+      .replace(/\^+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const formatDicomDate = (dicomDate?: string) => {
+    if (!dicomDate || dicomDate.length !== 8) return '';
+    const year = Number(dicomDate.slice(0, 4));
+    const month = Number(dicomDate.slice(4, 6)) - 1;
+    const day = Number(dicomDate.slice(6, 8));
+    const date = new Date(year, month, day);
+    if (Number.isNaN(date.getTime())) return '';
+    const dd = String(day).padStart(2, '0');
+    const mm = String(month + 1).padStart(2, '0');
+    const yy = String(year).slice(-2);
+    return `${dd}/${mm}/${yy}`;
+  };
+
+  const studiesFormatted = useMemo(() => periodFilteredStudies.map(s => ({
     id: s.ID || '',
     studyInstanceUID: s.MainDicomTags?.StudyInstanceUID || '',
-    patient: s.PatientMainDicomTags?.PatientName || 'Desconhecido',
-    birthDate: s.PatientMainDicomTags?.PatientBirthDate || '',
+    patient: normalizePatientName(s.PatientMainDicomTags?.PatientName),
+    birthDate: formatDicomDate(s.PatientMainDicomTags?.PatientBirthDate),
     modality: detailsCache[s.ID]?.modality || 'Carregando...',
     description: s.MainDicomTags?.StudyDescription || '',
-    date: s.MainDicomTags?.StudyDate ? new Date(s.MainDicomTags.StudyDate).toLocaleString('pt-BR') : '',
+    date: formatDicomDate(s.MainDicomTags?.StudyDate),
     seriesCount: detailsCache[s.ID]?.seriesCount || 0,
     imagesCount: detailsCache[s.ID]?.imagesCount || 0
-  })), [filteredStudies, detailsCache]);
+  })), [periodFilteredStudies, detailsCache]);
+
+  const studiesAfterFilters = useMemo(() => {
+    let base = studiesFormatted;
+
+    if (selectedModality !== 'all') {
+      base = base.filter((study) => study.modality?.toUpperCase() === selectedModality.toUpperCase());
+    }
+
+    const term = searchTerm.trim().toLowerCase();
+    if (term) {
+      base = base.filter((study) =>
+        study.patient.toLowerCase().includes(term) ||
+        study.id.toLowerCase().includes(term) ||
+        study.studyInstanceUID.toLowerCase().includes(term) ||
+        study.description.toLowerCase().includes(term)
+      );
+    }
+
+    if (logic.serverSearchResults && logic.serverSearchResults.length > 0) {
+      const ids = new Set(logic.serverSearchResults.map((s: any) => s?.ID || s?.id));
+      base = base.filter((study) => ids.has(study.id));
+    }
+
+    return base;
+  }, [studiesFormatted, selectedModality, searchTerm, logic.serverSearchResults]);
 
   // Paginação
-  const totalPages = Math.ceil(studiesFormatted.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(studiesAfterFilters.length / ITEMS_PER_PAGE);
   const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
-  const currentItems = studiesFormatted.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = studiesAfterFilters.slice(indexOfFirstItem, indexOfLastItem);
 
   // Efeitos
   useEffect(() => {
@@ -73,6 +125,16 @@ export function Studies() {
       setCurrentUser(JSON.parse(userStr));
     }
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedModality, selectedPeriod, customStartDate, customEndDate, logic.serverSearchResults]);
+
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      logic.setServerSearchResults(null);
+    }
+  }, [searchTerm, logic.setServerSearchResults]);
 
   useEffect(() => {
     currentItems.forEach((study) => {
@@ -228,7 +290,7 @@ export function Studies() {
         <div>
           <h1 className="text-2xl font-bold text-theme-primary">Estudos DICOM</h1>
           <p className="text-theme-muted mt-1">
-            {isLoading ? 'Carregando dados...' : `${filteredStudies.length} estudos encontrados`}
+            {isLoading ? 'Carregando dados...' : `${studiesAfterFilters.length} estudos encontrados`}
           </p>
         </div>
 
@@ -249,6 +311,19 @@ export function Studies() {
             >
               Pesquisar
             </button>
+          </div>
+
+          <div className="mt-4">
+            <PeriodFilter
+              selectedPeriod={selectedPeriod}
+              onPeriodChange={setSelectedPeriod}
+              customStartDate={customStartDate}
+              customEndDate={customEndDate}
+              onCustomDateChange={(start, end) => {
+                setCustomStartDate(start);
+                setCustomEndDate(end);
+              }}
+            />
           </div>
 
           <div className="mt-4">
@@ -296,7 +371,7 @@ export function Studies() {
                       Carregando estudos do servidor...
                     </td>
                   </tr>
-                ) : studiesFormatted.length === 0 ? (
+                ) : studiesAfterFilters.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-6 py-8 text-center text-theme-muted">
                       Nenhum estudo encontrado.
@@ -374,8 +449,8 @@ export function Studies() {
           {/* Paginação */}
           <div className="flex items-center justify-between px-6 py-4 border-t border-theme-border bg-theme-secondary">
             <span className="text-sm text-theme-muted">
-              {filteredStudies.length > 0 ? (
-                <>Mostrando {indexOfFirstItem + 1} a {Math.min(indexOfLastItem, filteredStudies.length)} de {filteredStudies.length} resultados</>
+              {studiesAfterFilters.length > 0 ? (
+                <>Mostrando {indexOfFirstItem + 1} a {Math.min(indexOfLastItem, studiesAfterFilters.length)} de {studiesAfterFilters.length} resultados</>
               ) : (
                 'Nenhum resultado'
               )}
