@@ -163,9 +163,9 @@ namespace BitPacs.API.Controllers
                 }
 
                 // 2. Deletar arquivo do disco
-                if (File.Exists(report.FilePath))
+                if (System.IO.File.Exists(report.FilePath))
                 {
-                    File.Delete(report.FilePath);
+                    System.IO.File.Delete(report.FilePath);
                 }
 
                 // 3. Marcar como deletado no banco
