@@ -10,7 +10,16 @@ import { ReportsModal, DeleteConfirmModal } from './components';
 import { useStudiesLogic } from './useStudiesLogic';
 
 const ITEMS_PER_PAGE = 8;
-const MODALITY_OPTIONS = ['all', 'CT', 'MR', 'CR', 'US', 'DR', 'DX', 'OT'] as const;
+const MODALITY_OPTIONS = [
+  { value: 'all', label: 'Todos os exames' },
+  { value: 'CT', label: 'Tomografia Computadorizada (CT)' },
+  { value: 'MR', label: 'Ressonância Magnética (MR)' },
+  { value: 'CR', label: 'Radiografia Computadorizada (CR)' },
+  { value: 'US', label: 'Ultrassonografia (US)' },
+  { value: 'DR', label: 'Radiografia Digital (DR)' },
+  { value: 'DX', label: 'Radiografia Digital Diagnóstica (DX)' },
+  { value: 'OT', label: 'Outros (OT)' },
+] as const;
 
 interface SelectedStudyForViewer {
   id: string;
@@ -22,7 +31,7 @@ interface SelectedStudyForViewer {
 
 export function Studies() {
   const navigate = useNavigate();
-  const { estudos, isLoading, unidadeAtual, carregarSeriesDoEstudo, buscarEstudosNoServidor, buscarModalidadeNoServidor } = useOrthancData();
+  const { estudos, isLoading, unidadeAtual, carregarSeriesDoEstudo, buscarEstudosNoServidor } = useOrthancData();
   
   // Hooks customizados
   const logic = useStudiesLogic(unidadeAtual);
@@ -44,8 +53,9 @@ export function Studies() {
   const [isLoadingSeries, setIsLoadingSeries] = useState(false);
   const [isDownloading] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<DownloadFormat>('jpeg');
-  const [availableModalities, setAvailableModalities] = useState<string[]>([]);
   const fetchingRef = useRef<Set<string>>(new Set());
+  const modalityDropdownRef = useRef<HTMLDivElement>(null);
+  const [isModalityDropdownOpen, setIsModalityDropdownOpen] = useState(false);
   
   // Filtra estudos
   const { estudosFiltrados: periodFilteredStudies } = useFilteredStudies(
@@ -76,21 +86,25 @@ export function Studies() {
     return `${dd}/${mm}/${yy}`;
   };
 
+  const getPrimaryModality = (study: any) => {
+    const rawModalities = study?.MainDicomTags?.ModalitiesInStudy;
+    if (Array.isArray(rawModalities) && rawModalities.length > 0) {
+      return String(rawModalities[0]).toUpperCase();
+    }
+    if (typeof rawModalities === 'string' && rawModalities.trim()) {
+      return rawModalities.split('\\')[0].split(',')[0].trim().toUpperCase();
+    }
+    return 'OT';
+  };
+
+  const selectedModalityOption = MODALITY_OPTIONS.find((m) => m.value === selectedModality) || MODALITY_OPTIONS[0];
+
   const studiesFormatted = useMemo(() => periodFilteredStudies.map(s => ({
     id: s.ID || '',
     studyInstanceUID: s.MainDicomTags?.StudyInstanceUID || '',
     patient: normalizePatientName(s.PatientMainDicomTags?.PatientName),
     birthDate: formatDicomDate(s.PatientMainDicomTags?.PatientBirthDate),
-    modality: (() => {
-      const rawModalities = s.MainDicomTags?.ModalitiesInStudy;
-      if (Array.isArray(rawModalities) && rawModalities.length > 0) {
-        return String(rawModalities[0]).toUpperCase();
-      }
-      if (typeof rawModalities === 'string' && rawModalities.trim()) {
-        return rawModalities.split('\\')[0].split(',')[0].trim().toUpperCase();
-      }
-      return (detailsCache[s.ID]?.modality || 'Carregando...').toUpperCase();
-    })(),
+    modality: getPrimaryModality(s),
     description: s.MainDicomTags?.StudyDescription || '',
     date: formatDicomDate(s.MainDicomTags?.StudyDate),
     seriesCount: detailsCache[s.ID]?.seriesCount || 0,
@@ -117,14 +131,6 @@ export function Studies() {
 
     return base;
   }, [studiesFormatted, searchTerm, logic.serverSearchResults]);
-
-  const modalityCounts = useMemo(() => {
-    return studiesBeforeModality.reduce<Record<string, number>>((acc, study) => {
-      const mod = (study.modality || 'OT').toUpperCase();
-      acc[mod] = (acc[mod] || 0) + 1;
-      return acc;
-    }, {});
-  }, [studiesBeforeModality]);
 
   const studiesAfterFilters = useMemo(() => {
     if (selectedModality === 'all') return studiesBeforeModality;
@@ -154,6 +160,17 @@ export function Studies() {
       logic.setServerSearchResults(null);
     }
   }, [searchTerm, logic.setServerSearchResults]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalityDropdownRef.current && !modalityDropdownRef.current.contains(event.target as Node)) {
+        setIsModalityDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     currentItems.forEach((study) => {
@@ -195,18 +212,9 @@ export function Studies() {
     }
   };
 
-  const handleModalityClick = async (mod: string) => {
+  const handleModalityClick = (mod: string) => {
     setSelectedModality(mod);
-    if (mod !== 'all' && !availableModalities.includes(mod)) {
-      try {
-        const modalities = await buscarModalidadeNoServidor(mod);
-        if (modalities && !availableModalities.includes(mod)) {
-          setAvailableModalities(prev => [...new Set([...prev, mod])]);
-        }
-      } catch (err) {
-        console.error('Erro ao buscar modalidade:', err);
-      }
-    }
+    setIsModalityDropdownOpen(false);
   };
 
   const handlePrevPage = () => {
@@ -332,8 +340,53 @@ export function Studies() {
             </button>
           </div>
 
-          <div className="mt-4">
-            <div className="flex justify-end">
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="relative" ref={modalityDropdownRef}>
+              <button
+                onClick={() => setIsModalityDropdownOpen((prev) => !prev)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 bg-theme-secondary border-theme-border hover:border-nautico/50 text-theme-primary text-sm font-medium ${
+                  isModalityDropdownOpen ? 'ring-2 ring-nautico border-transparent' : ''
+                }`}
+              >
+                <svg className="w-4 h-4 text-nautico" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V20l-4-2v-4.586L3.293 6.707A1 1 0 013 6V4z" />
+                </svg>
+                <span>{selectedModalityOption.label}</span>
+                <svg className={`w-4 h-4 text-theme-muted transition-transform duration-200 ${isModalityDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {isModalityDropdownOpen && (
+                <div className="absolute top-full mt-2 w-80 z-50 bg-theme-secondary border border-theme-border rounded-lg shadow-lg animate-in fade-in-0 zoom-in-95 duration-150">
+                  <div className="p-2">
+                    {MODALITY_OPTIONS.map((mod) => {
+                      const isSelected = selectedModality === mod.value;
+                      return (
+                        <button
+                          key={mod.value}
+                          onClick={() => handleModalityClick(mod.value)}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors duration-150 ${
+                            isSelected
+                              ? 'bg-nautico/10 text-nautico'
+                              : 'text-theme-primary hover:bg-theme-tertiary'
+                          }`}
+                        >
+                          <span>{mod.label}</span>
+                          {isSelected && (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="sm:ml-auto">
               <PeriodFilter
                 selectedPeriod={selectedPeriod}
                 onPeriodChange={setSelectedPeriod}
@@ -345,34 +398,6 @@ export function Studies() {
                 }}
               />
             </div>
-          </div>
-
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-theme-primary mb-3">
-              Filtrar por Modalidade
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {MODALITY_OPTIONS.map((mod) => (
-                <button
-                  key={mod}
-                  onClick={() => handleModalityClick(mod)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    selectedModality === mod
-                      ? 'bg-nautico text-white'
-                      : 'bg-theme-card text-theme-muted hover:text-theme-primary border border-theme-border'
-                  }`}
-                >
-                  {mod === 'all'
-                    ? `Todos (${studiesBeforeModality.length})`
-                    : `${mod} (${modalityCounts[mod] || 0})`}
-                </button>
-              ))}
-            </div>
-            {selectedModality !== 'all' && (
-              <p className="mt-2 text-sm text-theme-muted">
-                {`Total de exames ${selectedModality}: ${studiesAfterFilters.length}`}
-              </p>
-            )}
           </div>
         </Card>
 
