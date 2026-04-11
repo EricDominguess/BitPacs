@@ -29,6 +29,7 @@ interface UseOrthancDataReturn {
   carregarSeriesDoEstudo: (studyId: string) => Promise<any[]>;
   buscarEstudosNoServidor: (termo: string, signal?: AbortSignal) => Promise<any[]>;
   buscarModalidadeNoServidor: (modality: string, signal?: AbortSignal) => Promise<any[]>;
+  buscarModalidadeNoServidorPaginado: (modality: string, since?: number, limit?: number, signal?: AbortSignal) => Promise<any[]>;
 }
 
 export function useOrthancData(): UseOrthancDataReturn {
@@ -232,6 +233,39 @@ export function useOrthancData(): UseOrthancDataReturn {
     }
   };
 
+  const buscarModalidadeNoServidorPaginado = async (
+    modality: string,
+    since: number = 0,
+    limit: number = 200,
+    signal?: AbortSignal
+  ) => {
+    const proxyPrefix = getProxyPrefix();
+    const headers = { 'Content-Type': 'application/json' };
+
+    try {
+      const response = await fetch(`${proxyPrefix}/tools/find`, {
+        method: 'POST',
+        headers,
+        signal,
+        body: JSON.stringify({
+          Level: 'Study',
+          Query: { ModalitiesInStudy: modality },
+          Expand: true,
+          Limit: limit,
+          Since: since,
+        }),
+      });
+
+      if (!response.ok) return [];
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return [];
+      console.error('Erro na busca paginada de modalidade:', e);
+      return [];
+    }
+  };
+
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'bitpacs-unidade-master' || e.key === 'bitpacs_user') {
@@ -284,6 +318,7 @@ export function useOrthancData(): UseOrthancDataReturn {
     carregarSeriesDoEstudo,
     buscarEstudosNoServidor,
     buscarModalidadeNoServidor,
+    buscarModalidadeNoServidorPaginado,
   };
 }
 

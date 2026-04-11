@@ -31,7 +31,7 @@ interface SelectedStudyForViewer {
 
 export function Studies() {
   const navigate = useNavigate();
-  const { estudos, isLoading, unidadeAtual, carregarSeriesDoEstudo, buscarEstudosNoServidor, buscarModalidadeNoServidor } = useOrthancData();
+  const { estudos, isLoading, unidadeAtual, carregarSeriesDoEstudo, buscarEstudosNoServidor } = useOrthancData();
   
   // Hooks customizados
   const logic = useStudiesLogic(unidadeAtual);
@@ -54,12 +54,8 @@ export function Studies() {
   const [isDownloading] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<DownloadFormat>('jpeg');
   const fetchingRef = useRef<Set<string>>(new Set());
-  const modalityRequestRef = useRef<AbortController | null>(null);
-  const modalityIdsCacheRef = useRef<Map<string, Set<string>>>(new Map());
   const modalityDropdownRef = useRef<HTMLDivElement>(null);
   const [isModalityDropdownOpen, setIsModalityDropdownOpen] = useState(false);
-  const [serverModalityStudyIds, setServerModalityStudyIds] = useState<Set<string> | null>(null);
-  const [isLoadingModality, setIsLoadingModality] = useState(false);
   
   // Filtra estudos
   const { estudosFiltrados: periodFilteredStudies } = useFilteredStudies(
@@ -196,25 +192,27 @@ export function Studies() {
     return base;
   }, [studiesFormatted, searchTerm, logic.serverSearchResults]);
 
+  const studiesByModality = useMemo(() => {
+    const index = new Map<string, typeof studiesBeforeModality>();
+    index.set('all', studiesBeforeModality);
+
+    for (const study of studiesBeforeModality) {
+      const key = (study.modality || 'OT').toUpperCase();
+      const current = index.get(key);
+      if (current) {
+        current.push(study);
+      } else {
+        index.set(key, [study]);
+      }
+    }
+
+    return index;
+  }, [studiesBeforeModality]);
+
   const studiesAfterFilters = useMemo(() => {
     if (selectedModality === 'all') return studiesBeforeModality;
-    const localModality = studiesBeforeModality.filter((study) => study.modality?.toUpperCase() === selectedModality.toUpperCase());
-
-    if (isLoadingModality && !serverModalityStudyIds) {
-      return [...localModality]
-        .sort((a, b) => {
-          const aDate = Number(String(a.rawStudyDate || '').replace(/\D/g, '')) || 0;
-          const bDate = Number(String(b.rawStudyDate || '').replace(/\D/g, '')) || 0;
-          return bDate - aDate;
-        })
-        .slice(0, ITEMS_PER_PAGE);
-    }
-
-    if (serverModalityStudyIds) {
-      return studiesBeforeModality.filter((study) => serverModalityStudyIds.has(study.id));
-    }
-    return localModality;
-  }, [studiesBeforeModality, selectedModality, serverModalityStudyIds, isLoadingModality]);
+    return studiesByModality.get(selectedModality.toUpperCase()) || [];
+  }, [studiesBeforeModality, studiesByModality, selectedModality]);
 
   // Paginação
   const totalPages = Math.ceil(studiesAfterFilters.length / ITEMS_PER_PAGE);
@@ -239,57 +237,6 @@ export function Studies() {
       logic.setServerSearchResults(null);
     }
   }, [searchTerm, logic.setServerSearchResults]);
-
-  useEffect(() => {
-    if (selectedModality === 'all') {
-      modalityRequestRef.current?.abort();
-      setServerModalityStudyIds(null);
-      setIsLoadingModality(false);
-      return;
-    }
-
-    const cacheKey = `${unidadeAtual}:${selectedModality}`;
-    const cached = modalityIdsCacheRef.current.get(cacheKey);
-    if (cached) {
-      setServerModalityStudyIds(cached);
-      setIsLoadingModality(false);
-      return;
-    }
-
-    modalityRequestRef.current?.abort();
-    const controller = new AbortController();
-    modalityRequestRef.current = controller;
-    setServerModalityStudyIds(null);
-    setIsLoadingModality(true);
-
-    buscarModalidadeNoServidor(selectedModality, controller.signal)
-      .then((results) => {
-        if (controller.signal.aborted) return;
-
-        const ids = new Set(
-          (results || [])
-            .map((s: any) => s?.ID || s?.id)
-            .filter(Boolean)
-        );
-
-        modalityIdsCacheRef.current.set(cacheKey, ids);
-        setServerModalityStudyIds(ids);
-      })
-      .catch((error) => {
-        if (controller.signal.aborted) return;
-        console.error('Erro ao carregar modalidade:', error);
-        setServerModalityStudyIds(null);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsLoadingModality(false);
-        }
-      });
-
-    return () => {
-      controller.abort();
-    };
-  }, [selectedModality, unidadeAtual, buscarModalidadeNoServidor]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -343,8 +290,6 @@ export function Studies() {
   };
 
   const handleModalityClick = (mod: string) => {
-    setServerModalityStudyIds(null);
-    setIsLoadingModality(mod !== 'all');
     setSelectedModality(mod);
     setIsModalityDropdownOpen(false);
   };
@@ -449,9 +394,7 @@ export function Studies() {
         <div>
           <h1 className="text-2xl font-bold text-theme-primary">Estudos DICOM</h1>
           <p className="text-theme-muted mt-1">
-            {isLoading
-              ? 'Carregando dados...'
-              : `${studiesAfterFilters.length} estudos encontrados${isLoadingModality ? ' (carregando modalidade...)' : ''}`}
+            {isLoading ? 'Carregando dados...' : `${studiesAfterFilters.length} estudos encontrados`}
           </p>
         </div>
 
