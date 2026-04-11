@@ -84,7 +84,10 @@ namespace BitPacs.API.Controllers
                     return BadRequest(new { message = "Nenhum arquivo foi enviado." });
                 }
 
-                if (file.ContentType != "application/pdf")
+                // Aceitar PDF e qualquer arquivo terminado em .pdf
+                var isValidFile = file.ContentType == "application/pdf" || file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
+                
+                if (!isValidFile)
                 {
                     return BadRequest(new { message = "Apenas arquivos PDF são permitidos." });
                 }
