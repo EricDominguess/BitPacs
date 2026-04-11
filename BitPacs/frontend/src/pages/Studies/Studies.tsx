@@ -1255,7 +1255,7 @@ export function Studies() {
                         </div>
                       </div>
                       <button
-                        onClick={() => handleDeleteReport(report.id)}
+                        onClick={() => handleDeleteReport()}
                         className="ml-4 p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                         title="Deletar laudo"
                       >
