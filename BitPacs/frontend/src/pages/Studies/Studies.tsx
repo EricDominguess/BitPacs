@@ -82,17 +82,23 @@ export function Studies() {
     if (Number.isNaN(date.getTime())) return '';
     const dd = String(day).padStart(2, '0');
     const mm = String(month + 1).padStart(2, '0');
-    const yy = String(year).slice(-2);
-    return `${dd}/${mm}/${yy}`;
+    return `${dd}/${mm}/${year}`;
   };
 
   const getPrimaryModality = (study: any) => {
-    const rawModalities = study?.MainDicomTags?.ModalitiesInStudy;
+    const rawModalities =
+      study?.MainDicomTags?.ModalitiesInStudy ||
+      study?.ModalitiesInStudy ||
+      study?.MainDicomTags?.Modality;
+
     if (Array.isArray(rawModalities) && rawModalities.length > 0) {
       return String(rawModalities[0]).toUpperCase();
     }
     if (typeof rawModalities === 'string' && rawModalities.trim()) {
       return rawModalities.split('\\')[0].split(',')[0].trim().toUpperCase();
+    }
+    if (study?.ID && detailsCache[study.ID]?.modality) {
+      return String(detailsCache[study.ID].modality).toUpperCase();
     }
     return 'OT';
   };
@@ -105,7 +111,7 @@ export function Studies() {
     patient: normalizePatientName(s.PatientMainDicomTags?.PatientName),
     birthDate: formatDicomDate(s.PatientMainDicomTags?.PatientBirthDate),
     modality: getPrimaryModality(s),
-    description: s.MainDicomTags?.StudyDescription || '',
+    description: (s.MainDicomTags?.StudyDescription || '').trim() || 'sem descrição',
     date: formatDicomDate(s.MainDicomTags?.StudyDate),
     seriesCount: detailsCache[s.ID]?.seriesCount || 0,
     imagesCount: detailsCache[s.ID]?.imagesCount || 0
@@ -322,7 +328,7 @@ export function Studies() {
         </div>
 
         {/* Filtros */}
-        <Card className="!p-4">
+        <Card className="!p-4 relative z-30">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <input
@@ -358,7 +364,7 @@ export function Studies() {
               </button>
 
               {isModalityDropdownOpen && (
-                <div className="absolute top-full mt-2 w-80 z-50 bg-theme-secondary border border-theme-border rounded-lg shadow-lg animate-in fade-in-0 zoom-in-95 duration-150">
+                <div className="absolute top-full mt-2 w-80 z-[70] bg-theme-secondary border border-theme-border rounded-lg shadow-lg animate-in fade-in-0 zoom-in-95 duration-150">
                   <div className="p-2">
                     {MODALITY_OPTIONS.map((mod) => {
                       const isSelected = selectedModality === mod.value;
@@ -402,7 +408,7 @@ export function Studies() {
         </Card>
 
         {/* Tabela de Estudos */}
-        <Card className="overflow-hidden !p-0">
+        <Card className="overflow-hidden !p-0 relative z-10">
           <div className="overflow-x-auto scrollbar-thin">
             <table className="w-full min-w-[800px]">
               <thead className="bg-theme-secondary">
