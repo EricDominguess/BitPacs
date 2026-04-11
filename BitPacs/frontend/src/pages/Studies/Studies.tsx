@@ -158,7 +158,7 @@ export function Studies() {
   };
 
   // ✅ NOVO: Função para deletar laudo
-  const handleDeleteReport = async (reportId: number) => {
+  const handleDeleteReport = async () => {
     if (!window.confirm('Tem certeza que deseja deletar este laudo?')) {
       return;
     }
@@ -221,7 +221,7 @@ export function Studies() {
       });
 
       if (response.ok) {
-        const result = await response.json();
+        await response.json();
         alert(`Laudo anexado com sucesso para ${selectedStudyForReport.patient}!`);
         // Registrar log
         registrarLog('UPLOAD', selectedStudyForReport, `Laudo anexado: ${file.name}`);
@@ -1238,7 +1238,7 @@ export function Studies() {
                 </div>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {studyReports.map((report, index) => (
+                  {studyReports.map((report) => (
                     <div key={report.id} className="flex items-center justify-between p-4 bg-theme-card border border-theme-border rounded-lg hover:bg-nautico/5 transition-colors">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -1260,7 +1260,7 @@ export function Studies() {
                         title="Deletar laudo"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLineCap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
                     </div>
