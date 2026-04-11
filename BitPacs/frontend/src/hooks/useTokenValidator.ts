@@ -2,7 +2,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { fetchWithAuth } from '../utils/fetchWithAuth';
 
 export const useTokenValidator = () => {
-  const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const validationTimeoutRef = useRef<number | null>(null);
 
   const handleTokenInvalidation = useCallback(() => {
     // Remove tokens do storage
