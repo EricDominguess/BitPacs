@@ -31,7 +31,7 @@ interface SelectedStudyForViewer {
 
 export function Studies() {
   const navigate = useNavigate();
-  const { estudos, isLoading, unidadeAtual, carregarSeriesDoEstudo, buscarEstudosNoServidor } = useOrthancData();
+  const { estudos, isLoading, unidadeAtual, carregarSeriesDoEstudo, buscarEstudosNoServidor, buscarModalidadeNoServidor } = useOrthancData();
   
   // Hooks customizados
   const logic = useStudiesLogic(unidadeAtual);
@@ -54,8 +54,12 @@ export function Studies() {
   const [isDownloading] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<DownloadFormat>('jpeg');
   const fetchingRef = useRef<Set<string>>(new Set());
+  const modalityRequestRef = useRef<AbortController | null>(null);
+  const modalityIdsCacheRef = useRef<Map<string, Set<string>>>(new Map());
   const modalityDropdownRef = useRef<HTMLDivElement>(null);
   const [isModalityDropdownOpen, setIsModalityDropdownOpen] = useState(false);
+  const [serverModalityStudyIds, setServerModalityStudyIds] = useState<Set<string> | null>(null);
+  const [isLoadingModality, setIsLoadingModality] = useState(false);
   
   // Filtra estudos
   const { estudosFiltrados: periodFilteredStudies } = useFilteredStudies(
@@ -193,8 +197,11 @@ export function Studies() {
 
   const studiesAfterFilters = useMemo(() => {
     if (selectedModality === 'all') return studiesBeforeModality;
+    if (serverModalityStudyIds) {
+      return studiesBeforeModality.filter((study) => serverModalityStudyIds.has(study.id));
+    }
     return studiesBeforeModality.filter((study) => study.modality?.toUpperCase() === selectedModality.toUpperCase());
-  }, [studiesBeforeModality, selectedModality]);
+  }, [studiesBeforeModality, selectedModality, serverModalityStudyIds]);
 
   // Paginação
   const totalPages = Math.ceil(studiesAfterFilters.length / ITEMS_PER_PAGE);
@@ -219,6 +226,56 @@ export function Studies() {
       logic.setServerSearchResults(null);
     }
   }, [searchTerm, logic.setServerSearchResults]);
+
+  useEffect(() => {
+    if (selectedModality === 'all') {
+      modalityRequestRef.current?.abort();
+      setServerModalityStudyIds(null);
+      setIsLoadingModality(false);
+      return;
+    }
+
+    const cacheKey = `${unidadeAtual}:${selectedModality}`;
+    const cached = modalityIdsCacheRef.current.get(cacheKey);
+    if (cached) {
+      setServerModalityStudyIds(cached);
+      setIsLoadingModality(false);
+      return;
+    }
+
+    modalityRequestRef.current?.abort();
+    const controller = new AbortController();
+    modalityRequestRef.current = controller;
+    setIsLoadingModality(true);
+
+    buscarModalidadeNoServidor(selectedModality, controller.signal)
+      .then((results) => {
+        if (controller.signal.aborted) return;
+
+        const ids = new Set(
+          (results || [])
+            .map((s: any) => s?.ID || s?.id)
+            .filter(Boolean)
+        );
+
+        modalityIdsCacheRef.current.set(cacheKey, ids);
+        setServerModalityStudyIds(ids);
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        console.error('Erro ao carregar modalidade:', error);
+        setServerModalityStudyIds(null);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoadingModality(false);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [selectedModality, unidadeAtual, buscarModalidadeNoServidor]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -376,7 +433,9 @@ export function Studies() {
         <div>
           <h1 className="text-2xl font-bold text-theme-primary">Estudos DICOM</h1>
           <p className="text-theme-muted mt-1">
-            {isLoading ? 'Carregando dados...' : `${studiesAfterFilters.length} estudos encontrados`}
+            {isLoading
+              ? 'Carregando dados...'
+              : `${studiesAfterFilters.length} estudos encontrados${isLoadingModality ? ' (carregando modalidade...)' : ''}`}
           </p>
         </div>
 
@@ -469,7 +528,7 @@ export function Studies() {
                 <tr>
                   <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Paciente</th>
                   <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Data Nasc.</th>
-                  <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Modalidade</th>
+                  <th className="text-center text-sm font-semibold text-theme-secondary px-6 py-4">Modalidade</th>
                   <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Descrição</th>
                   <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Data</th>
                   <th className="text-center text-sm font-semibold text-theme-secondary px-6 py-4">Séries</th>
@@ -499,8 +558,10 @@ export function Studies() {
                       <td className="px-6 py-4">
                         <span className="text-theme-muted text-sm">{study.birthDate}</span>
                       </td>
-                      <td className="px-6 py-4">
-                        <ModalityBadge modality={study.modality} />
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex justify-center">
+                          <ModalityBadge modality={study.modality} />
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-theme-secondary">{study.description}</span>
