@@ -22,6 +22,12 @@ export const useAuth = (): AuthContextType => {
   const [token, setToken] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  const clearAuth = () => {
+    setUser(null);
+    setToken(null);
+    setIsAuthenticated(false);
+  };
+
   // Inicializa com dados salvos
   useEffect(() => {
     const loadStoredAuth = () => {
@@ -68,12 +74,6 @@ export const useAuth = (): AuthContextType => {
     sessionStorage.removeItem('bitpacs_token_expiry');
 
     clearAuth();
-  };
-
-  const clearAuth = () => {
-    setUser(null);
-    setToken(null);
-    setIsAuthenticated(false);
   };
 
   const isTokenExpired = (): boolean => {

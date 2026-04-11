@@ -40,6 +40,7 @@ export function Studies() {
   const [isDownloading] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<DownloadFormat>('jpeg');
   const [availableModalities, setAvailableModalities] = useState<string[]>([]);
+  const fetchingRef = useRef<Set<string>>(new Set());
   
   // Filtra estudos
   const { estudosFiltrados: filteredStudies } = useFilteredStudies(
@@ -74,8 +75,6 @@ export function Studies() {
   }, []);
 
   useEffect(() => {
-    const fetchingRef = useRef<Set<string>>(new Set());
-
     currentItems.forEach((study) => {
       if (!detailsCache[study.id] && !fetchingRef.current.has(study.id)) {
         fetchingRef.current.add(study.id);
@@ -96,14 +95,12 @@ export function Studies() {
               imagesCount: totalInstances
             }
           }));
+        }).finally(() => {
+          fetchingRef.current.delete(study.id);
         });
       }
     });
-
-    return () => {
-      fetchingRef.current.clear();
-    };
-  }, [currentItems, carregarSeriesDoEstudo]);
+  }, [currentItems, carregarSeriesDoEstudo, detailsCache]);
 
   // Handlers
   const handleServerSearch = async () => {

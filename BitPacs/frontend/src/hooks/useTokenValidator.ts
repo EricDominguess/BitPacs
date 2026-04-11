@@ -3,6 +3,7 @@ import { fetchWithAuth } from '../utils/fetchWithAuth';
 
 export const useTokenValidator = () => {
   const validationTimeoutRef = useRef<number | null>(null);
+  const validateTokenRef = useRef<(() => Promise<void>) | null>(null);
 
   const handleTokenInvalidation = useCallback(() => {
     // Remove tokens do storage
@@ -16,6 +17,18 @@ export const useTokenValidator = () => {
 
     // Redireciona para login
     window.location.href = '/';
+  }, []);
+
+  const scheduleNextValidation = useCallback(() => {
+    // Limpa timeout anterior se existir
+    if (validationTimeoutRef.current) {
+      clearTimeout(validationTimeoutRef.current);
+    }
+
+    // Agenda próxima validação em 30 segundos
+    validationTimeoutRef.current = window.setTimeout(() => {
+      void validateTokenRef.current?.();
+    }, 30000);
   }, []);
 
   const validateToken = useCallback(async () => {
@@ -51,16 +64,10 @@ export const useTokenValidator = () => {
       // Em caso de erro de rede, agenda nova tentativa
       scheduleNextValidation();
     }
-  }, [handleTokenInvalidation]);
+  }, [handleTokenInvalidation, scheduleNextValidation]);
 
-  const scheduleNextValidation = useCallback(() => {
-    // Limpa timeout anterior se existir
-    if (validationTimeoutRef.current) {
-      clearTimeout(validationTimeoutRef.current);
-    }
-    
-    // Agenda próxima validação em 30 segundos
-    validationTimeoutRef.current = setTimeout(validateToken, 30000);
+  useEffect(() => {
+    validateTokenRef.current = validateToken;
   }, [validateToken]);
 
   // Configura validação inicial
