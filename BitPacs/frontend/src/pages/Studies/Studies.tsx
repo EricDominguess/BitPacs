@@ -167,6 +167,7 @@ export function Studies() {
     studyInstanceUID: s.MainDicomTags?.StudyInstanceUID || '',
     patient: normalizePatientName(s.PatientMainDicomTags?.PatientName),
     birthDate: formatDicomDate(s.PatientMainDicomTags?.PatientBirthDate),
+    rawStudyDate: s.MainDicomTags?.StudyDate || '',
     modality: getPrimaryModality(s),
     description: (s.MainDicomTags?.StudyDescription || '').trim() || 'sem descrição',
     date: formatDicomDate(s.MainDicomTags?.StudyDate),
@@ -197,11 +198,23 @@ export function Studies() {
 
   const studiesAfterFilters = useMemo(() => {
     if (selectedModality === 'all') return studiesBeforeModality;
+    const localModality = studiesBeforeModality.filter((study) => study.modality?.toUpperCase() === selectedModality.toUpperCase());
+
+    if (isLoadingModality && !serverModalityStudyIds) {
+      return [...localModality]
+        .sort((a, b) => {
+          const aDate = Number(String(a.rawStudyDate || '').replace(/\D/g, '')) || 0;
+          const bDate = Number(String(b.rawStudyDate || '').replace(/\D/g, '')) || 0;
+          return bDate - aDate;
+        })
+        .slice(0, ITEMS_PER_PAGE);
+    }
+
     if (serverModalityStudyIds) {
       return studiesBeforeModality.filter((study) => serverModalityStudyIds.has(study.id));
     }
-    return studiesBeforeModality.filter((study) => study.modality?.toUpperCase() === selectedModality.toUpperCase());
-  }, [studiesBeforeModality, selectedModality, serverModalityStudyIds]);
+    return localModality;
+  }, [studiesBeforeModality, selectedModality, serverModalityStudyIds, isLoadingModality]);
 
   // Paginação
   const totalPages = Math.ceil(studiesAfterFilters.length / ITEMS_PER_PAGE);
@@ -246,6 +259,7 @@ export function Studies() {
     modalityRequestRef.current?.abort();
     const controller = new AbortController();
     modalityRequestRef.current = controller;
+    setServerModalityStudyIds(null);
     setIsLoadingModality(true);
 
     buscarModalidadeNoServidor(selectedModality, controller.signal)
@@ -329,6 +343,8 @@ export function Studies() {
   };
 
   const handleModalityClick = (mod: string) => {
+    setServerModalityStudyIds(null);
+    setIsLoadingModality(mod !== 'all');
     setSelectedModality(mod);
     setIsModalityDropdownOpen(false);
   };
