@@ -1,9 +1,8 @@
-import { useState} from 'react';
 import { SettingsModal } from '../common';
-import { useUnidade } from '../../contexts';
+import { useUnidade, useModal } from '../../contexts';
 
 export function Header() {
-  const [showSettings, setShowSettings] = useState(false);
+  const { isSettingsOpen, setIsSettingsOpen } = useModal();
   const { unidadeLabel, isUnidadeSelected } = useUnidade();
 
   return (
@@ -39,7 +38,7 @@ export function Header() {
 
           {/* Configurações */}
           <button 
-            onClick={() => setShowSettings(true)}
+            onClick={() => setIsSettingsOpen(true)}
             className="p-2 text-theme-muted hover:text-theme-primary hover:bg-nautico/10 rounded-lg transition-colors"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,8 +52,8 @@ export function Header() {
 
     {/* Modal de Configurações */}
     <SettingsModal 
-      isOpen={showSettings} 
-      onClose={() => setShowSettings(false)} 
+      isOpen={isSettingsOpen} 
+      onClose={() => setIsSettingsOpen(false)} 
     />
     </>
   );

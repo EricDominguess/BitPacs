@@ -44,7 +44,7 @@ export function Studies() {
   // Filtra estudos
   const { estudosFiltrados: filteredStudies } = useFilteredStudies(
     estudos,
-    'all'
+    'all' as const
   );
 
   const studiesFormatted = useMemo(() => filteredStudies.map(s => ({
@@ -75,7 +75,6 @@ export function Studies() {
 
   useEffect(() => {
     const fetchingRef = useRef<Set<string>>(new Set());
-    const abort = new AbortController();
 
     currentItems.forEach((study) => {
       if (!detailsCache[study.id] && !fetchingRef.current.has(study.id)) {
@@ -102,10 +101,9 @@ export function Studies() {
     });
 
     return () => {
-      abort.abort();
       fetchingRef.current.clear();
     };
-  }, [currentItems, carregarSeriesDoEstudo, detailsCache]);
+  }, [currentItems, carregarSeriesDoEstudo]);
 
   // Handlers
   const handleServerSearch = async () => {

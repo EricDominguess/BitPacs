@@ -132,13 +132,27 @@ export function useStudiesLogic(unidadeAtual: string) {
 
       if (response.ok) {
         await registrarLog('DELETE', selectedStudyForReports, 'Laudo deletado');
-        // Reload laudos
-        handleViewReports(selectedStudyForReports);
+        // Reload laudos - fetch directly without calling handleViewReports
+        try {
+          const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
+          const response = await fetch(`/api/dashboard/reports/${unidadeAtual}/${selectedStudyForReports.id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            }
+          });
+
+          if (response.ok) {
+            const reports = await response.json();
+            setStudyReports(reports);
+          }
+        } catch (err) {
+          console.error('Erro ao recarregar laudos:', err);
+        }
       }
     } catch (err) {
       console.error('Erro ao deletar laudo:', err);
     }
-  }, [selectedStudyForReports, registrarLog, unidadeAtual, handleViewReports]);
+  }, [selectedStudyForReports, registrarLog, unidadeAtual]);
 
   // Upload file
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {

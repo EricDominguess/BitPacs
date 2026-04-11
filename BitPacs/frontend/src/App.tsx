@@ -1,11 +1,13 @@
 import { AppRouter } from './routes';
-import { ThemeProvider, UnidadeProvider } from './contexts';
+import { ThemeProvider, UnidadeProvider, ModalProvider } from './contexts';
 
 function App() {
   return (
     <ThemeProvider>
       <UnidadeProvider>
-        <AppRouter />
+        <ModalProvider>
+          <AppRouter />
+        </ModalProvider>
       </UnidadeProvider>
     </ThemeProvider>
   );

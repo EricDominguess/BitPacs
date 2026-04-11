@@ -1,6 +1,7 @@
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { useTokenValidator } from '../../hooks';
+import { useModal } from '../../contexts';
 import { useState, useEffect } from 'react';
 
 interface MainLayoutProps {
@@ -10,6 +11,7 @@ interface MainLayoutProps {
 export function MainLayout({ children }: MainLayoutProps) {
   // Valida token periodicamente para garantir single login
   useTokenValidator();
+  const { isAnyModalOpen } = useModal();
   const [isMinimized, setIsMinimized] = useState(() => {
     const saved = localStorage.getItem('bitpacs_sidebar_minimized');
     return saved ? JSON.parse(saved) : false;
@@ -24,7 +26,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       <Header />
       <div className="flex">
         <Sidebar isMinimized={isMinimized} setIsMinimized={setIsMinimized} />
-        <main className={`flex-1 ${isMinimized ? 'ml-20' : 'ml-64'} p-6 overflow-auto scrollbar-thin transition-all duration-300`}>
+        <main className={`flex-1 ${isMinimized ? 'ml-20' : 'ml-64'} p-6 overflow-auto scrollbar-thin transition-all duration-300 ${isAnyModalOpen ? 'pointer-events-none blur-sm' : ''}`}>
           <div className="animate-fade-in">
             {children}
           </div>
