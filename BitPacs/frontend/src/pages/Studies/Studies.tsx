@@ -73,32 +73,85 @@ export function Studies() {
       .trim();
   };
 
-  const formatDicomDate = (dicomDate?: string) => {
-    if (!dicomDate || dicomDate.length !== 8) return '';
-    const year = Number(dicomDate.slice(0, 4));
-    const month = Number(dicomDate.slice(4, 6)) - 1;
-    const day = Number(dicomDate.slice(6, 8));
-    const date = new Date(year, month, day);
+  const formatDicomDate = (rawDate?: string) => {
+    if (!rawDate) return '';
+
+    const value = String(rawDate).trim();
+    if (!value) return '';
+
+    let day = 0;
+    let month = 0;
+    let year = 0;
+
+    if (/^\d{8}$/.test(value)) {
+      // YYYYMMDD
+      year = Number(value.slice(0, 4));
+      month = Number(value.slice(4, 6));
+      day = Number(value.slice(6, 8));
+    } else if (/^\d{6}$/.test(value)) {
+      // YYMMDD
+      const yy = Number(value.slice(0, 2));
+      year = yy >= 50 ? 1900 + yy : 2000 + yy;
+      month = Number(value.slice(2, 4));
+      day = Number(value.slice(4, 6));
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      // YYYY-MM-DD
+      year = Number(value.slice(0, 4));
+      month = Number(value.slice(5, 7));
+      day = Number(value.slice(8, 10));
+    } else {
+      const slashMatch = value.match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/);
+      if (slashMatch) {
+        day = Number(slashMatch[1]);
+        month = Number(slashMatch[2]);
+        const y = slashMatch[3];
+        year = y.length === 2 ? (Number(y) >= 50 ? 1900 + Number(y) : 2000 + Number(y)) : Number(y);
+      } else {
+        return value;
+      }
+    }
+
+    const date = new Date(year, month - 1, day);
     if (Number.isNaN(date.getTime())) return '';
+
     const dd = String(day).padStart(2, '0');
-    const mm = String(month + 1).padStart(2, '0');
+    const mm = String(month).padStart(2, '0');
     return `${dd}/${mm}/${year}`;
+  };
+
+  const normalizeModality = (value?: string) => {
+    if (!value) return 'OT';
+    const normalized = value.trim().toUpperCase();
+    const aliases: Record<string, string> = {
+      'DIGITAL RADIOGRAPHY': 'DX',
+      'XRAY': 'DX',
+      'X-RAY': 'DX',
+      'RADIOGRAPHY': 'DX',
+      'COMPUTED RADIOGRAPHY': 'CR',
+      'ULTRASOUND': 'US',
+      'MAGNETIC RESONANCE': 'MR',
+      'COMPUTED TOMOGRAPHY': 'CT',
+    };
+    return aliases[normalized] || normalized;
   };
 
   const getPrimaryModality = (study: any) => {
     const rawModalities =
       study?.MainDicomTags?.ModalitiesInStudy ||
       study?.ModalitiesInStudy ||
-      study?.MainDicomTags?.Modality;
+      study?.MainDicomTags?.Modality ||
+      study?.Modality ||
+      study?.RequestedTags?.Modality;
 
     if (Array.isArray(rawModalities) && rawModalities.length > 0) {
-      return String(rawModalities[0]).toUpperCase();
+      return normalizeModality(String(rawModalities[0]));
     }
     if (typeof rawModalities === 'string' && rawModalities.trim()) {
-      return rawModalities.split('\\')[0].split(',')[0].trim().toUpperCase();
+      return normalizeModality(rawModalities.split('\\')[0].split(',')[0]);
     }
-    if (study?.ID && detailsCache[study.ID]?.modality) {
-      return String(detailsCache[study.ID].modality).toUpperCase();
+    const cacheKey = study?.ID || study?.id;
+    if (cacheKey && detailsCache[cacheKey]?.modality) {
+      return normalizeModality(String(detailsCache[cacheKey].modality));
     }
     return 'OT';
   };
@@ -347,7 +400,7 @@ export function Studies() {
           </div>
 
           <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="relative" ref={modalityDropdownRef}>
+            <div className="relative z-[80]" ref={modalityDropdownRef}>
               <button
                 onClick={() => setIsModalityDropdownOpen((prev) => !prev)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 bg-theme-secondary border-theme-border hover:border-nautico/50 text-theme-primary text-sm font-medium ${
@@ -398,6 +451,7 @@ export function Studies() {
                 onPeriodChange={setSelectedPeriod}
                 customStartDate={customStartDate}
                 customEndDate={customEndDate}
+                className="z-[80]"
                 onCustomDateChange={(start, end) => {
                   setCustomStartDate(start);
                   setCustomEndDate(end);
