@@ -31,7 +31,7 @@ interface SelectedStudyForViewer {
 
 export function Studies() {
   const navigate = useNavigate();
-  const { estudos, isLoading, unidadeAtual, carregarSeriesDoEstudo, buscarEstudosNoServidor } = useOrthancData();
+  const { estudos, isLoading, unidadeAtual, seriesByStudy, carregarSeriesDoEstudo, buscarEstudosNoServidor } = useOrthancData();
   
   // Hooks customizados
   const logic = useStudiesLogic(unidadeAtual);
@@ -147,9 +147,17 @@ export function Studies() {
       return normalizeModality(String(rawModalities[0]));
     }
     if (typeof rawModalities === 'string' && rawModalities.trim()) {
-      return normalizeModality(rawModalities.split('\\')[0].split(',')[0]);
+      return normalizeModality(rawModalities.split(/\\|,|\+/)[0]);
     }
+
     const cacheKey = study?.ID || study?.id;
+
+    const studySeries = cacheKey ? seriesByStudy?.get(cacheKey) : undefined;
+    const seriesModality = studySeries?.[0]?.MainDicomTags?.Modality;
+    if (seriesModality) {
+      return normalizeModality(String(seriesModality));
+    }
+
     if (cacheKey && detailsCache[cacheKey]?.modality) {
       return normalizeModality(String(detailsCache[cacheKey].modality));
     }

@@ -14,12 +14,14 @@ namespace BitPacs.API.Controllers
         private readonly OrthancDashboardService _orthancService;
         private readonly AppDbContext _dbContext;
         private readonly ILogger<DashboardController> _logger;
+        private readonly IWebHostEnvironment _environment;
 
-        public DashboardController(OrthancDashboardService orthancService, AppDbContext dbContext, ILogger<DashboardController> logger)
+        public DashboardController(OrthancDashboardService orthancService, AppDbContext dbContext, ILogger<DashboardController> logger, IWebHostEnvironment environment)
         {
             _orthancService = orthancService;
             _dbContext = dbContext;
             _logger = logger;
+            _environment = environment;
         }
 
         [HttpGet("series/{unidade}")]
@@ -78,6 +80,12 @@ namespace BitPacs.API.Controllers
         {
             try
             {
+                // 0. Validar campos essenciais
+                if (string.IsNullOrWhiteSpace(unidade) || string.IsNullOrWhiteSpace(studyId))
+                {
+                    return BadRequest(new { message = "Unidade e StudyId são obrigatórios." });
+                }
+
                 // 1. Validar arquivo
                 if (file == null || file.Length == 0)
                 {
@@ -99,15 +107,22 @@ namespace BitPacs.API.Controllers
                 }
 
                 // 2. Criar diretório para laudos se não existir
-                var reportsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", unidade.ToLower());
+                var webRoot = _environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                var unidadeSafe = Limit(unidade.Trim().ToLowerInvariant(), 100);
+                var reportsFolder = Path.Combine(webRoot, "reports", unidadeSafe);
                 if (!Directory.Exists(reportsFolder))
                 {
                     Directory.CreateDirectory(reportsFolder);
                 }
 
-                // 3. Gerar nome de arquivo único
-                var fileName = $"{studyId}_{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileNameWithoutExtension(file.FileName)}.pdf";
-                var filePath = Path.Combine(reportsFolder, fileName);
+                // 3. Gerar nome de arquivo único e seguro no disco
+                var safeStudyId = Limit(studyId.Trim(), 120);
+                var storedFileName = $"{safeStudyId}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}.pdf";
+                var filePath = Path.Combine(reportsFolder, storedFileName);
+
+                // Nome original exibido na UI (limitado ao tamanho da coluna)
+                var originalFileName = Path.GetFileName(file.FileName);
+                var displayFileName = Limit(string.IsNullOrWhiteSpace(originalFileName) ? "laudo.pdf" : originalFileName, 512);
 
                 // 4. Salvar arquivo
                 using (var stream = new FileStream(filePath, FileMode.Create))
@@ -118,13 +133,13 @@ namespace BitPacs.API.Controllers
                 // 5. Salvar registro no banco de dados
                 var report = new Report
                 {
-                    StudyId = studyId,
-                    StudyInstanceUID = studyId, // Pode ser obtido de outro lugar se necessário
-                    PatientName = patientName,
-                    FileName = file.FileName,
-                    FilePath = filePath,
+                    StudyId = Limit(studyId.Trim(), 512),
+                    StudyInstanceUID = Limit(studyId.Trim(), 512), // Pode ser obtido de outro lugar se necessário
+                    PatientName = Limit(string.IsNullOrWhiteSpace(patientName) ? "Paciente" : patientName.Trim(), 256),
+                    FileName = displayFileName,
+                    FilePath = Limit(filePath, 1024),
                     FileSize = file.Length,
-                    UnidadeNome = unidade,
+                    UnidadeNome = unidadeSafe,
                     UserId = null, // Será preenchido pelo middleware de autenticação se necessário
                     UploadedAt = DateTime.UtcNow,
                     Status = "Active"
@@ -133,7 +148,7 @@ namespace BitPacs.API.Controllers
                 _dbContext.Reports.Add(report);
                 await _dbContext.SaveChangesAsync();
 
-                _logger.LogInformation($"Laudo anexado: StudyId={studyId}, PatientName={patientName}, FileName={file.FileName}, Unidade={unidade}");
+                _logger.LogInformation($"Laudo anexado: StudyId={studyId}, PatientName={patientName}, FileName={displayFileName}, Unidade={unidadeSafe}");
 
                 return Ok(new 
                 { 
@@ -148,6 +163,12 @@ namespace BitPacs.API.Controllers
                 _logger.LogError(ex, $"Erro ao fazer upload de laudo para StudyId={studyId}");
                 return StatusCode(500, new { message = "Erro ao anexar laudo", error = ex.Message });
             }
+        }
+
+        private static string Limit(string? value, int maxLength)
+        {
+            var text = value ?? string.Empty;
+            return text.Length <= maxLength ? text : text.Substring(0, maxLength);
         }
 
         // ✅ NOVO: Endpoint para deletar laudo
