@@ -363,6 +363,22 @@ export function Studies() {
     });
   }, [unidadeAtual, currentItemIdsKey, currentItemIds, reportStatusByStudy]);
 
+  useEffect(() => {
+    if (!logic.reportStatusEvent?.studyId) return;
+
+    const { studyId, hasReport } = logic.reportStatusEvent;
+
+    setReportStatusByStudy((prev) => ({
+      ...prev,
+      [studyId]: hasReport,
+    }));
+
+    setReportStatusLoadingByStudy((prev) => ({
+      ...prev,
+      [studyId]: false,
+    }));
+  }, [logic.reportStatusEvent]);
+
   // Handlers
   const handleServerSearch = async () => {
     if (!searchTerm.trim()) return;

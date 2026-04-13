@@ -20,6 +20,7 @@ export function useStudiesLogic(unidadeAtual: string) {
   const [isDeletingStudy, setIsDeletingStudy] = useState(false);
   const [selectedStudyForReport, setSelectedStudyForReport] = useState<any>(null);
   const [selectedStudyForReports, setSelectedStudyForReports] = useState<any>(null);
+  const [reportStatusEvent, setReportStatusEvent] = useState<{ studyId: string; hasReport: boolean; at: number } | null>(null);
   const [serverSearchResults, setServerSearchResults] = useState<any[] | null>(null);
   const [isSearchingServer, setIsSearchingServer] = useState(false);
 
@@ -144,6 +145,11 @@ export function useStudiesLogic(unidadeAtual: string) {
           if (response.ok) {
             const reports = await response.json();
             setStudyReports(reports);
+            setReportStatusEvent({
+              studyId: selectedStudyForReports.id,
+              hasReport: Array.isArray(reports) && reports.length > 0,
+              at: Date.now(),
+            });
           }
         } catch (err) {
           console.error('Erro ao recarregar laudos:', err);
@@ -182,6 +188,11 @@ export function useStudiesLogic(unidadeAtual: string) {
         await response.json();
         alert(`Laudo anexado com sucesso para ${selectedStudyForReport.patient}!`);
         await registrarLog('UPLOAD', selectedStudyForReport, `Laudo anexado: ${file.name}`);
+        setReportStatusEvent({
+          studyId: selectedStudyForReport.id,
+          hasReport: true,
+          at: Date.now(),
+        });
       } else {
         const error = await response.json();
         alert(`Erro ao anexar laudo: ${error.message}`);
@@ -212,6 +223,7 @@ export function useStudiesLogic(unidadeAtual: string) {
     isDeletingStudy,
     selectedStudyForReport,
     selectedStudyForReports,
+    reportStatusEvent,
     serverSearchResults,
     setServerSearchResults,
     isSearchingServer,
