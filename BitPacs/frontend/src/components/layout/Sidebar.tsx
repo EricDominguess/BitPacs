@@ -42,7 +42,19 @@ const navItems = [
   },
 ];
 
-export function Sidebar({ isMinimized, setIsMinimized }: { isMinimized: boolean; setIsMinimized: (value: boolean) => void }) {
+interface SidebarProps {
+  isMinimized: boolean;
+  setIsMinimized: (value: boolean) => void;
+  isMobileOpen?: boolean;
+  setIsMobileOpen?: (value: boolean) => void;
+}
+
+export function Sidebar({
+  isMinimized,
+  setIsMinimized,
+  isMobileOpen = false,
+  setIsMobileOpen,
+}: SidebarProps) {
   const location = useLocation();
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -52,9 +64,20 @@ export function Sidebar({ isMinimized, setIsMinimized }: { isMinimized: boolean;
 
   return (
     <>
+    {isMobileOpen && (
+      <button
+        type="button"
+        aria-label="Fechar menu"
+        onClick={() => setIsMobileOpen?.(false)}
+        className="md:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px]"
+      />
+    )}
+
     <aside className={cn(
-      "fixed left-0 top-[72px] h-[calc(100vh-72px)] bg-theme-secondary/50 border-r border-theme-light flex flex-col transition-all duration-300 z-50",
-      isMinimized ? "w-20" : "w-64"
+      "fixed left-0 top-[72px] h-[calc(100vh-72px)] bg-theme-secondary/95 md:bg-theme-secondary/50 border-r border-theme-light flex flex-col transition-all duration-300 z-50",
+      "w-[85vw] max-w-[280px] md:max-w-none",
+      isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+      isMinimized ? "md:w-20" : "md:w-64"
     )}>
       {/*Navegação scrollável*/}
       <nav className={cn(
@@ -75,13 +98,14 @@ export function Sidebar({ isMinimized, setIsMinimized }: { isMinimized: boolean;
               <Link
                 key={item.href}
                 to={item.href}
+                onClick={() => setIsMobileOpen?.(false)}
                 title={isMinimized ? item.label : undefined}
                 className={cn(
                   'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group',
                   isActive
                     ? 'bg-nautico text-white shadow-brand'
                     : 'text-theme-muted hover:text-theme-primary hover:bg-nautico/10',
-                  isMinimized && "px-3 justify-center"
+                  isMinimized && "md:px-3 md:justify-center"
                 )}
               >
                 <span className={cn(
@@ -90,7 +114,7 @@ export function Sidebar({ isMinimized, setIsMinimized }: { isMinimized: boolean;
                 )}>
                   {item.icon}
                 </span>
-                {!isMinimized && <span className="font-medium">{item.label}</span>}
+                {(!isMinimized || isMobileOpen) && <span className="font-medium">{item.label}</span>}
               </Link>
             );
           })}
@@ -106,7 +130,7 @@ export function Sidebar({ isMinimized, setIsMinimized }: { isMinimized: boolean;
           title={isMinimized ? "Contatar Suporte" : undefined}
           className={cn(
             "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-theme-muted hover:text-ultra hover:bg-ultra/10 transition-all duration-200 group",
-            isMinimized && "px-3 justify-center"
+            isMinimized && "md:px-3 md:justify-center"
           )}
         >
           <span className="text-theme-muted group-hover:text-ultra transition-colors flex-shrink-0">
@@ -114,7 +138,7 @@ export function Sidebar({ isMinimized, setIsMinimized }: { isMinimized: boolean;
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
           </span>
-          {!isMinimized && <span className="font-medium">Contatar Suporte</span>}
+          {(!isMinimized || isMobileOpen) && <span className="font-medium">Contatar Suporte</span>}
         </button>
       </div>
 
@@ -127,7 +151,7 @@ export function Sidebar({ isMinimized, setIsMinimized }: { isMinimized: boolean;
           onClick={() => setShowProfileModal(true)}
           className={cn(
             "w-full flex items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group",
-            isMinimized && "px-1 justify-center"
+            isMinimized && "md:px-1 md:justify-center"
           )}
         >
           {user.avatarUrl ? (
@@ -143,7 +167,7 @@ export function Sidebar({ isMinimized, setIsMinimized }: { isMinimized: boolean;
               </span>
             </div>
           )}
-          {!isMinimized && (
+          {(!isMinimized || isMobileOpen) && (
             <div className="flex-1 min-w-0 text-left">
               <p className="text-sm font-medium text-theme-primary truncate group-hover:text-nautico transition-colors">
                 {user.nome || 'Usuário'}
@@ -151,7 +175,7 @@ export function Sidebar({ isMinimized, setIsMinimized }: { isMinimized: boolean;
               <p className="text-xs text-theme-muted truncate">{user.email || 'email@bitpacs.com'}</p>
             </div>
           )}
-          {!isMinimized && (
+          {(!isMinimized || isMobileOpen) && (
             <svg className="w-4 h-4 text-theme-muted group-hover:text-nautico transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -163,7 +187,7 @@ export function Sidebar({ isMinimized, setIsMinimized }: { isMinimized: boolean;
           onClick={() => setIsMinimized(!isMinimized)}
           title={isMinimized ? "Expandir" : "Minimizar"}
           className={cn(
-            "w-full flex items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group mt-2",
+            "hidden md:flex w-full items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group mt-2",
             isMinimized && "justify-center"
           )}
         >

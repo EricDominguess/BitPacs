@@ -110,7 +110,7 @@ export function PeriodFilter({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200',
+          'w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 px-4 py-2 rounded-lg border transition-all duration-200',
           'bg-theme-secondary border-theme-border hover:border-nautico/50 hover:bg-theme-tertiary/70 hover:shadow-sm',
           'text-theme-primary text-sm font-medium',
           isOpen && 'ring-2 ring-nautico border-transparent'
@@ -127,7 +127,7 @@ export function PeriodFilter({
       {/* Dropdown menu */}
       {isOpen && (
         <div className={cn(
-          'absolute top-full mt-2 w-72 z-50',
+          'absolute top-full mt-2 w-full sm:w-72 z-50',
           'right-0',
           'bg-theme-secondary border border-theme-border rounded-lg shadow-lg',
           'animate-in fade-in-0 zoom-in-95 duration-150'

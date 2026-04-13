@@ -1,14 +1,29 @@
 import { SettingsModal } from '../common';
 import { useUnidade, useModal } from '../../contexts';
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const { isSettingsOpen, setIsSettingsOpen } = useModal();
   const { unidadeLabel, isUnidadeSelected } = useUnidade();
 
   return (
     <>
     <header className="h-[72px] bg-theme-primary/95 backdrop-blur-md border-b border-theme-light sticky top-0 z-50 transition-colors duration-300">
-      <div className="h-full px-6 flex items-center justify-between">
+      <div className="h-full px-3 sm:px-6 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          className="md:hidden p-2 rounded-lg text-theme-muted hover:text-theme-primary hover:bg-nautico/10 transition-colors"
+          aria-label="Abrir menu"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
         <button className="flex items-center gap-2 group">
           {/* Ícone estilizado baseado na identidade */}
           <div className="relative w-10 h-10">
@@ -16,12 +31,12 @@ export function Header() {
             <div className="absolute inset-1 bg-nautico rounded-md transform rotate-45 group-hover:rotate-90 transition-transform duration-300" />
             <div className="absolute inset-2 bg-ultra rounded-sm transform rotate-45 group-hover:rotate-90 transition-transform duration-300" />
           </div>
-          <span className="text-2xl font-bold text-theme-primary tracking-tight">
+          <span className="text-xl sm:text-2xl font-bold text-theme-primary tracking-tight">
             Bit<span className="text-ultra">Pacs</span>
           </span>
         </button>
 
-        <div className="flex-1 flex justify-center items-center">
+        <div className="hidden sm:flex flex-1 justify-center items-center">
           <div className="flex items-center gap-2 bg-theme-card border border-theme-border px-4 py-2 rounded-full">
             <svg className="w-4 h-4 text-nautico" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -34,7 +49,7 @@ export function Header() {
         </div>
                 
         {/* Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 ml-auto">
 
           {/* Configurações */}
           <button 

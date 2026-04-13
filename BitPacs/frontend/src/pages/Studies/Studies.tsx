@@ -716,6 +716,40 @@ export function Studies() {
     // Lógica de download
   };
 
+  const getStudyActions = (study: typeof studiesFormatted[0]) => ([
+    {
+      label: 'Visualizar',
+      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
+      onClick: () => handleOpenViewerModal(study)
+    },
+    {
+      label: 'Baixar',
+      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>,
+      onClick: () => handleOpenDownloadModal(study)
+    },
+    {
+      label: 'Anexar Laudo',
+      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
+      onClick: () => logic.handleAttachReportClick(study)
+    },
+    {
+      label: 'Visualizar Laudos',
+      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
+      onClick: () => logic.handleViewReports(study),
+      divider: true
+    },
+    ...(currentUser?.role === 'Master' ? [{
+      label: 'Deletar',
+      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
+      onClick: () => {
+        logic.setStudyToDelete({ id: study.id, patient: study.patient });
+        setShowFinalStudyDeleteConfirm(false);
+        logic.setShowDeleteConfirm(true);
+      },
+      variant: 'danger' as const
+    }] : [])
+  ]);
+
   return (
     <MainLayout>
       {logic.uploadNotice && (
@@ -749,18 +783,18 @@ export function Studies() {
             </div>
             <button
               onClick={handleServerSearch}
-              className="px-4 py-2 bg-nautico text-white rounded-lg hover:bg-nautico/90 transition-colors"
+              className="w-full sm:w-auto px-4 py-2 bg-nautico text-white rounded-lg hover:bg-nautico/90 transition-colors"
             >
               Pesquisar
             </button>
           </div>
 
           <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="relative z-[80]" ref={modalityDropdownRef}>
+            <div className="relative z-[80] w-full sm:w-auto" ref={modalityDropdownRef}>
               <button
                 onClick={() => setIsModalityDropdownOpen((prev) => !prev)}
                 disabled={isLoadingModalityFilter}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 bg-theme-secondary border-theme-border hover:border-nautico/50 text-theme-primary text-sm font-medium ${
+                className={`w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 px-4 py-2 rounded-lg border transition-all duration-200 bg-theme-secondary border-theme-border hover:border-nautico/50 text-theme-primary text-sm font-medium ${
                   isModalityDropdownOpen ? 'ring-2 ring-nautico border-transparent' : 'hover:bg-theme-tertiary/70 hover:shadow-sm'
                 }`}
               >
@@ -778,7 +812,7 @@ export function Studies() {
               </button>
 
               {isModalityDropdownOpen && (
-                <div className="absolute top-full mt-2 w-80 z-[70] bg-theme-secondary border border-theme-border rounded-lg shadow-lg animate-in fade-in-0 zoom-in-95 duration-150">
+                <div className="absolute top-full mt-2 w-full sm:w-80 z-[70] bg-theme-secondary border border-theme-border rounded-lg shadow-lg animate-in fade-in-0 zoom-in-95 duration-150">
                   <div className="p-2">
                     {MODALITY_OPTIONS.map((mod) => {
                       const isSelected = selectedModality === mod.value;
@@ -806,13 +840,13 @@ export function Studies() {
               )}
             </div>
 
-            <div className="sm:ml-auto">
+            <div className="sm:ml-auto w-full sm:w-auto">
               <PeriodFilter
                 selectedPeriod={selectedPeriod}
                 onPeriodChange={setSelectedPeriod}
                 customStartDate={customStartDate}
                 customEndDate={customEndDate}
-                className="z-[80]"
+                className="z-[80] w-full sm:w-auto"
                 onCustomDateChange={(start, end) => {
                   setCustomStartDate(start);
                   setCustomEndDate(end);
@@ -824,7 +858,70 @@ export function Studies() {
 
         {/* Tabela de Estudos */}
         <Card className="overflow-hidden !p-0 relative z-10">
-          <div className="overflow-x-auto scrollbar-thin">
+          <div className="md:hidden divide-y divide-theme-light">
+            {isLoading || isLoadingModalityFilter ? (
+              <div className="px-4 py-8 text-center text-theme-muted">Carregando estudos do servidor...</div>
+            ) : studiesAfterFilters.length === 0 ? (
+              <div className="px-4 py-8 text-center text-theme-muted">Nenhum estudo encontrado.</div>
+            ) : (
+              currentItems.map((study) => (
+                <div key={study.id} className="p-4 space-y-3 hover:bg-nautico/5 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-theme-primary break-words">{study.patient}</p>
+                      <p className="text-xs text-theme-muted">Nascimento: {study.birthDate || '-'}</p>
+                    </div>
+                    <ActionDropdown actions={getStudyActions(study)} />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-theme-muted">Modalidade</span>
+                    <ModalityBadge modality={study.modality} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs text-theme-muted">Descrição</p>
+                      <p className="text-theme-secondary break-words">{study.description}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-theme-muted">Data</p>
+                      <p className="text-theme-secondary">{study.date || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-theme-muted">Séries</p>
+                      <p className="text-theme-secondary">{study.seriesCount}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-theme-muted">Imagens</p>
+                      <p className="text-theme-secondary">{study.imagesCount}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-xs text-theme-muted">Laudo</span>
+                    {reportStatusLoadingByStudy[study.id] ? (
+                      <span className="inline-flex h-2.5 w-2.5 rounded-full bg-theme-muted/50 animate-pulse" title="Verificando laudo" />
+                    ) : reportStatusByStudy[study.id] ? (
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500/15 text-green-500" title="Laudado">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-theme-tertiary text-theme-muted" title="Sem laudo">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="hidden md:block overflow-x-auto scrollbar-thin">
             <table className="w-full min-w-[920px]">
               <thead className="bg-theme-secondary">
                 <tr>
@@ -905,41 +1002,7 @@ export function Studies() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center">
-                          <ActionDropdown
-                            actions={[
-                              {
-                                label: 'Visualizar',
-                                icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
-                                onClick: () => handleOpenViewerModal(study)
-                              },
-                              {
-                                label: 'Baixar',
-                                icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>,
-                                onClick: () => handleOpenDownloadModal(study)
-                              },
-                              {
-                                label: 'Anexar Laudo',
-                                icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
-                                onClick: () => logic.handleAttachReportClick(study)
-                              },
-                              {
-                                label: 'Visualizar Laudos',
-                                icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
-                                onClick: () => logic.handleViewReports(study),
-                                divider: true
-                              },
-                              ...(currentUser?.role === 'Master' ? [{
-                                label: 'Deletar',
-                                icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
-                                onClick: () => {
-                                  logic.setStudyToDelete({ id: study.id, patient: study.patient });
-                                  setShowFinalStudyDeleteConfirm(false);
-                                  logic.setShowDeleteConfirm(true);
-                                },
-                                variant: 'danger' as const
-                              }] : [])
-                            ]}
-                          />
+                          <ActionDropdown actions={getStudyActions(study)} />
                         </div>
                       </td>
                     </tr>
@@ -950,7 +1013,7 @@ export function Studies() {
           </div>
 
           {/* Paginação */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-theme-border bg-theme-secondary">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-t border-theme-border bg-theme-secondary">
             <span className="text-sm text-theme-muted">
               {studiesAfterFilters.length > 0 ? (
                 <>Mostrando {indexOfFirstItem + 1} a {Math.min(indexOfLastItem, studiesAfterFilters.length)} de {studiesAfterFilters.length} resultados</>
@@ -958,7 +1021,7 @@ export function Studies() {
                 'Nenhum resultado'
               )}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-end sm:self-auto">
               <Button variant="ghost" size="sm" onClick={handlePrevPage} disabled={currentPage === 1}>
                 Anterior
               </Button>
