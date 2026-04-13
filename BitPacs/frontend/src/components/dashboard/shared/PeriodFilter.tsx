@@ -111,7 +111,7 @@ export function PeriodFilter({
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           'flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200',
-          'bg-theme-secondary border-theme-border hover:border-nautico/50',
+          'bg-theme-secondary border-theme-border hover:border-nautico/50 hover:bg-theme-tertiary/70 hover:shadow-sm',
           'text-theme-primary text-sm font-medium',
           isOpen && 'ring-2 ring-nautico border-transparent'
         )}
@@ -146,7 +146,7 @@ export function PeriodFilter({
                     'transition-colors duration-150',
                     isSelected || isCustomHighlighted
                       ? 'bg-nautico/10 text-nautico'
-                      : 'text-theme-primary hover:bg-theme-tertiary'
+                      : 'text-theme-primary hover:bg-theme-tertiary hover:text-theme-primary'
                   )}
                 >
                   <span>{option.label}</span>

@@ -211,6 +211,41 @@ export function Studies() {
     return 'OT';
   };
 
+  const getNormalizedModalities = (study: any) => {
+    const collected: string[] = [];
+
+    const pushTokens = (source: unknown) => {
+      if (!source) return;
+      if (Array.isArray(source)) {
+        source.forEach((item) => pushTokens(item));
+        return;
+      }
+
+      const value = String(source).trim();
+      if (!value) return;
+
+      value
+        .split(/\\|,|\+/)
+        .map((token) => normalizeModality(token))
+        .filter(Boolean)
+        .forEach((token) => collected.push(token));
+    };
+
+    pushTokens(study?.MainDicomTags?.ModalitiesInStudy);
+    pushTokens(study?.ModalitiesInStudy);
+    pushTokens(study?.MainDicomTags?.Modality);
+    pushTokens(study?.Modality);
+    pushTokens(study?.RequestedTags?.Modality);
+
+    const cacheKey = study?.ID || study?.id;
+    if (cacheKey && detailsCache[cacheKey]?.modality) {
+      pushTokens(detailsCache[cacheKey].modality);
+    }
+
+    const unique = Array.from(new Set(collected.map((m) => m.toUpperCase())));
+    return unique.length > 0 ? unique : ['OT'];
+  };
+
   const selectedModalityOption = MODALITY_OPTIONS.find((m) => m.value === selectedModality) || MODALITY_OPTIONS[0];
 
   const studiesFormatted = useMemo(() =>
@@ -224,6 +259,7 @@ export function Studies() {
         rawStudyTime: s.MainDicomTags?.StudyTime || '',
         rawModalities: s.MainDicomTags?.ModalitiesInStudy || s.ModalitiesInStudy || s.MainDicomTags?.Modality || '',
         modality: getPrimaryModality(s),
+        normalizedModalities: getNormalizedModalities(s),
         description: (s.MainDicomTags?.StudyDescription || '').trim() || 'sem descrição',
         date: formatDicomDate(s.MainDicomTags?.StudyDate),
         studyTimestamp: getStudyTimestamp(s.MainDicomTags?.StudyDate, s.MainDicomTags?.StudyTime),
@@ -265,12 +301,16 @@ export function Studies() {
     index.set('all', studiesBeforeModality);
 
     for (const study of studiesBeforeModality) {
-      const key = (study.modality || 'OT').toUpperCase();
-      const current = index.get(key);
-      if (current) {
-        current.push(study);
-      } else {
-        index.set(key, [study]);
+      const modalities = study.normalizedModalities || [study.modality || 'OT'];
+
+      for (const modality of modalities) {
+        const key = String(modality || 'OT').toUpperCase();
+        const current = index.get(key);
+        if (current) {
+          current.push(study);
+        } else {
+          index.set(key, [study]);
+        }
       }
     }
 
@@ -284,6 +324,10 @@ export function Studies() {
 
     // Fallback robusto usando os dados crus de modalidade no estudo
     const byRaw = studiesBeforeModality.filter((study) => {
+      if (Array.isArray(study.normalizedModalities) && study.normalizedModalities.includes(selected)) {
+        return true;
+      }
+
       if (study.modality?.toUpperCase() === selected) return true;
 
       const raw = study.rawModalities;
@@ -613,7 +657,7 @@ export function Studies() {
               <button
                 onClick={() => setIsModalityDropdownOpen((prev) => !prev)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 bg-theme-secondary border-theme-border hover:border-nautico/50 text-theme-primary text-sm font-medium ${
-                  isModalityDropdownOpen ? 'ring-2 ring-nautico border-transparent' : ''
+                  isModalityDropdownOpen ? 'ring-2 ring-nautico border-transparent' : 'hover:bg-theme-tertiary/70 hover:shadow-sm'
                 }`}
               >
                 <svg className="w-4 h-4 text-nautico" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -637,7 +681,7 @@ export function Studies() {
                           className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors duration-150 ${
                             isSelected
                               ? 'bg-nautico/10 text-nautico'
-                              : 'text-theme-primary hover:bg-theme-tertiary'
+                              : 'text-theme-primary hover:bg-theme-tertiary hover:text-theme-primary'
                           }`}
                         >
                           <span>{mod.label}</span>
