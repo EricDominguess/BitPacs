@@ -119,6 +119,20 @@ export function useOrthancData(): UseOrthancDataReturn {
         pacientesRes.ok ? pacientesRes.json() : []
       ]);
 
+      const baseSnapshot: OrthancSnapshotCacheEntry = {
+        expiresAt: Date.now() + ORTHANC_SNAPSHOT_CACHE_TTL_MS,
+        estudos: estudosData,
+        pacientes: pacientesData,
+        status: statsData,
+        series: cached?.series || [],
+        seriesByStudy: cached?.seriesByStudy ? new Map(cached.seriesByStudy) : new Map<string, any[]>(),
+      };
+
+      // Libera a tela rapidamente com os dados principais (sem esperar séries)
+      orthancSnapshotCache.set(cacheKey, baseSnapshot);
+      applySnapshot(baseSnapshot);
+      setIsLoading(false);
+
       // ✅ unidadeAtual já é o slug — passa direto para o C#
       console.log(`Buscando séries no C# para a unidade: ${unidadeAtual}`);
       const seriesRes = await fetch(`/api/dashboard/series/${unidadeAtual}`);
@@ -135,7 +149,7 @@ export function useOrthancData(): UseOrthancDataReturn {
         });
       }
 
-      const snapshot: OrthancSnapshotCacheEntry = {
+      const snapshotWithSeries: OrthancSnapshotCacheEntry = {
         expiresAt: Date.now() + ORTHANC_SNAPSHOT_CACHE_TTL_MS,
         estudos: estudosData,
         pacientes: pacientesData,
@@ -144,9 +158,8 @@ export function useOrthancData(): UseOrthancDataReturn {
         seriesByStudy: seriesMap,
       };
 
-      orthancSnapshotCache.set(cacheKey, snapshot);
-      applySnapshot(snapshot);
-      setIsLoading(false);
+      orthancSnapshotCache.set(cacheKey, snapshotWithSeries);
+      applySnapshot(snapshotWithSeries);
     } catch (erro) {
       setError(erro instanceof Error ? erro.message : 'Erro desconhecido');
       setIsLoading(false);
