@@ -10,6 +10,7 @@ import { ReportsModal, DeleteConfirmModal } from './components';
 import { useStudiesLogic } from './useStudiesLogic';
 
 const ITEMS_PER_PAGE = 8;
+const MODALITY_CACHE_TTL_MS = 5 * 60 * 1000;
 const MODALITY_OPTIONS = [
   { value: 'all', label: 'Todos os exames' },
   { value: 'CT', label: 'Tomografia Computadorizada (CT)' },
@@ -27,6 +28,12 @@ interface SelectedStudyForViewer {
   patient: string;
   modality: string;
   description: string;
+}
+
+interface ModalityCacheEntry {
+  ids: Set<string>;
+  expiresAt: number;
+  studiesCount: number;
 }
 
 export function Studies() {
@@ -59,6 +66,7 @@ export function Studies() {
   const [isLoadingModalityFilter, setIsLoadingModalityFilter] = useState(false);
   const fetchingRef = useRef<Set<string>>(new Set());
   const modalityAbortRef = useRef<AbortController | null>(null);
+  const modalityFilterCacheRef = useRef<Map<string, ModalityCacheEntry>>(new Map());
   const reportStatusFetchInFlightRef = useRef<Set<string>>(new Set());
   const reportStatusRequestSeqRef = useRef<Record<string, number>>({});
   const modalityDropdownRef = useRef<HTMLDivElement>(null);
@@ -394,9 +402,33 @@ export function Studies() {
   }, []);
 
   useEffect(() => {
+    const now = Date.now();
+    const currentUnitPrefix = `${unidadeAtual}:`;
+
+    modalityFilterCacheRef.current.forEach((entry, key) => {
+      const expired = entry.expiresAt <= now;
+      const staleByCount = key.startsWith(currentUnitPrefix) && entry.studiesCount !== estudos.length;
+      if (expired || staleByCount) {
+        modalityFilterCacheRef.current.delete(key);
+      }
+    });
+  }, [unidadeAtual, estudos.length]);
+
+  useEffect(() => {
     if (selectedModality === 'all') {
       modalityAbortRef.current?.abort();
       setModalityServerStudyIds(null);
+      setIsLoadingModalityFilter(false);
+      return;
+    }
+
+    const modality = selectedModality.toUpperCase();
+    const cacheKey = `${unidadeAtual}:${modality}`;
+    const cached = modalityFilterCacheRef.current.get(cacheKey);
+    const now = Date.now();
+
+    if (cached && cached.expiresAt > now && cached.studiesCount === estudos.length) {
+      setModalityServerStudyIds(new Set(cached.ids));
       setIsLoadingModalityFilter(false);
       return;
     }
@@ -408,7 +440,6 @@ export function Studies() {
     setIsLoadingModalityFilter(true);
 
     (async () => {
-      const modality = selectedModality.toUpperCase();
       const limit = 200;
       const maxPages = 25;
       const allIds = new Set<string>();
@@ -438,6 +469,11 @@ export function Studies() {
       }
 
       setModalityServerStudyIds(allIds);
+      modalityFilterCacheRef.current.set(cacheKey, {
+        ids: new Set(allIds),
+        expiresAt: Date.now() + MODALITY_CACHE_TTL_MS,
+        studiesCount: estudos.length,
+      });
     })()
       .catch(() => {
         if (controller.signal.aborted) return;
@@ -450,7 +486,7 @@ export function Studies() {
       });
 
     return () => controller.abort();
-  }, [selectedModality, unidadeAtual]);
+  }, [selectedModality, unidadeAtual, estudos.length]);
 
   useEffect(() => {
     currentItems.forEach((study) => {
