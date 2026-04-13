@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 const INTERVALO_ATUALIZACAO = 15000;
+const ORTHANC_SNAPSHOT_CACHE_TTL_MS = 60 * 1000;
 
 // ✅ Apenas slugs — sem IDs numéricos. O backend agora retorna o slug direto.
 const UNIDADES_CONFIG: Record<string, { orthancProxy: string }> = {
@@ -31,6 +32,17 @@ interface UseOrthancDataReturn {
   buscarModalidadeNoServidor: (modality: string, signal?: AbortSignal) => Promise<any[]>;
   buscarModalidadeNoServidorPaginado: (modality: string, since?: number, limit?: number, signal?: AbortSignal) => Promise<any[]>;
 }
+
+interface OrthancSnapshotCacheEntry {
+  expiresAt: number;
+  estudos: any[];
+  pacientes: any[];
+  status: any;
+  series: any[];
+  seriesByStudy: Map<string, any[]>;
+}
+
+const orthancSnapshotCache = new Map<string, OrthancSnapshotCacheEntry>();
 
 export function useOrthancData(): UseOrthancDataReturn {
   const getUnidadeAtual = useCallback(() => {
@@ -65,13 +77,32 @@ export function useOrthancData(): UseOrthancDataReturn {
     return config?.orthancProxy || '/orthanc';
   }, [unidadeAtual]);
 
-  const carregarTudo = useCallback(async () => {
+  const applySnapshot = useCallback((snapshot: OrthancSnapshotCacheEntry) => {
+    setEstudos(snapshot.estudos);
+    setStatus(snapshot.status);
+    setPacientes(snapshot.pacientes);
+    setSeries(snapshot.series);
+    setSeriesByStudy(new Map(snapshot.seriesByStudy));
+  }, []);
+
+  const carregarTudo = useCallback(async (forceRefresh = false) => {
     if (isLoadingRef.current) return;
     isLoadingRef.current = true;
 
     const timestamp = Date.now();
     const proxyPrefix = getProxyPrefix();
     setError(null);
+
+    const cacheKey = unidadeAtual;
+    const cached = orthancSnapshotCache.get(cacheKey);
+    const hasValidCache = !!cached && cached.expiresAt > Date.now();
+
+    if (!forceRefresh && hasValidCache && cached) {
+      applySnapshot(cached);
+      setIsLoading(false);
+      isLoadingRef.current = false;
+      return;
+    }
 
     try {
       const [estudosRes, statsRes, pacientesRes] = await Promise.all([
@@ -88,33 +119,41 @@ export function useOrthancData(): UseOrthancDataReturn {
         pacientesRes.ok ? pacientesRes.json() : []
       ]);
 
-      setEstudos(estudosData);
-      setStatus(statsData);
-      setPacientes(pacientesData);
-      setIsLoading(false);
-
       // ✅ unidadeAtual já é o slug — passa direto para o C#
       console.log(`Buscando séries no C# para a unidade: ${unidadeAtual}`);
       const seriesRes = await fetch(`/api/dashboard/series/${unidadeAtual}`);
 
+      let seriesData: any[] = [];
+      const seriesMap = new Map<string, any[]>();
+
       if (seriesRes.ok) {
-        const seriesData = await seriesRes.json();
-        const seriesMap = new Map<string, any[]>();
+        seriesData = await seriesRes.json();
         seriesData.forEach((serie: any) => {
           const studyId = serie.ParentStudy;
           if (!seriesMap.has(studyId)) seriesMap.set(studyId, []);
           seriesMap.get(studyId)!.push(serie);
         });
-        setSeries(seriesData);
-        setSeriesByStudy(seriesMap);
       }
+
+      const snapshot: OrthancSnapshotCacheEntry = {
+        expiresAt: Date.now() + ORTHANC_SNAPSHOT_CACHE_TTL_MS,
+        estudos: estudosData,
+        pacientes: pacientesData,
+        status: statsData,
+        series: seriesData,
+        seriesByStudy: seriesMap,
+      };
+
+      orthancSnapshotCache.set(cacheKey, snapshot);
+      applySnapshot(snapshot);
+      setIsLoading(false);
     } catch (erro) {
       setError(erro instanceof Error ? erro.message : 'Erro desconhecido');
       setIsLoading(false);
     } finally {
       isLoadingRef.current = false;
     }
-  }, [getProxyPrefix, unidadeAtual]);
+  }, [applySnapshot, getProxyPrefix, unidadeAtual]);
 
   const checkChanges = useCallback(async () => {
     const proxyPrefix = getProxyPrefix();
@@ -141,7 +180,7 @@ export function useOrthancData(): UseOrthancDataReturn {
 
         if (temNovidadeReal) {
           console.log("🆕 Novo exame detectado. Recarregando dados...");
-          carregarTudo();
+          carregarTudo(true);
         }
       }
     } catch (error) {
@@ -313,7 +352,7 @@ export function useOrthancData(): UseOrthancDataReturn {
     isLoading,
     isMonitoring,
     error,
-    refetch: carregarTudo,
+    refetch: () => carregarTudo(true),
     unidadeAtual,
     carregarSeriesDoEstudo,
     buscarEstudosNoServidor,
