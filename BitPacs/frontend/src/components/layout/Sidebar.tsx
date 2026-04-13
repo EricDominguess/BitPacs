@@ -74,11 +74,35 @@ export function Sidebar({
     )}
 
     <aside className={cn(
-      "fixed left-0 top-0 md:top-[72px] h-[100dvh] md:h-[calc(100vh-72px)] pt-[72px] md:pt-0 bg-theme-primary md:bg-theme-secondary/50 border-r border-theme-light flex flex-col transition-all duration-300 z-[60] shadow-2xl md:shadow-none",
+      "fixed left-0 top-0 bottom-0 md:top-[72px] bg-theme-primary md:bg-theme-secondary/50 border-r border-theme-light flex flex-col transition-all duration-300 z-[60] shadow-2xl md:shadow-none",
       "w-[88vw] max-w-[320px] md:max-w-none",
       isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
       isMinimized ? "md:w-20" : "md:w-64"
     )}>
+      <div className="md:hidden h-[72px] px-4 border-b border-theme-light bg-theme-primary flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="relative w-9 h-9">
+            <div className="absolute inset-0 bg-ultra rounded-lg transform rotate-45" />
+            <div className="absolute inset-1 bg-nautico rounded-md transform rotate-45" />
+            <div className="absolute inset-2 bg-ultra rounded-sm transform rotate-45" />
+          </div>
+          <span className="text-2xl font-bold text-theme-primary tracking-tight">
+            Bit<span className="text-ultra">Pacs</span>
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsMobileOpen?.(false)}
+          className="p-2 rounded-lg text-theme-muted hover:text-theme-primary hover:bg-nautico/10 transition-colors"
+          aria-label="Fechar menu"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
       {/*Navegação scrollável*/}
       <nav className={cn(
         "p-3 md:p-4 flex flex-col gap-1 overflow-y-auto flex-1 min-h-0",
