@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../../components/layout';
 import { Card, Button, ActionDropdown } from '../../components/common';
@@ -56,6 +56,7 @@ export function Studies() {
   const [reportStatusByStudy, setReportStatusByStudy] = useState<Record<string, boolean>>({});
   const [reportStatusLoadingByStudy, setReportStatusLoadingByStudy] = useState<Record<string, boolean>>({});
   const fetchingRef = useRef<Set<string>>(new Set());
+  const reportStatusFetchInFlightRef = useRef<Set<string>>(new Set());
   const modalityDropdownRef = useRef<HTMLDivElement>(null);
   const [isModalityDropdownOpen, setIsModalityDropdownOpen] = useState(false);
   
@@ -312,61 +313,55 @@ export function Studies() {
     });
   }, [currentItems, carregarSeriesDoEstudo, detailsCache]);
 
-  const fetchReportStatusForCurrentStudies = useCallback(async () => {
-    if (!unidadeAtual || currentItems.length === 0) return;
+  const currentItemIds = useMemo(
+    () => currentItems.map((study) => study.id).filter(Boolean),
+    [currentItems]
+  );
 
-    const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
-    const ids = currentItems.map((study) => study.id).filter(Boolean);
-
-    setReportStatusLoadingByStudy((prev) => {
-      const next = { ...prev };
-      ids.forEach((id) => {
-        next[id] = true;
-      });
-      return next;
-    });
-
-    await Promise.all(
-      ids.map(async (id) => {
-        try {
-          const response = await fetch(`/api/dashboard/reports/${unidadeAtual}/${id}`, {
-            headers: token
-              ? {
-                  'Authorization': `Bearer ${token}`,
-                }
-              : undefined,
-          });
-
-          if (response.ok) {
-            const reports = await response.json();
-            setReportStatusByStudy((prev) => ({
-              ...prev,
-              [id]: Array.isArray(reports) && reports.length > 0,
-            }));
-          } else {
-            setReportStatusByStudy((prev) => ({
-              ...prev,
-              [id]: false,
-            }));
-          }
-        } catch {
-          setReportStatusByStudy((prev) => ({
-            ...prev,
-            [id]: false,
-          }));
-        } finally {
-          setReportStatusLoadingByStudy((prev) => ({
-            ...prev,
-            [id]: false,
-          }));
-        }
-      })
-    );
-  }, [unidadeAtual, currentItems]);
+  const currentItemIdsKey = useMemo(() => currentItemIds.join('|'), [currentItemIds]);
 
   useEffect(() => {
-    fetchReportStatusForCurrentStudies();
-  }, [fetchReportStatusForCurrentStudies, logic.reportLoading, logic.showReportsModal]);
+    if (!unidadeAtual || currentItemIds.length === 0) return;
+
+    const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
+
+    currentItemIds.forEach((id) => {
+      const alreadyLoaded = typeof reportStatusByStudy[id] === 'boolean';
+      const isFetching = reportStatusFetchInFlightRef.current.has(id);
+
+      if (alreadyLoaded || isFetching) return;
+
+      reportStatusFetchInFlightRef.current.add(id);
+      setReportStatusLoadingByStudy((prev) => ({ ...prev, [id]: true }));
+
+      fetch(`/api/dashboard/reports/${unidadeAtual}/${id}`, {
+        headers: token
+          ? {
+              'Authorization': `Bearer ${token}`,
+            }
+          : undefined,
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            setReportStatusByStudy((prev) => ({ ...prev, [id]: false }));
+            return;
+          }
+
+          const reports = await response.json();
+          setReportStatusByStudy((prev) => ({
+            ...prev,
+            [id]: Array.isArray(reports) && reports.length > 0,
+          }));
+        })
+        .catch(() => {
+          setReportStatusByStudy((prev) => ({ ...prev, [id]: false }));
+        })
+        .finally(() => {
+          reportStatusFetchInFlightRef.current.delete(id);
+          setReportStatusLoadingByStudy((prev) => ({ ...prev, [id]: false }));
+        });
+    });
+  }, [unidadeAtual, currentItemIdsKey, currentItemIds, reportStatusByStudy]);
 
   // Handlers
   const handleServerSearch = async () => {
