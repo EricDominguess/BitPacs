@@ -28,7 +28,7 @@ export function ReportsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-3 sm:p-4">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black/60 backdrop-blur-sm"
@@ -36,10 +36,10 @@ export function ReportsModal({
       />
       
       {/* Modal */}
-      <div className="relative bg-theme-secondary border border-theme-border rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl transition-colors duration-300 overflow-x-hidden">
+      <div className="relative bg-theme-secondary border border-theme-border rounded-2xl p-4 sm:p-6 w-full max-w-md shadow-2xl transition-colors duration-300 overflow-x-hidden max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold text-theme-primary">Laudos Anexados</h3>
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <h3 className="text-lg sm:text-xl font-semibold text-theme-primary">Laudos Anexados</h3>
           <button
             onClick={onClose}
             className="p-1 text-theme-muted hover:text-theme-primary transition-colors"
@@ -60,7 +60,7 @@ export function ReportsModal({
             Nenhum laudo anexado.
           </div>
         ) : (
-          <div className="space-y-3 max-h-96 overflow-y-auto overflow-x-hidden pr-1">
+          <div className="space-y-3 max-h-[55dvh] sm:max-h-96 overflow-y-auto overflow-x-hidden pr-1">
             {reports.map((report) => (
               <div key={report.id} className="flex items-start gap-3 p-4 bg-theme-card border border-theme-border rounded-lg hover:bg-nautico/5 transition-colors overflow-hidden">
                 <div className="flex-1 min-w-0">
@@ -93,18 +93,18 @@ export function ReportsModal({
 
         {/* Confirm Delete Modal */}
         {deleteConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-3 sm:p-4">
             <div 
               className="fixed inset-0 bg-black/60 backdrop-blur-sm"
               onClick={() => setDeleteConfirm(false)}
             />
-            <div className="relative bg-theme-secondary border border-theme-border rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl">
-              <h3 className="text-lg font-semibold text-theme-primary mb-4">Confirmação</h3>
-              <p className="text-theme-muted mb-6">Tem certeza que deseja deletar este laudo?</p>
-              <div className="flex gap-3 justify-end">
+            <div className="relative bg-theme-secondary border border-theme-border rounded-2xl p-4 sm:p-6 w-full max-w-sm shadow-2xl">
+              <h3 className="text-base sm:text-lg font-semibold text-theme-primary mb-3 sm:mb-4">Confirmação</h3>
+              <p className="text-sm sm:text-base text-theme-muted mb-5 sm:mb-6">Tem certeza que deseja deletar este laudo?</p>
+              <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end">
                 <button
                   onClick={() => setDeleteConfirm(false)}
-                  className="px-4 py-2 rounded-lg bg-theme-card text-theme-primary hover:bg-theme-border transition-colors"
+                  className="w-full sm:w-auto px-4 py-2 rounded-lg bg-theme-card text-theme-primary hover:bg-theme-border transition-colors"
                 >
                   Cancelar
                 </button>
@@ -113,7 +113,7 @@ export function ReportsModal({
                     onDeleteReport();
                     setDeleteConfirm(false);
                   }}
-                  className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+                  className="w-full sm:w-auto px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
                 >
                   Deletar
                 </button>

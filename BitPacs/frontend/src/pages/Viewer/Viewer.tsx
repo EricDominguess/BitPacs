@@ -122,10 +122,10 @@ export function Viewer() {
   const viewerUrl = useFallback ? ohifViewerUrl : stoneViewerUrl;
 
   return (
-    <div className="h-screen bg-black flex flex-col overflow-hidden">
+    <div className="h-[100dvh] bg-black flex flex-col overflow-hidden">
       {/* Header Simples (Sem links externos) */}
-      <header className="h-14 bg-tangaroa border-b border-purple/30 flex items-center justify-between px-4 flex-shrink-0 z-10 shadow-lg">
-        <div className="flex items-center gap-4">
+      <header className="h-12 sm:h-14 bg-tangaroa border-b border-purple/30 flex items-center justify-between px-2 sm:px-4 flex-shrink-0 z-10 shadow-lg">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <button 
             onClick={() => navigate('/studies')} 
             className="flex items-center gap-2 text-white/80 hover:text-white transition-colors group"
@@ -135,10 +135,10 @@ export function Viewer() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </div>
-            <span className="text-sm font-medium">Voltar</span>
+            <span className="hidden sm:inline text-sm font-medium">Voltar</span>
           </button>
-          <div className="w-px h-6 bg-purple/30" />
-          <p className="text-sm font-medium text-white">
+          <div className="w-px h-5 sm:h-6 bg-purple/30" />
+          <p className="text-xs sm:text-sm font-medium text-white truncate">
             Visualizador <span className="text-ultra">BitPacs</span>
           </p>
         </div>

@@ -20,12 +20,12 @@ export function ViewerModal({ isOpen, study, onClose, onOpenInternal, onOpenOHIF
   if (!isOpen || !study) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-      <div className="bg-theme-card border border-theme-border rounded-xl overflow-hidden w-full max-w-md mx-4 shadow-2xl animate-scale-up">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in p-3 sm:p-4">
+      <div className="bg-theme-card border border-theme-border rounded-xl overflow-hidden w-full max-w-md shadow-2xl animate-scale-up max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
         {/* Header do Modal */}
-        <div className="flex items-center justify-between p-6 border-b border-theme-border">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-theme-border">
           <div>
-            <h2 className="text-xl font-bold text-theme-primary">
+            <h2 className="text-lg sm:text-xl font-bold text-theme-primary">
               Escolher Visualizador
             </h2>
             <p className="text-sm text-theme-muted mt-1">
@@ -43,7 +43,7 @@ export function ViewerModal({ isOpen, study, onClose, onOpenInternal, onOpenOHIF
         </div>
 
         {/* Informações do Estudo */}
-        <div className="px-6 py-4 bg-theme-secondary/50 border-b border-theme-border">
+        <div className="px-4 sm:px-6 py-4 bg-theme-secondary/50 border-b border-theme-border">
           <div className="flex items-center gap-4 text-sm">
             <ModalityBadge modality={study.modality} />
             <span className="text-theme-muted truncate">{study.description}</span>
@@ -51,7 +51,7 @@ export function ViewerModal({ isOpen, study, onClose, onOpenInternal, onOpenOHIF
         </div>
 
         {/* Opções de Visualizador */}
-        <div className="p-6 space-y-3">
+        <div className="p-4 sm:p-6 space-y-3">
           {/* Visualizador Interno */}
           <button
             onClick={onOpenInternal}
@@ -97,7 +97,7 @@ export function ViewerModal({ isOpen, study, onClose, onOpenInternal, onOpenOHIF
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-theme-border bg-theme-secondary/30">
+        <div className="px-4 sm:px-6 py-4 border-t border-theme-border bg-theme-secondary/30">
           <button
             onClick={onClose}
             className="w-full py-2 text-sm text-theme-muted hover:text-theme-primary transition-colors"

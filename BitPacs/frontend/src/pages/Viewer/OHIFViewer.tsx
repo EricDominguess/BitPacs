@@ -82,10 +82,10 @@ export function OHIFViewer() {
   };
 
   return (
-    <div className="h-screen bg-black flex flex-col overflow-hidden">
+    <div className="h-[100dvh] bg-black flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="h-14 bg-tangaroa border-b border-purple/30 flex items-center justify-between px-4 flex-shrink-0 z-10 shadow-lg">
-        <div className="flex items-center gap-4">
+      <header className="h-12 sm:h-14 bg-tangaroa border-b border-purple/30 flex items-center justify-between px-2 sm:px-4 flex-shrink-0 z-10 shadow-lg gap-2">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <button 
             onClick={() => navigate('/studies')} 
             className="flex items-center gap-2 text-white/80 hover:text-white transition-colors group"
@@ -95,10 +95,10 @@ export function OHIFViewer() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </div>
-            <span className="text-sm font-medium">Voltar</span>
+            <span className="hidden sm:inline text-sm font-medium">Voltar</span>
           </button>
-          <div className="w-px h-6 bg-purple/30" />
-          <p className="text-sm font-medium text-white">
+          <div className="w-px h-5 sm:h-6 bg-purple/30" />
+          <p className="text-xs sm:text-sm font-medium text-white truncate">
             <span className="text-purple-light">OHIF</span> Viewer
           </p>
         </div>
@@ -106,13 +106,13 @@ export function OHIFViewer() {
         {/* Botão para abrir BitPacs Viewer como alternativa */}
         <button
           onClick={() => navigate(`/viewer/${studyId}`)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-nautico/20 hover:bg-nautico/30 border border-nautico/30 rounded-lg text-nautico text-sm transition-colors"
+          className="flex items-center gap-2 px-2 sm:px-3 py-1.5 bg-nautico/20 hover:bg-nautico/30 border border-nautico/30 rounded-lg text-nautico text-xs sm:text-sm transition-colors shrink-0"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
           </svg>
-          Abrir no BitPacs
+          <span className="hidden sm:inline">Abrir no BitPacs</span>
         </button>
       </header>
 
@@ -130,8 +130,7 @@ export function OHIFViewer() {
         {/* Overlay para esconder a logo do OHIF */}
         {!isLoading && !hasError && (
           <div 
-            className="absolute top-0 left-0 z-20 bg-[#0b1a42] flex items-center px-3 cursor-default"
-            style={{ width: '220px', height: '45px' }}
+            className="absolute top-0 left-0 z-20 bg-[#0b1a42] flex items-center px-3 cursor-default w-[140px] sm:w-[220px] h-10 sm:h-[45px]"
           >
             <span className="text-purple-light font-semibold text-sm">OHIF Viewer</span>
           </div>

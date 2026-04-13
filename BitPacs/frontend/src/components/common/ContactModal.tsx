@@ -7,7 +7,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -15,10 +15,10 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
       />
       
       {/* Modal */}
-      <div className="relative bg-theme-secondary border border-theme-border rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl transition-colors duration-300">
+      <div className="relative bg-theme-secondary border border-theme-border rounded-2xl p-4 sm:p-6 w-full max-w-md shadow-2xl transition-colors duration-300 max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold text-theme-primary">Fale Conosco</h3>
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 className="text-lg sm:text-xl font-semibold text-theme-primary">Fale Conosco</h3>
           <button
             onClick={onClose}
             className="p-1 text-theme-muted hover:text-theme-primary transition-colors"
@@ -30,11 +30,11 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
         </div>
 
         {/* Conteúdo */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* Telefone */}
           <a 
             href="tel:+554333364004"
-            className="flex items-center gap-4 p-4 bg-theme-card border border-theme-border rounded-xl hover:border-nautico/50 hover:bg-nautico/5 transition-colors group"
+            className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-theme-card border border-theme-border rounded-xl hover:border-nautico/50 hover:bg-nautico/5 transition-colors group"
           >
             <div className="p-3 bg-nautico/20 rounded-lg group-hover:bg-nautico/30 transition-colors">
               <svg className="w-5 h-5 text-nautico" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,7 +50,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
           {/* Email */}
           <a 
             href="mailto:suporte6@bitfix.com.br"
-            className="flex items-center gap-4 p-4 bg-theme-card border border-theme-border rounded-xl hover:border-ultra/50 hover:bg-ultra/5 transition-colors group"
+            className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-theme-card border border-theme-border rounded-xl hover:border-ultra/50 hover:bg-ultra/5 transition-colors group"
           >
             <div className="p-3 bg-ultra/20 rounded-lg group-hover:bg-ultra/30 transition-colors">
               <svg className="w-5 h-5 text-ultra" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,7 +68,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
             href="https://wa.me/554333364004"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-4 p-4 bg-theme-card border border-theme-border rounded-xl hover:border-green-500/50 hover:bg-green-500/5 transition-colors group"
+            className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-theme-card border border-theme-border rounded-xl hover:border-green-500/50 hover:bg-green-500/5 transition-colors group"
           >
             <div className="p-3 bg-green-500/20 rounded-lg group-hover:bg-green-500/30 transition-colors">
               <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24">
@@ -82,7 +82,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
           </a>
 
           {/* Horário */}
-          <div className="flex items-center gap-4 p-4 bg-theme-card border border-theme-border rounded-xl">
+          <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-theme-card border border-theme-border rounded-xl">
             <div className="p-3 bg-purple/20 rounded-lg">
               <svg className="w-5 h-5 text-purple-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

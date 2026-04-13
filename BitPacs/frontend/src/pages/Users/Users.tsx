@@ -554,10 +554,10 @@ export function Users() {
 
       {/* Modal Criar/Editar */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-          <div className="bg-theme-card border border-theme-border rounded-xl w-full max-w-md mx-4 shadow-2xl animate-scale-up">
-            <div className="flex items-center justify-between p-6 border-b border-theme-border">
-              <h2 className="text-xl font-bold text-theme-primary">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in p-3 sm:p-4">
+          <div className="bg-theme-card border border-theme-border rounded-xl w-full max-w-md shadow-2xl animate-scale-up max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-theme-border">
+              <h2 className="text-lg sm:text-xl font-bold text-theme-primary">
                 {modalMode === 'create' ? 'Novo Usuário' : 'Editar Usuário'}
               </h2>
               <button onClick={() => setShowModal(false)} className="text-theme-muted hover:text-theme-primary transition-colors">
@@ -567,7 +567,7 @@ export function Users() {
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4">
               {formError && (
                 <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2 animate-fade-in">
                   <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -642,9 +642,9 @@ export function Users() {
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-theme-border">
-              <Button variant="ghost" onClick={() => setShowModal(false)} disabled={isSaving}>Cancelar</Button>
-              <Button onClick={handleSave} disabled={isSaving}>
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 p-4 sm:p-6 border-t border-theme-border">
+              <Button className="w-full sm:w-auto" variant="ghost" onClick={() => setShowModal(false)} disabled={isSaving}>Cancelar</Button>
+              <Button className="w-full sm:w-auto" onClick={handleSave} disabled={isSaving}>
                 {isSaving ? (
                   <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Salvando...</>
                 ) : (

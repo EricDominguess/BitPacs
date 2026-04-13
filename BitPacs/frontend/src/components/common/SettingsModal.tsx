@@ -25,13 +25,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         onClick={onClose}
       />
       
-      <div className="fixed inset-0 z-[101] flex items-center justify-center overflow-hidden pointer-events-none">
+      <div className="fixed inset-0 z-[101] flex items-center justify-center overflow-hidden pointer-events-none p-3 sm:p-4">
         {/* Modal */}
-        <div className="relative pointer-events-auto bg-theme-secondary border border-theme-border rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl transition-colors duration-300">
+        <div className="relative pointer-events-auto bg-theme-secondary border border-theme-border rounded-2xl p-4 sm:p-6 w-full max-w-md shadow-2xl transition-colors duration-300 max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div>
-            <h3 className="text-xl font-semibold text-theme-primary">Configurações</h3>
+            <h3 className="text-lg sm:text-xl font-semibold text-theme-primary">Configurações</h3>
             <p className="text-sm text-theme-muted mt-0.5">Gerencie as preferências do sistema</p>
           </div>
           <button

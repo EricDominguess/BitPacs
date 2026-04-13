@@ -86,7 +86,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in p-2 sm:p-4">
       <style>{`
         .cor-download-forcada {
           color: #064e3b !important; /* Verde Esmeralda MUITO escuro para o tema claro */
@@ -95,11 +95,11 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
           color: #00ffd5 !important; /* Verde-água brilhante para o tema escuro */
         }
       `}</style>
-      <div className="bg-theme-card border border-theme-border rounded-xl overflow-hidden w-full max-w-5xl mx-4 shadow-2xl animate-scale-up max-h-[90vh] flex flex-col">
+      <div className="bg-theme-card border border-theme-border rounded-xl overflow-hidden w-full max-w-5xl shadow-2xl animate-scale-up max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] flex flex-col">
         {/* Header do Modal */}
-        <div className="flex items-center justify-between p-6 border-b border-theme-border flex-shrink-0">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-theme-border flex-shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-theme-primary">
+            <h2 className="text-lg sm:text-xl font-bold text-theme-primary">
               Histórico de Atividades
             </h2>
             <p className="text-sm text-theme-muted mt-1">
@@ -286,7 +286,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
         </div>
 
         {/* Footer com Paginação */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-theme-border bg-theme-secondary flex-shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 sm:px-6 py-4 border-t border-theme-border bg-theme-secondary flex-shrink-0">
           <span className="text-sm text-theme-muted">
             {totalLogs > 0 ? (
               <>Total: {totalLogs} registro(s)</>
@@ -294,7 +294,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
               'Nenhum registro'
             )}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-end sm:self-auto">
             <Button 
               variant="ghost" 
               size="sm" 

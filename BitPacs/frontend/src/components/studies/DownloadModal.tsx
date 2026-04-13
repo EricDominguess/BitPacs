@@ -68,12 +68,12 @@ export function DownloadModal({
   const selected = countSelected();
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-      <div className="bg-theme-card border border-theme-border rounded-xl overflow-hidden w-full max-w-2xl mx-4 shadow-2xl animate-scale-up max-h-[85vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in p-2 sm:p-4">
+      <div className="bg-theme-card border border-theme-border rounded-xl overflow-hidden w-full max-w-2xl shadow-2xl animate-scale-up max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] flex flex-col">
         {/* Header do Modal */}
-        <div className="flex items-center justify-between p-6 border-b border-theme-border flex-shrink-0">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-theme-border flex-shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-theme-primary">
+            <h2 className="text-lg sm:text-xl font-bold text-theme-primary">
               Selecionar Download
             </h2>
             <p className="text-sm text-theme-muted mt-1">
@@ -91,11 +91,11 @@ export function DownloadModal({
         </div>
 
         {/* Informações do Estudo */}
-        <div className="px-6 py-3 bg-theme-secondary/50 border-b border-theme-border flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="px-4 sm:px-6 py-3 bg-theme-secondary/50 border-b border-theme-border flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
               <ModalityBadge modality={study.modality} />
-              <span className="text-sm text-theme-muted truncate">{study.description}</span>
+              <span className="text-sm text-theme-muted truncate min-w-0">{study.description}</span>
             </div>
             {!isLoadingSeries && downloadFormat !== 'dicom' && (
               <label className="flex items-center gap-2 cursor-pointer">
@@ -207,9 +207,9 @@ export function DownloadModal({
         </div>
 
         {/* Footer com Ações */}
-        <div className="px-6 py-4 border-t border-theme-border bg-theme-secondary/30 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="px-4 sm:px-6 py-4 border-t border-theme-border bg-theme-secondary/30 flex-shrink-0">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <span className="text-sm text-theme-muted">
                 {downloadFormat === 'dicom' 
                   ? 'Estudo completo (todas as imagens)'
@@ -232,17 +232,17 @@ export function DownloadModal({
                 </select>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 sm:self-end">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-sm text-theme-muted hover:text-theme-primary transition-colors"
+                className="w-full sm:w-auto px-4 py-2 text-sm text-theme-muted hover:text-theme-primary transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={onDownload}
                 disabled={(downloadFormat !== 'dicom' && selected.instancesCount === 0) || isDownloading}
-                className="px-4 py-2 bg-nautico text-white rounded-lg text-sm font-medium hover:bg-nautico/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="w-full sm:w-auto px-4 py-2 bg-nautico text-white rounded-lg text-sm font-medium hover:bg-nautico/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isDownloading ? (
                   <>

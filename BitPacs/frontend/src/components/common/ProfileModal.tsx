@@ -137,7 +137,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -145,10 +145,10 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       />
       
       {/* Modal */}
-      <div className="relative bg-theme-secondary border border-theme-border rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl transition-colors duration-300 animate-fade-in-up">
+      <div className="relative bg-theme-secondary border border-theme-border rounded-2xl p-4 sm:p-6 w-full max-w-lg shadow-2xl transition-colors duration-300 animate-fade-in-up max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold text-theme-primary">Meu Perfil</h3>
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 className="text-lg sm:text-xl font-semibold text-theme-primary">Meu Perfil</h3>
           <button
             onClick={onClose}
             className="p-1 text-theme-muted hover:text-theme-primary transition-colors"
@@ -169,7 +169,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           )}
 
           {/* Avatar com Primeiro Nome */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div className="relative">
               {avatarUrl ? (
                 <img 
@@ -193,7 +193,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             </div>
             {/* Primeiro Nome ao lado do Avatar */}
             <div>
-              <h4 className="text-xl font-semibold text-theme-primary">{name.split(' ')[0]}</h4>
+              <h4 className="text-lg sm:text-xl font-semibold text-theme-primary">{name.split(' ')[0]}</h4>
               <p className="text-sm text-theme-muted">{readOnlyData.email}</p>
             </div>
             {/* Input oculto mantido para funcionalidade futura */}
@@ -220,7 +220,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             </div>
 
             {/* Grid de Informações - Cargo e Instituição lado a lado */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               
               {/* Card de Cargo */}
               <div className="p-3 bg-theme-light/30 border border-theme-border rounded-lg">

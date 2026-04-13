@@ -20,28 +20,28 @@ export function ConfirmActionModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-3 sm:p-4">
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      <div className="relative bg-theme-secondary border border-theme-border rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl transition-colors duration-300">
-        <h3 className="text-lg font-semibold text-theme-primary mb-4">{title}</h3>
-        <p className="text-theme-muted mb-6">{message}</p>
+      <div className="relative bg-theme-secondary border border-theme-border rounded-2xl p-4 sm:p-6 w-full max-w-sm shadow-2xl transition-colors duration-300 max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
+        <h3 className="text-base sm:text-lg font-semibold text-theme-primary mb-3 sm:mb-4">{title}</h3>
+        <p className="text-sm sm:text-base text-theme-muted mb-5 sm:mb-6">{message}</p>
 
-        <div className="flex gap-3 justify-end">
+        <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end">
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="px-4 py-2 rounded-lg bg-theme-card text-theme-primary border border-theme-border hover:bg-theme-tertiary hover:border-nautico/40 hover:text-theme-primary transition-all duration-200 disabled:opacity-50"
+            className="w-full sm:w-auto px-4 py-2 rounded-lg bg-theme-card text-theme-primary border border-theme-border hover:bg-theme-tertiary hover:border-nautico/40 hover:text-theme-primary transition-all duration-200 disabled:opacity-50"
           >
             Cancelar
           </button>
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="w-full sm:w-auto px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
