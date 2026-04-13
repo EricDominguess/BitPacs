@@ -10,3 +10,4 @@ export { UserLogsModal } from './UserLogsModal';
 export { ProtectedRoute, PublicOnlyRoute, isAuthenticated, getCurrentUser, hasPermission, getDefaultDashboard } from './ProtectedRoute';
 export { ActionDropdown } from './ActionDropdown';
 export { ToastNotice } from './ToastNotice';
+export { ConfirmActionModal } from './ConfirmActionModal';

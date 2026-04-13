@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../../components/layout';
-import { Card, Button, Input, Badge, UserLogsModal, ToastNotice } from '../../components/common';
+import { Card, Button, Input, Badge, UserLogsModal, ToastNotice, ConfirmActionModal } from '../../components/common';
 
 interface User {
   id: number;
@@ -75,6 +75,9 @@ export function Users() {
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState<{ title: string; message: string; type: 'success' | 'error' } | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
 
   const [showLogsModal, setShowLogsModal] = useState(false);
   const [logsUserId, setLogsUserId] = useState<number>(0);
@@ -204,16 +207,19 @@ export function Users() {
     }
   };
 
-  const handleDelete = async (userId: number) => {
-    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+  const handleDelete = async () => {
+    if (!userToDelete) return;
+    setIsDeletingUser(true);
     try {
       const token = (sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token'));
-      const response = await fetch(`/api/auth/users/${userId}`, {
+      const response = await fetch(`/api/auth/users/${userToDelete.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (response.ok) {
         fetchUsers();
+        setShowDeleteConfirm(false);
+        setUserToDelete(null);
         setNotice({
           title: 'Usuário excluído',
           message: 'Usuário removido com sucesso.',
@@ -233,6 +239,8 @@ export function Users() {
         message: 'Erro de conexão com o servidor.',
         type: 'error',
       });
+    } finally {
+      setIsDeletingUser(false);
     }
   };
 
@@ -368,7 +376,10 @@ export function Users() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                           </Button>
-                          <Button variant="ghost" size="sm" title="Excluir" onClick={() => handleDelete(user.id)}>
+                          <Button variant="ghost" size="sm" title="Excluir" onClick={() => {
+                            setUserToDelete(user);
+                            setShowDeleteConfirm(true);
+                          }}>
                             <svg className="w-4 h-4 text-accent-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
@@ -509,6 +520,20 @@ export function Users() {
       )}
 
       <UserLogsModal isOpen={showLogsModal} onClose={() => setShowLogsModal(false)} userId={logsUserId} userName={logsUserName} />
+
+      <ConfirmActionModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          if (isDeletingUser) return;
+          setShowDeleteConfirm(false);
+          setUserToDelete(null);
+        }}
+        onConfirm={handleDelete}
+        isLoading={isDeletingUser}
+        title="Confirmar exclusão"
+        message={`Tem certeza que deseja excluir ${userToDelete?.nome || 'este usuário'}? Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir usuário"
+      />
     </MainLayout>
   );
 }
