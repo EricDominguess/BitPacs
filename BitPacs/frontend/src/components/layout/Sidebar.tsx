@@ -150,7 +150,10 @@ export function Sidebar({
         isMinimized && "px-2"
       )}>
         <button
-          onClick={() => setShowSupportModal(true)}
+          onClick={() => {
+            setIsMobileOpen?.(false);
+            setShowSupportModal(true);
+          }}
           title={isMinimized ? "Contatar Suporte" : undefined}
           className={cn(
             "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-theme-muted hover:text-ultra hover:bg-ultra/10 transition-all duration-200 group",
@@ -172,7 +175,10 @@ export function Sidebar({
         isMinimized && "p-2"
       )}>
         <button 
-          onClick={() => setShowProfileModal(true)}
+          onClick={() => {
+            setIsMobileOpen?.(false);
+            setShowProfileModal(true);
+          }}
           className={cn(
             "w-full flex items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group",
             isMinimized && "lg:px-1 lg:justify-center"
