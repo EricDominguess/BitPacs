@@ -124,6 +124,48 @@ export function Studies() {
     return `${dd}/${mm}/${year}`;
   };
 
+  const getStudyTimestamp = (rawDate?: string, rawTime?: string) => {
+    if (!rawDate) return 0;
+
+    const value = String(rawDate).trim();
+    if (!value) return 0;
+
+    let day = 0;
+    let month = 0;
+    let year = 0;
+
+    if (/^\d{8}$/.test(value)) {
+      year = Number(value.slice(0, 4));
+      month = Number(value.slice(4, 6));
+      day = Number(value.slice(6, 8));
+    } else if (/^\d{6}$/.test(value)) {
+      const yy = Number(value.slice(0, 2));
+      year = yy >= 50 ? 1900 + yy : 2000 + yy;
+      month = Number(value.slice(2, 4));
+      day = Number(value.slice(4, 6));
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      year = Number(value.slice(0, 4));
+      month = Number(value.slice(5, 7));
+      day = Number(value.slice(8, 10));
+    } else {
+      const slashMatch = value.match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/);
+      if (!slashMatch) return 0;
+      day = Number(slashMatch[1]);
+      month = Number(slashMatch[2]);
+      const y = slashMatch[3];
+      year = y.length === 2 ? (Number(y) >= 50 ? 1900 + Number(y) : 2000 + Number(y)) : Number(y);
+    }
+
+    const timeDigits = String(rawTime || '').replace(/\D/g, '').padEnd(6, '0');
+    const hour = Number(timeDigits.slice(0, 2)) || 0;
+    const minute = Number(timeDigits.slice(2, 4)) || 0;
+    const second = Number(timeDigits.slice(4, 6)) || 0;
+
+    const date = new Date(year, month - 1, day, hour, minute, second);
+    const ts = date.getTime();
+    return Number.isNaN(ts) ? 0 : ts;
+  };
+
   const normalizeModality = (value?: string) => {
     if (!value) return 'OT';
     const normalized = value.trim().toUpperCase();
@@ -171,19 +213,31 @@ export function Studies() {
 
   const selectedModalityOption = MODALITY_OPTIONS.find((m) => m.value === selectedModality) || MODALITY_OPTIONS[0];
 
-  const studiesFormatted = useMemo(() => periodFilteredStudies.map(s => ({
-    id: s.ID || '',
-    studyInstanceUID: s.MainDicomTags?.StudyInstanceUID || '',
-    patient: normalizePatientName(s.PatientMainDicomTags?.PatientName),
-    birthDate: formatDicomDate(s.PatientMainDicomTags?.PatientBirthDate),
-    rawStudyDate: s.MainDicomTags?.StudyDate || '',
-    rawModalities: s.MainDicomTags?.ModalitiesInStudy || s.ModalitiesInStudy || s.MainDicomTags?.Modality || '',
-    modality: getPrimaryModality(s),
-    description: (s.MainDicomTags?.StudyDescription || '').trim() || 'sem descrição',
-    date: formatDicomDate(s.MainDicomTags?.StudyDate),
-    seriesCount: detailsCache[s.ID]?.seriesCount || 0,
-    imagesCount: detailsCache[s.ID]?.imagesCount || 0
-  })), [periodFilteredStudies, detailsCache]);
+  const studiesFormatted = useMemo(() =>
+    periodFilteredStudies
+      .map(s => ({
+        id: s.ID || '',
+        studyInstanceUID: s.MainDicomTags?.StudyInstanceUID || '',
+        patient: normalizePatientName(s.PatientMainDicomTags?.PatientName),
+        birthDate: formatDicomDate(s.PatientMainDicomTags?.PatientBirthDate),
+        rawStudyDate: s.MainDicomTags?.StudyDate || '',
+        rawStudyTime: s.MainDicomTags?.StudyTime || '',
+        rawModalities: s.MainDicomTags?.ModalitiesInStudy || s.ModalitiesInStudy || s.MainDicomTags?.Modality || '',
+        modality: getPrimaryModality(s),
+        description: (s.MainDicomTags?.StudyDescription || '').trim() || 'sem descrição',
+        date: formatDicomDate(s.MainDicomTags?.StudyDate),
+        studyTimestamp: getStudyTimestamp(s.MainDicomTags?.StudyDate, s.MainDicomTags?.StudyTime),
+        seriesCount: detailsCache[s.ID]?.seriesCount || 0,
+        imagesCount: detailsCache[s.ID]?.imagesCount || 0
+      }))
+      .sort((a, b) => {
+        if (b.studyTimestamp !== a.studyTimestamp) {
+          return b.studyTimestamp - a.studyTimestamp;
+        }
+        return b.id.localeCompare(a.id);
+      }),
+    [periodFilteredStudies, detailsCache]
+  );
 
   const studiesBeforeModality = useMemo(() => {
     let base = studiesFormatted;
