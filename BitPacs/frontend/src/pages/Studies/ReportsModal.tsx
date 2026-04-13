@@ -36,7 +36,7 @@ export function ReportsModal({
       />
       
       {/* Modal */}
-      <div className="relative bg-theme-secondary border border-theme-border rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl transition-colors duration-300">
+      <div className="relative bg-theme-secondary border border-theme-border rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl transition-colors duration-300 overflow-x-hidden">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold text-theme-primary">Laudos Anexados</h3>
@@ -60,15 +60,15 @@ export function ReportsModal({
             Nenhum laudo anexado.
           </div>
         ) : (
-          <div className="space-y-3 max-h-96 overflow-y-auto">
+          <div className="space-y-3 max-h-96 overflow-y-auto overflow-x-hidden pr-1">
             {reports.map((report) => (
-              <div key={report.id} className="flex items-center justify-between p-4 bg-theme-card border border-theme-border rounded-lg hover:bg-nautico/5 transition-colors">
-                <div className="flex-1">
+              <div key={report.id} className="flex items-start gap-3 p-4 bg-theme-card border border-theme-border rounded-lg hover:bg-nautico/5 transition-colors overflow-hidden">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <svg className="w-4 h-4 text-nautico" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-4 h-4 text-nautico shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M4 4a2 2 0 012-2h6a1 1 0 01.707.293l6 6a1 1 0 01.293.707v8a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 3a1 1 0 000 2h.01a1 1 0 000-2H6zm0 4a1 1 0 000 2h.01a1 1 0 000-2H6z" />
                     </svg>
-                    <p className="font-medium text-theme-primary text-sm">
+                    <p className="font-medium text-theme-primary text-sm break-all leading-5 min-w-0">
                       {report.fileName}
                     </p>
                   </div>
@@ -79,7 +79,7 @@ export function ReportsModal({
                 </div>
                 <button
                   onClick={() => setDeleteConfirm(true)}
-                  className="ml-4 p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                  className="shrink-0 p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                   title="Deletar laudo"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
