@@ -69,19 +69,19 @@ export function Sidebar({
         type="button"
         aria-label="Fechar menu"
         onClick={() => setIsMobileOpen?.(false)}
-        className="md:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px]"
+        className="md:hidden fixed inset-0 z-50 bg-black/60"
       />
     )}
 
     <aside className={cn(
-      "fixed left-0 top-[72px] h-[calc(100vh-72px)] bg-theme-secondary/95 md:bg-theme-secondary/50 border-r border-theme-light flex flex-col transition-all duration-300 z-50",
-      "w-[85vw] max-w-[280px] md:max-w-none",
+      "fixed left-0 top-[72px] h-[calc(100dvh-72px)] md:h-[calc(100vh-72px)] bg-theme-primary md:bg-theme-secondary/50 border-r border-theme-light flex flex-col transition-all duration-300 z-[60] shadow-2xl md:shadow-none",
+      "w-[88vw] max-w-[320px] md:max-w-none",
       isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
       isMinimized ? "md:w-20" : "md:w-64"
     )}>
       {/*Navegação scrollável*/}
       <nav className={cn(
-        "p-4 flex flex-col gap-1 overflow-y-auto flex-1",
+        "p-3 md:p-4 flex flex-col gap-1 overflow-y-auto flex-1 min-h-0",
         isMinimized && "p-2"
       )}>
         {navItems
@@ -122,7 +122,7 @@ export function Sidebar({
 
       {/* Botão Contatar Suporte */}
       <div className={cn(
-        "px-4 py-2 bg-theme-secondary/50 border-b border-theme-light",
+        "px-3 md:px-4 py-2 bg-theme-card md:bg-theme-secondary/50 border-t border-theme-light shrink-0",
         isMinimized && "px-2"
       )}>
         <button
@@ -144,7 +144,7 @@ export function Sidebar({
 
       {/* Footer do Sidebar */}
       <div className={cn(
-        "p-4 border-t border-theme-light bg-theme-secondary/50",
+        "p-3 md:p-4 border-t border-theme-light bg-theme-card md:bg-theme-secondary/50 shrink-0",
         isMinimized && "p-2"
       )}>
         <button 
