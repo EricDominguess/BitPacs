@@ -127,6 +127,16 @@ export function OHIFViewer() {
           </div>
         )}
 
+        {/* Overlay de proteção para bloquear acesso à navegação própria do OHIF */}
+        {!isLoading && !hasError && (
+          <div
+            className="absolute top-0 left-0 z-20 h-10 sm:h-[45px] w-[56px] sm:w-[190px] bg-[#0b1a42] border-r border-[#1f3f86] flex items-center justify-center sm:justify-start px-2 sm:px-3 select-none"
+            title="OHIF Viewer"
+          >
+            <span className="text-purple-light font-semibold text-xs sm:text-sm leading-none">OHIF<span className="hidden sm:inline"> Viewer</span></span>
+          </div>
+        )}
+
         {hasError && (
           <div className="absolute inset-0 flex items-center justify-center bg-tangaroa z-10">
             <div className="flex flex-col items-center gap-4 text-center p-8">
