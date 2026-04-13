@@ -90,9 +90,9 @@ export function ModalityStats({ estudos = [], carregarSeriesDoEstudo }: Modality
         ) : (
           dadosProcessados.map((mod) => (
             <div key={mod.name} className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded ${mod.color}`} />
-              <span className="flex-1 text-sm text-theme-secondary">{mod.name}</span>
-              <span className="text-sm font-medium text-theme-primary">{mod.count}</span>
+              <div className={`w-3 h-3 rounded flex-shrink-0 ${mod.color}`} />
+              <span className="flex-1 min-w-0 text-sm text-theme-secondary truncate">{mod.name}</span>
+              <span className="text-sm font-medium text-theme-primary flex-shrink-0">{mod.count}</span>
             </div>
           ))
         )}

@@ -74,7 +74,37 @@ export function RecentStudiesTable({
   
   return (
     <Card title="Estudos Recentes" className={className}>
-      <div className="overflow-x-auto -mx-6 px-6">
+      <div className="md:hidden space-y-3">
+        {estudosProcessados.length === 0 ? (
+          <p className="py-2 text-center text-gray-400">Nenhum exame recente.</p>
+        ) : (
+          estudosProcessados.map((estudo, i) => (
+            <div key={estudo.ID || i} className="p-3 rounded-lg border border-theme-border bg-theme-secondary/30 space-y-2">
+              <p className="text-theme-primary font-semibold break-words">
+                {formatarNome(estudo.PatientMainDicomTags?.PatientName)}
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <p className="text-xs text-theme-muted">Descrição</p>
+                  <p className="text-theme-secondary break-words">{estudo.MainDicomTags?.StudyDescription || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-theme-muted">Data</p>
+                  <p className="text-theme-secondary">{formatarData(estudo.MainDicomTags?.StudyDate)}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-xs text-theme-muted">Modalidade</span>
+                <Badge>{modalidadesCache[estudo.ID] || '...'}</Badge>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto -mx-6 px-6">
         <table className="w-full min-w-[500px]">
           <thead>
             <tr className="border-b border-theme-border">

@@ -47,9 +47,9 @@ export function StorageCard({ stats }: StorageCardProps) {
       <div className="space-y-4">
         
         {/* Texto do Header: Usado vs Total */}
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-sm">
           <span className="text-theme-muted">Usado em Disco</span>
-          <span className="text-theme-primary font-medium">
+          <span className="text-theme-primary font-medium break-all sm:break-normal">
             {formatBytes(usedBytes)} / {formatBytes(totalCapacity)}
           </span>
         </div>
@@ -63,11 +63,11 @@ export function StorageCard({ stats }: StorageCardProps) {
         </div>
         {/* ----------------------------------------------- */}
 
-        <div className="grid grid-cols-2 gap-4 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-2">
           
           {/* Card Esquerdo: Média por Estudo */}
           <div className="text-center p-3 bg-theme-card border border-theme-border rounded-lg">
-            <p className="text-xl font-bold text-theme-primary">
+            <p className="text-lg sm:text-xl font-bold text-theme-primary break-all">
               {formatBytes(avgSize)}
             </p>
             <p className="text-xs text-theme-muted">Média / Estudo</p>
@@ -75,7 +75,7 @@ export function StorageCard({ stats }: StorageCardProps) {
 
           {/* Card Direito: Volume Real (DICOM) */}
           <div className="text-center p-3 bg-theme-card border border-theme-border rounded-lg">
-            <p className="text-xl font-bold text-theme-primary">
+            <p className="text-lg sm:text-xl font-bold text-theme-primary break-all">
               {formatBytes(uncompressedSize)}
             </p>
             <p className="text-xs text-theme-muted">Volume Real (DICOM)</p>
