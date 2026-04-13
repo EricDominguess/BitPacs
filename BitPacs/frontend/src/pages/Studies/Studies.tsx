@@ -31,7 +31,7 @@ interface SelectedStudyForViewer {
 
 export function Studies() {
   const navigate = useNavigate();
-  const { estudos, isLoading, unidadeAtual, seriesByStudy, carregarSeriesDoEstudo, buscarEstudosNoServidor, buscarModalidadeNoServidor } = useOrthancData();
+  const { estudos, isLoading, unidadeAtual, seriesByStudy, carregarSeriesDoEstudo, buscarEstudosNoServidor, buscarModalidadeNoServidorPaginado } = useOrthancData();
   
   // Hooks customizados
   const logic = useStudiesLogic(unidadeAtual);
@@ -407,12 +407,38 @@ export function Studies() {
 
     setIsLoadingModalityFilter(true);
 
-    buscarModalidadeNoServidor(selectedModality.toUpperCase(), controller.signal)
-      .then((results) => {
+    (async () => {
+      const modality = selectedModality.toUpperCase();
+      const limit = 200;
+      const maxPages = 25;
+      const allIds = new Set<string>();
+
+      for (let page = 0; page < maxPages; page++) {
         if (controller.signal.aborted) return;
-        const ids = new Set((results || []).map((s: any) => s?.ID || s?.id).filter(Boolean));
-        setModalityServerStudyIds(ids);
-      })
+
+        const since = page * limit;
+        const pageResults = await buscarModalidadeNoServidorPaginado(modality, since, limit, controller.signal);
+
+        if (controller.signal.aborted) return;
+
+        if (!Array.isArray(pageResults) || pageResults.length === 0) {
+          break;
+        }
+
+        const before = allIds.size;
+        pageResults.forEach((s: any) => {
+          const id = s?.ID || s?.id;
+          if (id) allIds.add(id);
+        });
+
+        const noNewIds = allIds.size === before;
+        if (pageResults.length < limit || noNewIds) {
+          break;
+        }
+      }
+
+      setModalityServerStudyIds(allIds);
+    })()
       .catch(() => {
         if (controller.signal.aborted) return;
         setModalityServerStudyIds(new Set());
@@ -424,7 +450,7 @@ export function Studies() {
       });
 
     return () => controller.abort();
-  }, [selectedModality, buscarModalidadeNoServidor]);
+  }, [selectedModality, buscarModalidadeNoServidorPaginado]);
 
   useEffect(() => {
     currentItems.forEach((study) => {
