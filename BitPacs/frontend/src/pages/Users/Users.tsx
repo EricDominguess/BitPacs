@@ -312,7 +312,7 @@ export function Users() {
         </div>
 
         {/* Filtros */}
-        <Card className="!p-4">
+        <Card className="!p-4 relative z-30">
           <div className="flex flex-col gap-4">
             <div className="flex-1">
               <Input
@@ -379,7 +379,7 @@ export function Users() {
         </Card>
 
         {/* Tabela */}
-        <Card className="overflow-hidden !p-0">
+        <Card className="overflow-hidden !p-0 relative z-10">
           <div className="md:hidden divide-y divide-theme-light">
             {isLoading ? (
               <div className="px-4 py-8 text-center text-theme-muted">
