@@ -450,7 +450,7 @@ export function Studies() {
       });
 
     return () => controller.abort();
-  }, [selectedModality, buscarModalidadeNoServidorPaginado]);
+  }, [selectedModality, unidadeAtual]);
 
   useEffect(() => {
     currentItems.forEach((study) => {
