@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../../components/layout';
 import { Card, Button, ActionDropdown } from '../../components/common';
@@ -53,6 +53,8 @@ export function Studies() {
   const [isLoadingSeries, setIsLoadingSeries] = useState(false);
   const [isDownloading] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<DownloadFormat>('jpeg');
+  const [reportStatusByStudy, setReportStatusByStudy] = useState<Record<string, boolean>>({});
+  const [reportStatusLoadingByStudy, setReportStatusLoadingByStudy] = useState<Record<string, boolean>>({});
   const fetchingRef = useRef<Set<string>>(new Set());
   const modalityDropdownRef = useRef<HTMLDivElement>(null);
   const [isModalityDropdownOpen, setIsModalityDropdownOpen] = useState(false);
@@ -310,6 +312,62 @@ export function Studies() {
     });
   }, [currentItems, carregarSeriesDoEstudo, detailsCache]);
 
+  const fetchReportStatusForCurrentStudies = useCallback(async () => {
+    if (!unidadeAtual || currentItems.length === 0) return;
+
+    const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
+    const ids = currentItems.map((study) => study.id).filter(Boolean);
+
+    setReportStatusLoadingByStudy((prev) => {
+      const next = { ...prev };
+      ids.forEach((id) => {
+        next[id] = true;
+      });
+      return next;
+    });
+
+    await Promise.all(
+      ids.map(async (id) => {
+        try {
+          const response = await fetch(`/api/dashboard/reports/${unidadeAtual}/${id}`, {
+            headers: token
+              ? {
+                  'Authorization': `Bearer ${token}`,
+                }
+              : undefined,
+          });
+
+          if (response.ok) {
+            const reports = await response.json();
+            setReportStatusByStudy((prev) => ({
+              ...prev,
+              [id]: Array.isArray(reports) && reports.length > 0,
+            }));
+          } else {
+            setReportStatusByStudy((prev) => ({
+              ...prev,
+              [id]: false,
+            }));
+          }
+        } catch {
+          setReportStatusByStudy((prev) => ({
+            ...prev,
+            [id]: false,
+          }));
+        } finally {
+          setReportStatusLoadingByStudy((prev) => ({
+            ...prev,
+            [id]: false,
+          }));
+        }
+      })
+    );
+  }, [unidadeAtual, currentItems]);
+
+  useEffect(() => {
+    fetchReportStatusForCurrentStudies();
+  }, [fetchReportStatusForCurrentStudies, logic.reportLoading, logic.showReportsModal]);
+
   // Handlers
   const handleServerSearch = async () => {
     if (!searchTerm.trim()) return;
@@ -515,7 +573,7 @@ export function Studies() {
         {/* Tabela de Estudos */}
         <Card className="overflow-hidden !p-0 relative z-10">
           <div className="overflow-x-auto scrollbar-thin">
-            <table className="w-full min-w-[800px]">
+            <table className="w-full min-w-[920px]">
               <thead className="bg-theme-secondary">
                 <tr>
                   <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Paciente</th>
@@ -525,19 +583,20 @@ export function Studies() {
                   <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Data</th>
                   <th className="text-center text-sm font-semibold text-theme-secondary px-6 py-4">Séries</th>
                   <th className="text-center text-sm font-semibold text-theme-secondary px-6 py-4">Imagens</th>
+                  <th className="text-center text-sm font-semibold text-theme-secondary px-6 py-4">Laudo</th>
                   <th className="text-center text-sm font-semibold text-theme-secondary px-6 py-4">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme-light">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-theme-muted">
+                    <td colSpan={9} className="px-6 py-8 text-center text-theme-muted">
                       Carregando estudos do servidor...
                     </td>
                   </tr>
                 ) : studiesAfterFilters.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-theme-muted">
+                    <td colSpan={9} className="px-6 py-8 text-center text-theme-muted">
                       Nenhum estudo encontrado.
                     </td>
                   </tr>
@@ -566,6 +625,31 @@ export function Studies() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className="text-theme-secondary">{study.imagesCount}</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center">
+                          {reportStatusLoadingByStudy[study.id] ? (
+                            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-theme-muted/50 animate-pulse" title="Verificando laudo" />
+                          ) : reportStatusByStudy[study.id] ? (
+                            <span
+                              className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500/15 text-green-500"
+                              title="Laudado"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </span>
+                          ) : (
+                            <span
+                              className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-theme-tertiary text-theme-muted"
+                              title="Sem laudo"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center">
