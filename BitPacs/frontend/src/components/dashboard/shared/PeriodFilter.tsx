@@ -146,7 +146,7 @@ export function PeriodFilter({
                     'transition-colors duration-150',
                     isSelected || isCustomHighlighted
                       ? 'bg-nautico/10 text-nautico'
-                      : 'text-theme-primary hover:bg-theme-tertiary hover:text-theme-primary'
+                      : 'text-theme-primary hover:bg-nautico/15 hover:text-nautico'
                   )}
                 >
                   <span>{option.label}</span>

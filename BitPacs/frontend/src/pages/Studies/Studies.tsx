@@ -31,7 +31,7 @@ interface SelectedStudyForViewer {
 
 export function Studies() {
   const navigate = useNavigate();
-  const { estudos, isLoading, unidadeAtual, seriesByStudy, carregarSeriesDoEstudo, buscarEstudosNoServidor } = useOrthancData();
+  const { estudos, isLoading, unidadeAtual, seriesByStudy, carregarSeriesDoEstudo, buscarEstudosNoServidor, buscarModalidadeNoServidor } = useOrthancData();
   
   // Hooks customizados
   const logic = useStudiesLogic(unidadeAtual);
@@ -55,7 +55,10 @@ export function Studies() {
   const [downloadFormat, setDownloadFormat] = useState<DownloadFormat>('jpeg');
   const [reportStatusByStudy, setReportStatusByStudy] = useState<Record<string, boolean>>({});
   const [reportStatusLoadingByStudy, setReportStatusLoadingByStudy] = useState<Record<string, boolean>>({});
+  const [modalityServerStudyIds, setModalityServerStudyIds] = useState<Set<string> | null>(null);
+  const [isLoadingModalityFilter, setIsLoadingModalityFilter] = useState(false);
   const fetchingRef = useRef<Set<string>>(new Set());
+  const modalityAbortRef = useRef<AbortController | null>(null);
   const reportStatusFetchInFlightRef = useRef<Set<string>>(new Set());
   const reportStatusRequestSeqRef = useRef<Record<string, number>>({});
   const modalityDropdownRef = useRef<HTMLDivElement>(null);
@@ -319,6 +322,11 @@ export function Studies() {
 
   const studiesAfterFilters = useMemo(() => {
     if (selectedModality === 'all') return studiesBeforeModality;
+
+    if (modalityServerStudyIds) {
+      return studiesBeforeModality.filter((study) => modalityServerStudyIds.has(study.id));
+    }
+
     const selected = selectedModality.toUpperCase();
     const byIndexed = studiesByModality.get(selected) || [];
 
@@ -348,7 +356,7 @@ export function Studies() {
     });
 
     return byRaw.length > byIndexed.length ? byRaw : byIndexed;
-  }, [studiesBeforeModality, studiesByModality, selectedModality]);
+  }, [studiesBeforeModality, studiesByModality, selectedModality, modalityServerStudyIds]);
 
   // Paginação
   const totalPages = Math.ceil(studiesAfterFilters.length / ITEMS_PER_PAGE);
@@ -384,6 +392,39 @@ export function Studies() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (selectedModality === 'all') {
+      modalityAbortRef.current?.abort();
+      setModalityServerStudyIds(null);
+      setIsLoadingModalityFilter(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    modalityAbortRef.current?.abort();
+    modalityAbortRef.current = controller;
+
+    setIsLoadingModalityFilter(true);
+
+    buscarModalidadeNoServidor(selectedModality.toUpperCase(), controller.signal)
+      .then((results) => {
+        if (controller.signal.aborted) return;
+        const ids = new Set((results || []).map((s: any) => s?.ID || s?.id).filter(Boolean));
+        setModalityServerStudyIds(ids);
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setModalityServerStudyIds(new Set());
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoadingModalityFilter(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [selectedModality, buscarModalidadeNoServidor]);
 
   useEffect(() => {
     currentItems.forEach((study) => {
@@ -629,7 +670,7 @@ export function Studies() {
         <div>
           <h1 className="text-2xl font-bold text-theme-primary">Estudos DICOM</h1>
           <p className="text-theme-muted mt-1">
-            {isLoading ? 'Carregando dados...' : `${studiesAfterFilters.length} estudos encontrados`}
+            {isLoading || isLoadingModalityFilter ? 'Carregando dados...' : `${studiesAfterFilters.length} estudos encontrados`}
           </p>
         </div>
 
@@ -656,13 +697,18 @@ export function Studies() {
             <div className="relative z-[80]" ref={modalityDropdownRef}>
               <button
                 onClick={() => setIsModalityDropdownOpen((prev) => !prev)}
+                disabled={isLoadingModalityFilter}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 bg-theme-secondary border-theme-border hover:border-nautico/50 text-theme-primary text-sm font-medium ${
                   isModalityDropdownOpen ? 'ring-2 ring-nautico border-transparent' : 'hover:bg-theme-tertiary/70 hover:shadow-sm'
                 }`}
               >
-                <svg className="w-4 h-4 text-nautico" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V20l-4-2v-4.586L3.293 6.707A1 1 0 013 6V4z" />
-                </svg>
+                {isLoadingModalityFilter ? (
+                  <div className="w-4 h-4 border-2 border-nautico border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-4 h-4 text-nautico" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V20l-4-2v-4.586L3.293 6.707A1 1 0 013 6V4z" />
+                  </svg>
+                )}
                 <span>{selectedModalityOption.label}</span>
                 <svg className={`w-4 h-4 text-theme-muted transition-transform duration-200 ${isModalityDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -681,7 +727,7 @@ export function Studies() {
                           className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors duration-150 ${
                             isSelected
                               ? 'bg-nautico/10 text-nautico'
-                              : 'text-theme-primary hover:bg-theme-tertiary hover:text-theme-primary'
+                              : 'text-theme-primary hover:bg-nautico/15 hover:text-nautico'
                           }`}
                         >
                           <span>{mod.label}</span>
@@ -732,7 +778,7 @@ export function Studies() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme-light">
-                {isLoading ? (
+                {isLoading || isLoadingModalityFilter ? (
                   <tr>
                     <td colSpan={9} className="px-6 py-8 text-center text-theme-muted">
                       Carregando estudos do servidor...
