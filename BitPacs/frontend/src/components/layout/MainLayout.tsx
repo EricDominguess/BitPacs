@@ -22,6 +22,21 @@ export function MainLayout({ children }: MainLayoutProps) {
     localStorage.setItem('bitpacs_sidebar_minimized', JSON.stringify(isMinimized));
   }, [isMinimized]);
 
+  useEffect(() => {
+    if (!isMobileSidebarOpen) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyOverscroll = document.body.style.overscrollBehavior;
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.overscrollBehavior = previousBodyOverscroll;
+    };
+  }, [isMobileSidebarOpen]);
+
   return (
     <div className="min-h-screen bg-theme-primary transition-colors duration-300">
       <Header onMenuClick={() => setIsMobileSidebarOpen(true)} />

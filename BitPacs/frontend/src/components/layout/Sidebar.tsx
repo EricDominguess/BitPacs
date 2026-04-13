@@ -74,7 +74,7 @@ export function Sidebar({
     )}
 
     <aside className={cn(
-      "fixed left-0 top-0 bottom-0 md:top-[72px] bg-theme-primary md:bg-theme-secondary/50 border-r border-theme-light flex flex-col transition-all duration-300 z-[60] shadow-2xl md:shadow-none",
+      "fixed left-0 top-0 bottom-0 md:top-[72px] bg-theme-primary md:bg-theme-secondary/50 border-r border-theme-light flex flex-col transition-all duration-300 z-[60] shadow-2xl md:shadow-none overflow-hidden overscroll-none",
       "w-[88vw] max-w-[320px] md:max-w-none",
       isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
       isMinimized ? "md:w-20" : "md:w-64"
@@ -105,7 +105,7 @@ export function Sidebar({
 
       {/*Navegação scrollável*/}
       <nav className={cn(
-        "p-3 md:p-4 flex flex-col gap-1 overflow-y-auto flex-1 min-h-0",
+        "p-3 md:p-4 flex flex-col gap-1 overflow-y-auto flex-1 min-h-0 overscroll-contain",
         isMinimized && "p-2"
       )}>
         {navItems
@@ -168,7 +168,7 @@ export function Sidebar({
 
       {/* Footer do Sidebar */}
       <div className={cn(
-        "p-3 md:p-4 border-t border-theme-light bg-theme-card md:bg-theme-secondary/50 shrink-0",
+        "p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:p-4 border-t border-theme-light bg-theme-card md:bg-theme-secondary/50 shrink-0",
         isMinimized && "p-2"
       )}>
         <button 
