@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, Badge } from '../../common';
-import { useOrthancData } from '../../../hooks'; // <-- Importamos nosso hook mágico!
 
 interface Study {
   ID: string; // <-- Garantimos o ID do Orthanc aqui
@@ -21,11 +20,14 @@ interface Study {
 interface RecentStudiesTableProps {
   dados?: Study[];
   className?: string;
+  carregarSeriesDoEstudo?: (studyId: string) => Promise<any[]>;
 }
 
-export function RecentStudiesTable({ dados = [], className = '' }: RecentStudiesTableProps) {
-  // 1. Trazemos a função de Lazy Loading
-  const { carregarSeriesDoEstudo } = useOrthancData();
+export function RecentStudiesTable({
+  dados = [],
+  className = '',
+  carregarSeriesDoEstudo,
+}: RecentStudiesTableProps) {
 
   // 2. Cofre de memória para as modalidades
   const [modalidadesCache, setModalidadesCache] = useState<Record<string, string>>({});
@@ -45,6 +47,8 @@ export function RecentStudiesTable({ dados = [], className = '' }: RecentStudies
   // 3. O MOTOR: Busca a modalidade silenciosamente só desses 5 caras!
   useEffect(() => {
     estudosProcessados.forEach(estudo => {
+      if (!carregarSeriesDoEstudo) return;
+
       if (estudo.ID && !modalidadesCache[estudo.ID] && !fetchingRef.current.has(estudo.ID)) {
         fetchingRef.current.add(estudo.ID);
 

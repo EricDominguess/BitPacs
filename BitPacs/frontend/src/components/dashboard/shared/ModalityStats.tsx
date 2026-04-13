@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card } from '../../common';
-import { useOrthancData } from '../../../hooks'; // Puxamos o nosso hook mágico!
 
 // Mapeamento de Cores
 const CORES_POR_MODALIDADE: Record<string, string> = {
@@ -15,10 +14,10 @@ const CORES_POR_MODALIDADE: Record<string, string> = {
 
 interface ModalityStatsProps {
   estudos: any[];
+  carregarSeriesDoEstudo?: (studyId: string) => Promise<any[]>;
 }
 
-export function ModalityStats({ estudos = [] }: ModalityStatsProps) {
-  const { carregarSeriesDoEstudo } = useOrthancData();
+export function ModalityStats({ estudos = [], carregarSeriesDoEstudo }: ModalityStatsProps) {
   const [modalidadesCache, setModalidadesCache] = useState<Record<string, string>>({});
   const fetchingRef = useRef<Set<string>>(new Set());
 
@@ -41,6 +40,8 @@ export function ModalityStats({ estudos = [] }: ModalityStatsProps) {
       const temNoOrthanc = estudo.MainDicomTags?.ModalitiesInStudy;
 
       // Se o Orthanc não mandou a modalidade e nós não buscamos ainda, vai atrás!
+      if (!carregarSeriesDoEstudo) return;
+
       if (!temNoOrthanc && !modalidadesCache[id] && !fetchingRef.current.has(id)) {
         fetchingRef.current.add(id);
 
