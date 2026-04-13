@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import JSZip from 'jszip';
+import { jsPDF } from 'jspdf';
 import { MainLayout } from '../../components/layout';
 import { Card, Button, ActionDropdown, ToastNotice, ConfirmActionModal } from '../../components/common';
 import { useFilteredStudies } from '../../components/dashboard';
@@ -21,6 +23,18 @@ const MODALITY_OPTIONS = [
   { value: 'DX', label: 'Radiografia Digital Diagnóstica (DX)' },
   { value: 'OT', label: 'Outros (OT)' },
 ] as const;
+
+const UNIDADES_ORTHANC_PROXY: Record<string, string> = {
+  localhost: '/orthanc',
+  riobranco: '/orthanc-riobranco',
+  foziguacu: '/orthanc-foziguacu',
+  fazenda: '/orthanc-fazenda',
+  faxinal: '/orthanc-faxinal',
+  santamariana: '/orthanc-santamariana',
+  guarapuava: '/orthanc-guarapuava',
+  carlopolis: '/orthanc-carlopolis',
+  arapoti: '/orthanc-arapoti',
+};
 
 interface SelectedStudyForViewer {
   id: string;
@@ -58,7 +72,7 @@ export function Studies() {
   const [studyForDownload, setStudyForDownload] = useState<StudyForDownload | null>(null);
   const [seriesForDownload, setSeriesForDownload] = useState<SeriesForDownload[]>([]);
   const [isLoadingSeries, setIsLoadingSeries] = useState(false);
-  const [isDownloading] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<DownloadFormat>('jpeg');
   const [reportStatusByStudy, setReportStatusByStudy] = useState<Record<string, boolean>>({});
   const [reportStatusLoadingByStudy, setReportStatusLoadingByStudy] = useState<Record<string, boolean>>({});
@@ -676,44 +690,219 @@ export function Studies() {
     
     try {
       const seriesData = await carregarSeriesDoEstudo(study.id);
-      const series = seriesData?.map((s: any) => ({
-        uid: s.ID,
-        modality: s.MainDicomTags?.Modality || 'Unknown',
-        description: s.MainDicomTags?.SeriesDescription || 'Series',
-        instanceCount: s.Instances?.length || 0,
-        instances: s.Instances?.map((inst: any, idx: number) => ({
-          uid: inst,
-          index: idx + 1
-        })) || []
-      })) || [];
-      setSeriesForDownload(series as any);
+      const series: SeriesForDownload[] = (seriesData || []).map((s: any) => ({
+        id: String(s.ID),
+        modality: s.MainDicomTags?.Modality || 'OT',
+        description: s.MainDicomTags?.SeriesDescription || 'Série sem descrição',
+        instancesCount: Array.isArray(s.Instances) ? s.Instances.length : 0,
+        instances: (s.Instances || []).map((inst: any, idx: number) => ({
+          id: String(inst),
+          instanceNumber: String(idx + 1),
+          isSelected: true,
+        })),
+        isExpanded: false,
+        isSelected: true,
+      }));
+      setSeriesForDownload(series);
     } catch (err) {
       console.error('Erro ao carregar séries:', err);
+      logic.setUploadNotice({ message: 'Erro ao carregar séries para download.', type: 'error', at: Date.now() });
     } finally {
       setIsLoadingSeries(false);
     }
   };
 
   const toggleSelectAll = () => {
-    // Lógica aqui
+    const shouldSelectAll = !seriesForDownload.every((s) => s.isSelected);
+    setSeriesForDownload((prev) =>
+      prev.map((series) => ({
+        ...series,
+        isSelected: shouldSelectAll,
+        instances: series.instances.map((instance) => ({ ...instance, isSelected: shouldSelectAll })),
+      }))
+    );
   };
 
-  const toggleSeriesExpanded = () => {
-    // Lógica aqui
+  const toggleSeriesExpanded = (seriesId: string) => {
+    setSeriesForDownload((prev) =>
+      prev.map((series) =>
+        series.id === seriesId ? { ...series, isExpanded: !series.isExpanded } : series
+      )
+    );
   };
 
-  const toggleSeriesSelection = () => {
-    // Lógica aqui
+  const toggleSeriesSelection = (seriesId: string) => {
+    setSeriesForDownload((prev) =>
+      prev.map((series) => {
+        if (series.id !== seriesId) return series;
+
+        const nextSelected = !series.isSelected;
+        return {
+          ...series,
+          isSelected: nextSelected,
+          instances: series.instances.map((instance) => ({ ...instance, isSelected: nextSelected })),
+        };
+      })
+    );
   };
 
-  const toggleInstanceSelection = () => {
-    // Lógica aqui
+  const toggleInstanceSelection = (seriesId: string, instanceId: string) => {
+    setSeriesForDownload((prev) =>
+      prev.map((series) => {
+        if (series.id !== seriesId) return series;
+
+        const nextInstances = series.instances.map((instance) =>
+          instance.id === instanceId ? { ...instance, isSelected: !instance.isSelected } : instance
+        );
+
+        return {
+          ...series,
+          instances: nextInstances,
+          isSelected: nextInstances.every((instance) => instance.isSelected),
+        };
+      })
+    );
   };
 
-  const countSelected = () => ({ seriesCount: 0, instancesCount: 0 });
+  const countSelected = () => {
+    let seriesCount = 0;
+    let instancesCount = 0;
+
+    seriesForDownload.forEach((series) => {
+      const selectedInstances = series.instances.filter((instance) => instance.isSelected).length;
+      if (selectedInstances > 0) {
+        seriesCount += 1;
+        instancesCount += selectedInstances;
+      }
+    });
+
+    return { seriesCount, instancesCount };
+  };
+
+  const getSelectedInstances = () =>
+    seriesForDownload.flatMap((series) =>
+      series.instances
+        .filter((instance) => instance.isSelected)
+        .map((instance) => ({
+          ...instance,
+          seriesId: series.id,
+          seriesDescription: series.description,
+        }))
+    );
+
+  const downloadBlob = (blob: Blob, fileName: string) => {
+    const blobUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = blobUrl;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(blobUrl);
+  };
 
   const executeDownload = async () => {
-    // Lógica de download
+    if (!studyForDownload) return;
+
+    const proxyPrefix = UNIDADES_ORTHANC_PROXY[unidadeAtual] || '/orthanc';
+    const selectedInstances = getSelectedInstances();
+
+    if (downloadFormat !== 'dicom' && selectedInstances.length === 0) {
+      logic.setUploadNotice({
+        message: 'Selecione ao menos uma imagem para download.',
+        type: 'error',
+        at: Date.now(),
+      });
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      if (downloadFormat === 'dicom') {
+        const response = await fetch(`${proxyPrefix}/studies/${studyForDownload.id}/archive`);
+        if (!response.ok) throw new Error('Falha ao gerar arquivo DICOM.');
+        const blob = await response.blob();
+        downloadBlob(blob, `${studyForDownload.patient.replace(/\s+/g, '_') || 'estudo'}_dicom.zip`);
+      } else if (downloadFormat === 'jpeg') {
+        const zip = new JSZip();
+
+        for (let i = 0; i < selectedInstances.length; i += 1) {
+          const item = selectedInstances[i];
+          const imgRes = await fetch(`${proxyPrefix}/instances/${item.id}/preview`);
+          if (!imgRes.ok) continue;
+          const imgBlob = await imgRes.blob();
+          const safeSeries = item.seriesDescription.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60) || 'serie';
+          zip.file(`${safeSeries}/img_${String(i + 1).padStart(3, '0')}.jpg`, imgBlob);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        downloadBlob(zipBlob, `${studyForDownload.patient.replace(/\s+/g, '_') || 'estudo'}_jpeg.zip`);
+      } else {
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        let hasAnyPage = false;
+
+        for (let i = 0; i < selectedInstances.length; i += 1) {
+          const item = selectedInstances[i];
+          const imgRes = await fetch(`${proxyPrefix}/instances/${item.id}/preview`);
+          if (!imgRes.ok) continue;
+
+          const blob = await imgRes.blob();
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(String(reader.result));
+            reader.onerror = () => reject(new Error('Erro ao processar imagem para PDF.'));
+            reader.readAsDataURL(blob);
+          });
+
+          const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = () => reject(new Error('Erro ao carregar imagem para PDF.'));
+            image.src = dataUrl;
+          });
+
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          const ratio = Math.min(pageWidth / img.width, pageHeight / img.height);
+          const renderWidth = img.width * ratio;
+          const renderHeight = img.height * ratio;
+          const x = (pageWidth - renderWidth) / 2;
+          const y = (pageHeight - renderHeight) / 2;
+
+          if (hasAnyPage) pdf.addPage();
+          pdf.addImage(dataUrl, 'JPEG', x, y, renderWidth, renderHeight);
+          hasAnyPage = true;
+        }
+
+        if (!hasAnyPage) throw new Error('Nenhuma imagem válida para gerar PDF.');
+        pdf.save(`${studyForDownload.patient.replace(/\s+/g, '_') || 'estudo'}_imagens.pdf`);
+      }
+
+      await logic.registrarLog('DOWNLOAD', {
+        ...studyForDownload,
+        id: studyForDownload.id,
+        patient: studyForDownload.patient,
+        description: studyForDownload.description,
+        modality: studyForDownload.modality,
+        studyInstanceUID: studyForDownload.studyInstanceUID,
+      }, `Formato: ${downloadFormat.toUpperCase()} | Itens: ${downloadFormat === 'dicom' ? 'estudo completo' : selectedInstances.length}`);
+
+      setShowDownloadModal(false);
+      logic.setUploadNotice({
+        message: 'Download iniciado com sucesso.',
+        type: 'success',
+        at: Date.now(),
+      });
+    } catch (err) {
+      console.error('Erro ao realizar download:', err);
+      logic.setUploadNotice({
+        message: 'Não foi possível concluir o download. Tente novamente.',
+        type: 'error',
+        at: Date.now(),
+      });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const getStudyActions = (study: typeof studiesFormatted[0]) => ([
