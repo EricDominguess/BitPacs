@@ -84,7 +84,7 @@ export function OHIFViewer() {
   return (
     <div className="h-[100dvh] bg-black flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="h-12 sm:h-14 bg-tangaroa border-b border-purple/30 flex items-center justify-between px-2 sm:px-4 flex-shrink-0 z-10 shadow-lg gap-2">
+      <header className="h-10 sm:h-14 bg-tangaroa border-b border-purple/30 flex items-center justify-between px-2 sm:px-4 flex-shrink-0 z-10 shadow-lg gap-2">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <button 
             onClick={() => navigate('/studies')} 
@@ -98,7 +98,7 @@ export function OHIFViewer() {
             <span className="hidden sm:inline text-sm font-medium">Voltar</span>
           </button>
           <div className="w-px h-5 sm:h-6 bg-purple/30" />
-          <p className="text-xs sm:text-sm font-medium text-white truncate">
+          <p className="hidden sm:block text-sm font-medium text-white truncate">
             <span className="text-purple-light">OHIF</span> Viewer
           </p>
         </div>
@@ -106,7 +106,7 @@ export function OHIFViewer() {
         {/* Botão para abrir BitPacs Viewer como alternativa */}
         <button
           onClick={() => navigate(`/viewer/${studyId}`)}
-          className="flex items-center gap-2 px-2 sm:px-3 py-1.5 bg-nautico/20 hover:bg-nautico/30 border border-nautico/30 rounded-lg text-nautico text-xs sm:text-sm transition-colors shrink-0"
+          className="flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-nautico/20 hover:bg-nautico/30 border border-nautico/30 rounded-lg text-nautico text-xs sm:text-sm transition-colors shrink-0"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -127,15 +127,6 @@ export function OHIFViewer() {
           </div>
         )}
 
-        {/* Overlay para esconder a logo do OHIF */}
-        {!isLoading && !hasError && (
-          <div 
-            className="absolute top-0 left-0 z-20 bg-[#0b1a42] flex items-center px-3 cursor-default w-[140px] sm:w-[220px] h-10 sm:h-[45px]"
-          >
-            <span className="text-purple-light font-semibold text-sm">OHIF Viewer</span>
-          </div>
-        )}
-        
         {hasError && (
           <div className="absolute inset-0 flex items-center justify-center bg-tangaroa z-10">
             <div className="flex flex-col items-center gap-4 text-center p-8">
