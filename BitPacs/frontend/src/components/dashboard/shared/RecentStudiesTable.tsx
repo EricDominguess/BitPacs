@@ -74,7 +74,7 @@ export function RecentStudiesTable({
   
   return (
     <Card title="Estudos Recentes" className={className}>
-      <div className="md:hidden space-y-3">
+      <div className="lg:hidden space-y-3">
         {estudosProcessados.length === 0 ? (
           <p className="py-2 text-center text-gray-400">Nenhum exame recente.</p>
         ) : (
@@ -104,7 +104,7 @@ export function RecentStudiesTable({
         )}
       </div>
 
-      <div className="hidden md:block overflow-x-auto -mx-6 px-6">
+      <div className="hidden lg:block overflow-x-auto -mx-6 px-6">
         <table className="w-full min-w-[500px]">
           <thead>
             <tr className="border-b border-theme-border">

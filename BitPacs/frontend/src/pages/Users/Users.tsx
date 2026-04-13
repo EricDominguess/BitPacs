@@ -380,7 +380,7 @@ export function Users() {
 
         {/* Tabela */}
         <Card className="overflow-hidden !p-0 relative z-10">
-          <div className="md:hidden divide-y divide-theme-light">
+          <div className="lg:hidden divide-y divide-theme-light">
             {isLoading ? (
               <div className="px-4 py-8 text-center text-theme-muted">
                 <div className="flex items-center justify-center gap-3">
@@ -444,7 +444,7 @@ export function Users() {
             )}
           </div>
 
-          <div className="hidden md:block overflow-x-auto scrollbar-thin">
+          <div className="hidden lg:block overflow-x-auto scrollbar-thin">
             <table className="w-full min-w-[700px]">
               <thead className="bg-theme-secondary">
                 <tr>

@@ -16,7 +16,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         <button
           type="button"
           onClick={onMenuClick}
-          className="md:hidden p-2 rounded-lg text-theme-muted hover:text-theme-primary hover:bg-nautico/10 transition-colors"
+          className="lg:hidden p-2 rounded-lg text-theme-muted hover:text-theme-primary hover:bg-nautico/10 transition-colors"
           aria-label="Abrir menu"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

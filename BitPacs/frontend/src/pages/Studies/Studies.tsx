@@ -790,7 +790,7 @@ export function Studies() {
           </div>
 
           <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="relative z-[80] w-full sm:w-auto" ref={modalityDropdownRef}>
+            <div className="relative z-[95] w-full sm:w-auto" ref={modalityDropdownRef}>
               <button
                 onClick={() => setIsModalityDropdownOpen((prev) => !prev)}
                 disabled={isLoadingModalityFilter}
@@ -812,7 +812,7 @@ export function Studies() {
               </button>
 
               {isModalityDropdownOpen && (
-                <div className="absolute top-full mt-2 w-full sm:w-80 z-[70] bg-theme-secondary border border-theme-border rounded-lg shadow-lg animate-in fade-in-0 zoom-in-95 duration-150">
+                <div className="absolute top-full mt-2 w-full sm:w-80 z-[110] bg-theme-secondary border border-theme-border rounded-lg shadow-lg animate-in fade-in-0 zoom-in-95 duration-150">
                   <div className="p-2">
                     {MODALITY_OPTIONS.map((mod) => {
                       const isSelected = selectedModality === mod.value;
@@ -840,7 +840,7 @@ export function Studies() {
               )}
             </div>
 
-            <div className="sm:ml-auto w-full sm:w-auto">
+            <div className="sm:ml-auto w-full sm:w-auto relative z-[80]">
               <PeriodFilter
                 selectedPeriod={selectedPeriod}
                 onPeriodChange={setSelectedPeriod}
@@ -858,7 +858,7 @@ export function Studies() {
 
         {/* Tabela de Estudos */}
         <Card className="overflow-hidden !p-0 relative z-10">
-          <div className="md:hidden divide-y divide-theme-light">
+          <div className="lg:hidden divide-y divide-theme-light">
             {isLoading || isLoadingModalityFilter ? (
               <div className="px-4 py-8 text-center text-theme-muted">Carregando estudos do servidor...</div>
             ) : studiesAfterFilters.length === 0 ? (
@@ -921,7 +921,7 @@ export function Studies() {
             )}
           </div>
 
-          <div className="hidden md:block overflow-x-auto scrollbar-thin">
+          <div className="hidden lg:block overflow-x-auto scrollbar-thin">
             <table className="w-full min-w-[920px]">
               <thead className="bg-theme-secondary">
                 <tr>

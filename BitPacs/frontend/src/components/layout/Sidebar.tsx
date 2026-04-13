@@ -69,17 +69,17 @@ export function Sidebar({
         type="button"
         aria-label="Fechar menu"
         onClick={() => setIsMobileOpen?.(false)}
-        className="md:hidden fixed inset-0 z-50 bg-black/60"
+        className="lg:hidden fixed inset-0 z-50 bg-black/60"
       />
     )}
 
     <aside className={cn(
-      "fixed left-0 top-0 bottom-0 md:top-[72px] bg-theme-primary md:bg-theme-secondary/50 border-r border-theme-light flex flex-col transition-all duration-300 z-[60] shadow-2xl md:shadow-none overflow-hidden overscroll-none",
-      "w-[88vw] max-w-[320px] md:max-w-none",
-      isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-      isMinimized ? "md:w-20" : "md:w-64"
+      "fixed left-0 top-0 bottom-0 lg:top-[72px] bg-theme-primary lg:bg-theme-secondary/50 border-r border-theme-light flex flex-col transition-all duration-300 z-[60] shadow-2xl lg:shadow-none overflow-hidden overscroll-none",
+      "w-[88vw] max-w-[320px] lg:max-w-none",
+      isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+      isMinimized ? "lg:w-20" : "lg:w-64"
     )}>
-      <div className="md:hidden h-[72px] px-4 border-b border-theme-light bg-theme-primary flex items-center justify-between shrink-0">
+      <div className="lg:hidden h-[72px] px-4 border-b border-theme-light bg-theme-primary flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <div className="relative w-9 h-9">
             <div className="absolute inset-0 bg-ultra rounded-lg transform rotate-45" />
@@ -105,7 +105,7 @@ export function Sidebar({
 
       {/*Navegação scrollável*/}
       <nav className={cn(
-        "p-3 md:p-4 flex flex-col gap-1 overflow-y-auto flex-1 min-h-0 overscroll-contain",
+        "p-3 lg:p-4 flex flex-col gap-1 overflow-y-auto flex-1 min-h-0 overscroll-contain",
         isMinimized && "p-2"
       )}>
         {navItems
@@ -129,7 +129,7 @@ export function Sidebar({
                   isActive
                     ? 'bg-nautico text-white shadow-brand'
                     : 'text-theme-muted hover:text-theme-primary hover:bg-nautico/10',
-                  isMinimized && "md:px-3 md:justify-center"
+                  isMinimized && "lg:px-3 lg:justify-center"
                 )}
               >
                 <span className={cn(
@@ -146,7 +146,7 @@ export function Sidebar({
 
       {/* Botão Contatar Suporte */}
       <div className={cn(
-        "px-3 md:px-4 py-2 bg-theme-card md:bg-theme-secondary/50 border-t border-theme-light shrink-0",
+        "px-3 lg:px-4 py-2 bg-theme-card lg:bg-theme-secondary/50 border-t border-theme-light shrink-0",
         isMinimized && "px-2"
       )}>
         <button
@@ -154,7 +154,7 @@ export function Sidebar({
           title={isMinimized ? "Contatar Suporte" : undefined}
           className={cn(
             "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-theme-muted hover:text-ultra hover:bg-ultra/10 transition-all duration-200 group",
-            isMinimized && "md:px-3 md:justify-center"
+            isMinimized && "lg:px-3 lg:justify-center"
           )}
         >
           <span className="text-theme-muted group-hover:text-ultra transition-colors flex-shrink-0">
@@ -168,14 +168,14 @@ export function Sidebar({
 
       {/* Footer do Sidebar */}
       <div className={cn(
-        "p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:p-4 border-t border-theme-light bg-theme-card md:bg-theme-secondary/50 shrink-0",
+        "p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:p-4 border-t border-theme-light bg-theme-card lg:bg-theme-secondary/50 shrink-0",
         isMinimized && "p-2"
       )}>
         <button 
           onClick={() => setShowProfileModal(true)}
           className={cn(
             "w-full flex items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group",
-            isMinimized && "md:px-1 md:justify-center"
+            isMinimized && "lg:px-1 lg:justify-center"
           )}
         >
           {user.avatarUrl ? (
@@ -211,7 +211,7 @@ export function Sidebar({
           onClick={() => setIsMinimized(!isMinimized)}
           title={isMinimized ? "Expandir" : "Minimizar"}
           className={cn(
-            "hidden md:flex w-full items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group mt-2",
+            "hidden lg:flex w-full items-center gap-3 px-2 rounded-lg hover:bg-nautico/10 py-2 transition-colors group mt-2",
             isMinimized && "justify-center"
           )}
         >
