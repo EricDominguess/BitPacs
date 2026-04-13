@@ -74,7 +74,7 @@ export function Sidebar({
     )}
 
     <aside className={cn(
-      "fixed left-0 top-0 bottom-0 lg:top-[72px] bg-theme-primary lg:bg-theme-secondary/50 border-r border-theme-light flex flex-col transition-all duration-300 z-[60] shadow-2xl lg:shadow-none overflow-hidden overscroll-none",
+      "fixed left-0 top-0 bottom-0 lg:top-[72px] bg-theme-primary lg:bg-theme-secondary/50 border-r border-theme-light flex flex-col transition-all duration-300 z-[60] lg:z-40 shadow-2xl lg:shadow-none overflow-hidden overscroll-none",
       "w-[88vw] max-w-[320px] lg:max-w-none",
       isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
       isMinimized ? "lg:w-20" : "lg:w-64"
