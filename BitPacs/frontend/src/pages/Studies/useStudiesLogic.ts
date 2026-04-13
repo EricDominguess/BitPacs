@@ -21,6 +21,7 @@ export function useStudiesLogic(unidadeAtual: string) {
   const [selectedStudyForReport, setSelectedStudyForReport] = useState<any>(null);
   const [selectedStudyForReports, setSelectedStudyForReports] = useState<any>(null);
   const [reportStatusEvent, setReportStatusEvent] = useState<{ studyId: string; hasReport: boolean; at: number } | null>(null);
+  const [uploadNotice, setUploadNotice] = useState<{ message: string; type: 'success' | 'error'; at: number } | null>(null);
   const [serverSearchResults, setServerSearchResults] = useState<any[] | null>(null);
   const [isSearchingServer, setIsSearchingServer] = useState(false);
 
@@ -76,11 +77,11 @@ export function useStudiesLogic(unidadeAtual: string) {
         setStudyToDelete(null);
         window.location.reload();
       } else {
-        alert('Erro ao deletar estudo');
+        setUploadNotice({ message: 'Erro ao deletar estudo.', type: 'error', at: Date.now() });
       }
     } catch (err) {
       console.error('Erro:', err);
-      alert('Erro ao deletar estudo');
+      setUploadNotice({ message: 'Erro ao deletar estudo.', type: 'error', at: Date.now() });
     } finally {
       setIsDeletingStudy(false);
     }
@@ -186,7 +187,11 @@ export function useStudiesLogic(unidadeAtual: string) {
 
       if (response.ok) {
         await response.json();
-        alert(`Laudo anexado com sucesso para ${selectedStudyForReport.patient}!`);
+        setUploadNotice({
+          message: `Laudo anexado com sucesso para ${selectedStudyForReport.patient}!`,
+          type: 'success',
+          at: Date.now(),
+        });
         await registrarLog('UPLOAD', selectedStudyForReport, `Laudo anexado: ${file.name}`);
         setReportStatusEvent({
           studyId: selectedStudyForReport.id,
@@ -195,11 +200,11 @@ export function useStudiesLogic(unidadeAtual: string) {
         });
       } else {
         const error = await response.json();
-        alert(`Erro ao anexar laudo: ${error.message}`);
+        setUploadNotice({ message: `Erro ao anexar laudo: ${error.message}`, type: 'error', at: Date.now() });
       }
     } catch (err) {
       console.error('Erro ao fazer upload do laudo:', err);
-      alert('Erro ao anexar laudo. Verifique o console.');
+      setUploadNotice({ message: 'Erro ao anexar laudo. Verifique o console.', type: 'error', at: Date.now() });
     } finally {
       setReportLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -224,6 +229,8 @@ export function useStudiesLogic(unidadeAtual: string) {
     selectedStudyForReport,
     selectedStudyForReports,
     reportStatusEvent,
+    uploadNotice,
+    setUploadNotice,
     serverSearchResults,
     setServerSearchResults,
     isSearchingServer,

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../../components/layout';
-import { Card, Button, Input, Badge, UserLogsModal } from '../../components/common';
+import { Card, Button, Input, Badge, UserLogsModal, ToastNotice } from '../../components/common';
 
 interface User {
   id: number;
@@ -74,6 +74,7 @@ export function Users() {
   const [formData, setFormData] = useState<FormData>({ nome: '', email: '', password: '', role: 'Medico', unidade: '' });
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [notice, setNotice] = useState<{ title: string; message: string; type: 'success' | 'error' } | null>(null);
 
   const [showLogsModal, setShowLogsModal] = useState(false);
   const [logsUserId, setLogsUserId] = useState<number>(0);
@@ -98,6 +99,12 @@ export function Users() {
   };
 
   useEffect(() => { fetchUsers(); }, []);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 4500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
@@ -180,6 +187,11 @@ export function Users() {
       if (response.ok) {
         setShowModal(false);
         fetchUsers();
+        setNotice({
+          title: modalMode === 'create' ? 'Usuário criado' : 'Usuário atualizado',
+          message: modalMode === 'create' ? 'Novo usuário criado com sucesso.' : 'Dados do usuário atualizados com sucesso.',
+          type: 'success',
+        });
       } else {
         const errorData = await response.json().catch(() => ({}));
         setFormError(errorData.message || 'Erro ao salvar usuário.');
@@ -200,15 +212,41 @@ export function Users() {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      if (response.ok) fetchUsers();
-      else alert('Erro ao excluir usuário.');
+      if (response.ok) {
+        fetchUsers();
+        setNotice({
+          title: 'Usuário excluído',
+          message: 'Usuário removido com sucesso.',
+          type: 'success',
+        });
+      }
+      else {
+        setNotice({
+          title: 'Falha ao excluir',
+          message: 'Erro ao excluir usuário.',
+          type: 'error',
+        });
+      }
     } catch (err) {
-      alert('Erro de conexão com o servidor.');
+      setNotice({
+        title: 'Falha de conexão',
+        message: 'Erro de conexão com o servidor.',
+        type: 'error',
+      });
     }
   };
 
   return (
     <MainLayout>
+      {notice && (
+        <ToastNotice
+          title={notice.title}
+          message={notice.message}
+          type={notice.type}
+          onClose={() => setNotice(null)}
+        />
+      )}
+
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

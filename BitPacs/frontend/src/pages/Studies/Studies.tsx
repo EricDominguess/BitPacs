@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../../components/layout';
-import { Card, Button, ActionDropdown } from '../../components/common';
+import { Card, Button, ActionDropdown, ToastNotice } from '../../components/common';
 import { useFilteredStudies } from '../../components/dashboard';
 import { PeriodFilter, type PeriodType } from '../../components/dashboard';
 import { useOrthancData } from '../../hooks';
@@ -394,6 +394,16 @@ export function Studies() {
     fetchReportStatus(studyId, true);
   }, [logic.reportStatusEvent, fetchReportStatus]);
 
+  useEffect(() => {
+    if (!logic.uploadNotice) return;
+
+    const timer = window.setTimeout(() => {
+      logic.setUploadNotice(null);
+    }, 4500);
+
+    return () => window.clearTimeout(timer);
+  }, [logic.uploadNotice, logic.setUploadNotice]);
+
   // Handlers
   const handleServerSearch = async () => {
     if (!searchTerm.trim()) return;
@@ -506,6 +516,15 @@ export function Studies() {
 
   return (
     <MainLayout>
+      {logic.uploadNotice && (
+        <ToastNotice
+          title={logic.uploadNotice.type === 'error' ? 'Falha na operação' : 'Operação concluída'}
+          message={logic.uploadNotice.message}
+          type={logic.uploadNotice.type}
+          onClose={() => logic.setUploadNotice(null)}
+        />
+      )}
+
       <div className="space-y-6">
         {/* Header */}
         <div>
