@@ -76,6 +76,7 @@ export function Users() {
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState<{ title: string; message: string; type: 'success' | 'error' } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteFinalConfirm, setShowDeleteFinalConfirm] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeletingUser, setIsDeletingUser] = useState(false);
 
@@ -219,6 +220,7 @@ export function Users() {
       if (response.ok) {
         fetchUsers();
         setShowDeleteConfirm(false);
+        setShowDeleteFinalConfirm(false);
         setUserToDelete(null);
         setNotice({
           title: 'Usuário excluído',
@@ -378,6 +380,7 @@ export function Users() {
                           </Button>
                           <Button variant="ghost" size="sm" title="Excluir" onClick={() => {
                             setUserToDelete(user);
+                            setShowDeleteFinalConfirm(false);
                             setShowDeleteConfirm(true);
                           }}>
                             <svg className="w-4 h-4 text-accent-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -528,9 +531,25 @@ export function Users() {
           setShowDeleteConfirm(false);
           setUserToDelete(null);
         }}
-        onConfirm={handleDelete}
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          setShowDeleteFinalConfirm(true);
+        }}
         isLoading={isDeletingUser}
         title="Confirmar exclusão"
+        message={`Tem certeza que deseja excluir ${userToDelete?.nome || 'este usuário'}?`}
+        confirmLabel="Continuar"
+      />
+
+      <ConfirmActionModal
+        isOpen={showDeleteFinalConfirm}
+        onClose={() => {
+          if (isDeletingUser) return;
+          setShowDeleteFinalConfirm(false);
+        }}
+        onConfirm={handleDelete}
+        isLoading={isDeletingUser}
+        title="Confirmação final"
         message={`Tem certeza que deseja excluir ${userToDelete?.nome || 'este usuário'}? Esta ação não pode ser desfeita.`}
         confirmLabel="Excluir usuário"
       />

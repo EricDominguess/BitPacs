@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../../components/layout';
-import { Card, Button, ActionDropdown, ToastNotice } from '../../components/common';
+import { Card, Button, ActionDropdown, ToastNotice, ConfirmActionModal } from '../../components/common';
 import { useFilteredStudies } from '../../components/dashboard';
 import { PeriodFilter, type PeriodType } from '../../components/dashboard';
 import { useOrthancData } from '../../hooks';
@@ -60,6 +60,7 @@ export function Studies() {
   const reportStatusRequestSeqRef = useRef<Record<string, number>>({});
   const modalityDropdownRef = useRef<HTMLDivElement>(null);
   const [isModalityDropdownOpen, setIsModalityDropdownOpen] = useState(false);
+  const [showFinalStudyDeleteConfirm, setShowFinalStudyDeleteConfirm] = useState(false);
   
   // Filtra estudos
   const { estudosFiltrados: periodFilteredStudies } = useFilteredStudies(
@@ -726,6 +727,7 @@ export function Studies() {
                                 icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
                                 onClick: () => {
                                   logic.setStudyToDelete({ id: study.id, patient: study.patient });
+                                  setShowFinalStudyDeleteConfirm(false);
                                   logic.setShowDeleteConfirm(true);
                                 },
                                 variant: 'danger' as const
@@ -794,10 +796,26 @@ export function Studies() {
       <DeleteConfirmModal
         isOpen={logic.showDeleteConfirm}
         onClose={() => logic.setShowDeleteConfirm(false)}
-        onConfirm={logic.handleDeleteStudy}
+        onConfirm={() => {
+          logic.setShowDeleteConfirm(false);
+          setShowFinalStudyDeleteConfirm(true);
+        }}
         isDeleting={logic.isDeletingStudy}
         title="Deletar Estudo"
         message={`Tem certeza que deseja deletar o estudo de ${logic.studyToDelete?.patient}? Esta ação não pode ser desfeita.`}
+      />
+
+      <ConfirmActionModal
+        isOpen={showFinalStudyDeleteConfirm}
+        onClose={() => {
+          if (logic.isDeletingStudy) return;
+          setShowFinalStudyDeleteConfirm(false);
+        }}
+        onConfirm={logic.handleDeleteStudy}
+        isLoading={logic.isDeletingStudy}
+        title="Confirmar exclusão final"
+        message={`Confirma a exclusão permanente do estudo de ${logic.studyToDelete?.patient || 'paciente selecionado'}?`}
+        confirmLabel="Sim, excluir estudo"
       />
 
       <ReportsModal

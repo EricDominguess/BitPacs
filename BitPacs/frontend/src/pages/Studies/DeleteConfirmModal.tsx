@@ -34,7 +34,7 @@ export function DeleteConfirmModal({
           <button
             onClick={onClose}
             disabled={isDeleting}
-            className="px-4 py-2 rounded-lg bg-theme-card text-theme-primary hover:bg-theme-border transition-colors disabled:opacity-50"
+            className="px-4 py-2 rounded-lg bg-theme-card text-theme-primary border border-theme-border hover:bg-theme-tertiary hover:border-nautico/40 transition-all duration-200 disabled:opacity-50"
           >
             Cancelar
           </button>
