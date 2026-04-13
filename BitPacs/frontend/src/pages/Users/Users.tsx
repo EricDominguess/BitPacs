@@ -127,6 +127,20 @@ export function Users() {
   const currentItems     = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages       = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
 
+  const getUserInitials = (name: string) =>
+    name
+      .split(' ')
+      .filter(Boolean)
+      .map(n => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+
+  const getUserUnitLabel = (user: User) => {
+    if (user.role === 'Master') return 'Todas (Acesso Global)';
+    return unidades.find(u => u.value === user.unidadeId)?.label || 'Não atribuída';
+  };
+
   const handleCreate = () => {
     setModalMode('create');
     setEditingUser(null);
@@ -309,7 +323,71 @@ export function Users() {
 
         {/* Tabela */}
         <Card className="overflow-hidden !p-0">
-          <div className="overflow-x-auto scrollbar-thin">
+          <div className="md:hidden divide-y divide-theme-light">
+            {isLoading ? (
+              <div className="px-4 py-8 text-center text-theme-muted">
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-5 h-5 border-2 border-nautico border-t-transparent rounded-full animate-spin" />
+                  Carregando usuários...
+                </div>
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="px-4 py-8 text-center text-theme-muted">Nenhum usuário encontrado.</div>
+            ) : (
+              currentItems.map((user) => (
+                <div key={user.id} className="p-4 space-y-3 hover:bg-nautico/5 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-full bg-nautico/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-nautico font-semibold text-sm">{getUserInitials(user.nome)}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-theme-primary truncate">{user.nome}</p>
+                        <p className="text-sm text-theme-muted truncate">{user.email}</p>
+                      </div>
+                    </div>
+
+                    <Badge variant={roleColors[user.role]?.badge || 'default'}>
+                      {roleColors[user.role]?.label || user.role}
+                    </Badge>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-theme-muted">Unidade</p>
+                    {user.role === 'Master' ? (
+                      <p className="text-sm text-nautico font-medium break-words">{getUserUnitLabel(user)}</p>
+                    ) : (
+                      <p className="text-sm text-theme-secondary break-words">{getUserUnitLabel(user)}</p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    <Button variant="ghost" size="sm" title="Histórico de atividades" onClick={() => handleShowLogs(user)}>
+                      <svg className="w-4 h-4 text-green-aqua" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </Button>
+                    <Button variant="ghost" size="sm" title="Editar" onClick={() => handleEdit(user)}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </Button>
+                    <Button variant="ghost" size="sm" title="Excluir" onClick={() => {
+                      setUserToDelete(user);
+                      setShowDeleteFinalConfirm(false);
+                      setShowDeleteConfirm(true);
+                    }}>
+                      <svg className="w-4 h-4 text-accent-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="hidden md:block overflow-x-auto scrollbar-thin">
             <table className="w-full min-w-[700px]">
               <thead className="bg-theme-secondary">
                 <tr>
@@ -343,7 +421,7 @@ export function Users() {
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-nautico/20 flex items-center justify-center">
                             <span className="text-nautico font-semibold text-sm">
-                              {user.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                              {getUserInitials(user.nome)}
                             </span>
                           </div>
                           <span className="font-medium text-theme-primary">{user.nome}</span>
@@ -360,9 +438,8 @@ export function Users() {
                       <td className="px-6 py-4">
                         <span className="text-theme-muted text-sm">
                           {user.role === 'Master'
-                            ? <span className="text-nautico font-medium">Todas (Acesso Global)</span>
-                            // ✅ Busca pelo slug diretamente — sem conversão numérica
-                            : unidades.find(u => u.value === user.unidadeId)?.label || <span className="opacity-50">Não atribuída</span>
+                            ? <span className="text-nautico font-medium">{getUserUnitLabel(user)}</span>
+                            : getUserUnitLabel(user)
                           }
                         </span>
                       </td>
@@ -396,14 +473,14 @@ export function Users() {
             </table>
           </div>
 
-          <div className="flex items-center justify-between px-6 py-4 border-t border-theme-border bg-theme-secondary">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 sm:px-6 py-4 border-t border-theme-border bg-theme-secondary">
             <span className="text-sm text-theme-muted">
               {filteredUsers.length > 0
                 ? <>Mostrando {indexOfFirstItem + 1} a {Math.min(indexOfLastItem, filteredUsers.length)} de {filteredUsers.length} usuários</>
                 : 'Nenhum resultado'
               }
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-end sm:self-auto">
               <Button variant="ghost" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1 || filteredUsers.length === 0}>
                 Anterior
               </Button>
