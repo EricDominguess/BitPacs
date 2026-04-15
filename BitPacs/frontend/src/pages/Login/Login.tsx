@@ -6,7 +6,7 @@ export function Login() {
   // Estados do Formulário
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('bitpacs_remember_me') === '1');
   
   // Estados de Controle
   const [isLoading, setIsLoading] = useState(false);
@@ -78,12 +78,27 @@ export function Login() {
         // Calcula o tempo de expiração (8 horas = 28.800.000 ms)
         const expiryTime = new Date().getTime() + (8 * 60 * 60 * 1000);
         
+        // Limpa ambos os storages antes de salvar para evitar conflito entre sessão e lembrar-me
+        localStorage.removeItem('bitpacs_token');
+        localStorage.removeItem('bitpacs_user');
+        localStorage.removeItem('bitpacs_token_expiry');
+        sessionStorage.removeItem('bitpacs_token');
+        sessionStorage.removeItem('bitpacs_user');
+        sessionStorage.removeItem('bitpacs_token_expiry');
+
         // Seleciona o storage baseado em "Lembrar de mim"
         const storage = rememberMe ? localStorage : sessionStorage;
         
         storage.setItem('bitpacs_token', data.token);
         storage.setItem('bitpacs_user', JSON.stringify(data.user));
         storage.setItem('bitpacs_token_expiry', expiryTime.toString());
+
+        // Persiste preferência do checkbox para próximas telas de login
+        if (rememberMe) {
+          localStorage.setItem('bitpacs_remember_me', '1');
+        } else {
+          localStorage.removeItem('bitpacs_remember_me');
+        }
         
         // Salva tema sempre em localStorage
         localStorage.setItem('bitpacs-theme', 'light');        

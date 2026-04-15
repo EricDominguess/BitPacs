@@ -59,6 +59,7 @@ const UNIDADES_CONFIG = {
 };
 
 type UnidadeKey = keyof typeof UNIDADES_CONFIG;
+const DEFAULT_MASTER_UNIDADE: UnidadeKey = 'riobranco';
 
 interface UnidadeContextType {
   unidade: UnidadeKey;
@@ -88,8 +89,12 @@ export function UnidadeProvider({ children }: UnidadeProviderProps) {
   const getInitialUnidade = (): UnidadeKey => {
     if (isMaster) {
       const stored = localStorage.getItem('bitpacs-unidade-master');
-      if (stored && stored in UNIDADES_CONFIG) return stored as UnidadeKey;
-      return 'localhost';
+      // Master sempre inicia com Rio Branco quando não houver unidade válida salva
+      if (stored && stored in UNIDADES_CONFIG && stored !== 'localhost') {
+        return stored as UnidadeKey;
+      }
+      localStorage.setItem('bitpacs-unidade-master', DEFAULT_MASTER_UNIDADE);
+      return DEFAULT_MASTER_UNIDADE;
     }
 
     // ✅ Lê unidadeId (slug string) em vez de unidade
@@ -124,7 +129,10 @@ export function UnidadeProvider({ children }: UnidadeProviderProps) {
   useEffect(() => {
     if (isMaster) {
       const stored = localStorage.getItem('bitpacs-unidade-master');
-      if (!stored) setUnidadeState('localhost');
+      if (!stored || stored === 'localhost') {
+        localStorage.setItem('bitpacs-unidade-master', DEFAULT_MASTER_UNIDADE);
+        setUnidadeState(DEFAULT_MASTER_UNIDADE);
+      }
     }
   }, [isMaster]);
 
