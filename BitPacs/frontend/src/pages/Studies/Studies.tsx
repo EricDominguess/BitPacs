@@ -841,6 +841,54 @@ export function Studies() {
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
         let hasAnyPage = false;
 
+        const safePatientName = (studyForDownload.patient || 'Paciente').replace(/\^/g, ' ').trim();
+        const safePatientId = (studyForDownload.patientId || 'Não informado').trim();
+        const safeBirthDate = (studyForDownload.birthDate || 'Não informado').trim();
+        const safeStudyDate = (studyForDownload.date || 'Não informado').trim();
+        const safeModality = (studyForDownload.modality || 'Não informado').trim();
+        const safeDescription = (studyForDownload.description || 'Sem descrição').replace(/\^/g, ' ').trim();
+
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const marginX = 12;
+        const headerTop = 10;
+        const headerHeight = 24;
+        const footerHeight = 8;
+        const imageTop = headerTop + headerHeight + 2;
+        const imageBottom = pageHeight - footerHeight - 4;
+        const imageAreaHeight = imageBottom - imageTop;
+        const imageAreaWidth = pageWidth - marginX * 2;
+
+        const drawPageChrome = (pageNumber: number) => {
+          pdf.setDrawColor(220, 220, 220);
+          pdf.setLineWidth(0.3);
+          pdf.rect(marginX, headerTop, pageWidth - marginX * 2, headerHeight);
+
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(11);
+          pdf.text('BitPacs - Relatório de Imagens', marginX + 2, headerTop + 5);
+
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(8.5);
+          pdf.text(`Paciente: ${safePatientName}`, marginX + 2, headerTop + 10);
+          pdf.text(`ID: ${safePatientId}`, marginX + 2, headerTop + 14);
+          pdf.text(`Nascimento: ${safeBirthDate}`, marginX + 2, headerTop + 18);
+
+          pdf.text(`Estudo: ${safeDescription}`, pageWidth / 2, headerTop + 10);
+          pdf.text(`Data: ${safeStudyDate}`, pageWidth / 2, headerTop + 14);
+          pdf.text(`Modalidade: ${safeModality}`, pageWidth / 2, headerTop + 18);
+
+          pdf.setFontSize(8);
+          pdf.setTextColor(120, 120, 120);
+          pdf.text(
+            `Gerado em ${new Date().toLocaleString('pt-BR')} | Página ${pageNumber}`,
+            pageWidth - marginX,
+            pageHeight - 2,
+            { align: 'right' }
+          );
+          pdf.setTextColor(0, 0, 0);
+        };
+
         for (let i = 0; i < selectedInstances.length; i += 1) {
           const item = selectedInstances[i];
           const imgRes = await fetch(`${proxyPrefix}/instances/${item.id}/preview`);
@@ -861,15 +909,14 @@ export function Studies() {
             image.src = dataUrl;
           });
 
-          const pageWidth = pdf.internal.pageSize.getWidth();
-          const pageHeight = pdf.internal.pageSize.getHeight();
-          const ratio = Math.min(pageWidth / img.width, pageHeight / img.height);
+          const ratio = Math.min(imageAreaWidth / img.width, imageAreaHeight / img.height);
           const renderWidth = img.width * ratio;
           const renderHeight = img.height * ratio;
           const x = (pageWidth - renderWidth) / 2;
-          const y = (pageHeight - renderHeight) / 2;
+          const y = imageTop + (imageAreaHeight - renderHeight) / 2;
 
           if (hasAnyPage) pdf.addPage();
+          drawPageChrome(i + 1);
           pdf.addImage(dataUrl, 'JPEG', x, y, renderWidth, renderHeight);
           hasAnyPage = true;
         }
