@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import JSZip from 'jszip';
-import { jsPDF } from 'jspdf';
 import { MainLayout } from '../../components/layout';
 import { Card, Button, ActionDropdown, ToastNotice, ConfirmActionModal } from '../../components/common';
 import { useFilteredStudies } from '../../components/dashboard';
@@ -10,6 +9,7 @@ import { useOrthancData } from '../../hooks';
 import { ModalityBadge, ViewerModal, DownloadModal, type SeriesForDownload, type StudyForDownload, type DownloadFormat } from '../../components/studies';
 import { ReportsModal, DeleteConfirmModal } from './components';
 import { useStudiesLogic } from './useStudiesLogic';
+import { generateStudyPdfReport } from './PdfReportGenerator';
 
 const ITEMS_PER_PAGE = 8;
 const MODALITY_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -279,6 +279,7 @@ export function Studies() {
         id: s.ID || '',
         studyInstanceUID: s.MainDicomTags?.StudyInstanceUID || '',
         patient: normalizePatientName(s.PatientMainDicomTags?.PatientName),
+        patientId: (s.PatientMainDicomTags?.PatientID || '').trim(),
         birthDate: formatDicomDate(s.PatientMainDicomTags?.PatientBirthDate),
         rawStudyDate: s.MainDicomTags?.StudyDate || '',
         rawStudyTime: s.MainDicomTags?.StudyTime || '',
@@ -286,6 +287,7 @@ export function Studies() {
         modality: getPrimaryModality(s),
         normalizedModalities: getNormalizedModalities(s),
         description: (s.MainDicomTags?.StudyDescription || '').trim() || 'sem descrição',
+        bodyPartExamined: (s.MainDicomTags?.BodyPartExamined || '').trim(),
         date: formatDicomDate(s.MainDicomTags?.StudyDate),
         studyTimestamp: getStudyTimestamp(s.MainDicomTags?.StudyDate, s.MainDicomTags?.StudyTime),
         seriesCount: detailsCache[s.ID]?.seriesCount || 0,
@@ -673,6 +675,7 @@ export function Studies() {
   };
 
   const handleOpenDownloadModal = async (study: typeof studiesFormatted[0]) => {
+    const proxyPrefix = UNIDADES_ORTHANC_PROXY[unidadeAtual] || '/orthanc';
     setStudyForDownload({
       id: study.id,
       patient: study.patient,
@@ -681,8 +684,8 @@ export function Studies() {
       studyInstanceUID: study.studyInstanceUID,
       date: study.date,
       birthDate: study.birthDate,
-      bodyPartExamined: undefined,
-      patientId: undefined
+      bodyPartExamined: study.bodyPartExamined || undefined,
+      patientId: study.patientId || undefined
     });
     setDownloadFormat('jpeg');
     setShowDownloadModal(true);
@@ -690,6 +693,42 @@ export function Studies() {
     
     try {
       const seriesData = await carregarSeriesDoEstudo(study.id);
+
+      const fromSeries = (seriesData || []).find((s: any) =>
+        (s?.MainDicomTags?.BodyPartExamined || '').trim()
+      )?.MainDicomTags?.BodyPartExamined;
+
+      let resolvedBodyPart = (study.bodyPartExamined || fromSeries || '').trim();
+
+      if (!resolvedBodyPart) {
+        const firstInstanceId = (seriesData || [])
+          .flatMap((s: any) => Array.isArray(s?.Instances) ? s.Instances : [])
+          .map((id: any) => String(id))
+          .find(Boolean);
+
+        if (firstInstanceId) {
+          try {
+            const tagsRes = await fetch(`${proxyPrefix}/instances/${firstInstanceId}/simplified-tags`);
+            if (tagsRes.ok) {
+              const tags = await tagsRes.json();
+              resolvedBodyPart = (
+                tags?.BodyPartExamined ||
+                tags?.RequestedProcedureDescription ||
+                tags?.PerformedProcedureStepDescription ||
+                tags?.ProtocolName ||
+                ''
+              ).trim();
+            }
+          } catch (e) {
+            console.warn('Não foi possível buscar tags da instância para BodyPartExamined:', e);
+          }
+        }
+      }
+
+      if (resolvedBodyPart) {
+        setStudyForDownload((prev) => prev ? { ...prev, bodyPartExamined: resolvedBodyPart } : prev);
+      }
+
       const series: SeriesForDownload[] = (seriesData || []).map((s: any) => ({
         id: String(s.ID),
         modality: s.MainDicomTags?.Modality || 'OT',
@@ -838,108 +877,11 @@ export function Studies() {
         const zipBlob = await zip.generateAsync({ type: 'blob' });
         downloadBlob(zipBlob, `${studyForDownload.patient.replace(/\s+/g, '_') || 'estudo'}_jpeg.zip`);
       } else {
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-        let hasAnyPage = false;
-
-        const safePatientName = (studyForDownload.patient || 'Paciente').replace(/\^/g, ' ').trim();
-        const safePatientId = (studyForDownload.patientId || 'Não informado').trim();
-        const safeBirthDate = (studyForDownload.birthDate || 'Não informado').trim();
-        const safeStudyDate = (studyForDownload.date || 'Não informado').trim();
-        const safeModality = (studyForDownload.modality || 'Não informado').trim();
-        const safeBodyPart = (studyForDownload.bodyPartExamined || 'Não informado').trim();
-        const safeDescription = (studyForDownload.description || 'Sem descrição').replace(/\^/g, ' ').trim();
-        const generatedAt = new Date().toLocaleString('pt-BR');
-
-        const compactPatientId = safePatientId.replace(/\s+/g, '');
-        const startsWithPid = /^pid/i.test(compactPatientId);
-        const isCpf = /^\d{11}$/.test(compactPatientId);
-        const formatCpf = (cpf: string) => cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-        const patientIdLabel = !startsWithPid && isCpf ? 'CPF' : 'Id do Paciente';
-        const patientIdValue = !startsWithPid && isCpf ? formatCpf(compactPatientId) : safePatientId;
-
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const imageTop = 100;
-        const imageBottom = pageHeight - 10;
-        const imageAreaHeight = imageBottom - imageTop;
-        const imageAreaWidth = pageWidth - 24;
-
-        const truncate = (value: string, max = 50) => (
-          value.length > max ? `${value.slice(0, max - 3)}...` : value
-        );
-
-        const drawPageChrome = (imageNumber: number) => {
-          // Fundo cinza claro da página
-          pdf.setFillColor(240, 240, 240);
-          pdf.rect(0, 0, pageWidth, pageHeight, 'F');
-
-          // Faixa azul do cabeçalho
-          pdf.setFillColor(38, 66, 142);
-          pdf.rect(0, 0, pageWidth, 72, 'F');
-
-          pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(13.5);
-          pdf.setTextColor(255, 255, 255);
-          pdf.text('BitPacs - Relatório de Imagens', 15, 15);
-
-          pdf.setFont('helvetica', 'normal');
-          pdf.setFontSize(9.5);
-          pdf.text(`Gerado em: ${generatedAt}`, 15, 24.5);
-
-          pdf.setFontSize(9.6);
-          pdf.text(`Paciente: ${truncate(safePatientName, 56)}`, 15, 35.5);
-          pdf.text(`${patientIdLabel}: ${truncate(patientIdValue, 44)}`, 15, 43.5);
-          pdf.text(`Data de Nascimento: ${truncate(safeBirthDate, 24)}`, 15, 51.5);
-          pdf.text(`Data do Exame: ${truncate(safeStudyDate, 24)}`, 15, 59.5);
-
-          pdf.text(`Modalidade: ${truncate(safeModality, 20)}`, 105, 51.5);
-          pdf.text(`Órgão: ${truncate(safeBodyPart, 22)}`, 105, 59.5);
-
-          // Área de conteúdo
-          pdf.setTextColor(0, 0, 0);
-          pdf.setFontSize(10.8);
-          pdf.text(`Descrição: ${truncate(safeDescription, 80)}`, 15, 84);
-
-          pdf.setFontSize(9.6);
-          pdf.setTextColor(118, 118, 118);
-          pdf.text(`Imagem ${imageNumber} - ${truncate(safeModality, 16)}`, 15, 94);
-          pdf.setTextColor(0, 0, 0);
-        };
-
-        for (let i = 0; i < selectedInstances.length; i += 1) {
-          const item = selectedInstances[i];
-          const imgRes = await fetch(`${proxyPrefix}/instances/${item.id}/preview`);
-          if (!imgRes.ok) continue;
-
-          const blob = await imgRes.blob();
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(String(reader.result));
-            reader.onerror = () => reject(new Error('Erro ao processar imagem para PDF.'));
-            reader.readAsDataURL(blob);
-          });
-
-          const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-            const image = new Image();
-            image.onload = () => resolve(image);
-            image.onerror = () => reject(new Error('Erro ao carregar imagem para PDF.'));
-            image.src = dataUrl;
-          });
-
-          const ratio = Math.min(imageAreaWidth / img.width, imageAreaHeight / img.height);
-          const renderWidth = img.width * ratio;
-          const renderHeight = img.height * ratio;
-          const x = (pageWidth - renderWidth) / 2;
-          const y = imageTop + (imageAreaHeight - renderHeight) / 2;
-
-          if (hasAnyPage) pdf.addPage();
-          drawPageChrome(i + 1);
-          pdf.addImage(dataUrl, 'JPEG', x, y, renderWidth, renderHeight);
-          hasAnyPage = true;
-        }
-
-        if (!hasAnyPage) throw new Error('Nenhuma imagem válida para gerar PDF.');
-        pdf.save(`${studyForDownload.patient.replace(/\s+/g, '_') || 'estudo'}_imagens.pdf`);
+        await generateStudyPdfReport({
+          study: studyForDownload,
+          selectedInstances,
+          proxyPrefix,
+        });
       }
 
       await logic.registrarLog('DOWNLOAD', {
