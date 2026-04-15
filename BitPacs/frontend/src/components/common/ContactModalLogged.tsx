@@ -59,7 +59,7 @@ export function ContactModalLogged({ isOpen, onClose }: ContactModalProps) {
             </div>
             <div>
               <p className="text-sm text-theme-muted">Email</p>
-              <p className="text-theme-primary font-medium">suporte6@bitfix.com.br</p>
+              <p className="text-theme-primary font-medium">suporte@bitfix.com.br</p>
             </div>
           </a>
 
