@@ -846,51 +846,63 @@ export function Studies() {
         const safeBirthDate = (studyForDownload.birthDate || 'Não informado').trim();
         const safeStudyDate = (studyForDownload.date || 'Não informado').trim();
         const safeModality = (studyForDownload.modality || 'Não informado').trim();
+        const safeBodyPart = (studyForDownload.bodyPartExamined || 'Não informado').trim();
         const safeDescription = (studyForDownload.description || 'Sem descrição').replace(/\^/g, ' ').trim();
-        const safeStudyInstanceUID = (studyForDownload.studyInstanceUID || 'Não informado').trim();
-        const compactStudyInstanceUID = safeStudyInstanceUID.length > 52
-          ? `${safeStudyInstanceUID.slice(0, 24)}...${safeStudyInstanceUID.slice(-24)}`
-          : safeStudyInstanceUID;
+        const generatedAt = new Date().toLocaleString('pt-BR');
+
+        const compactPatientId = safePatientId.replace(/\s+/g, '');
+        const startsWithPid = /^pid/i.test(compactPatientId);
+        const isCpf = /^\d{11}$/.test(compactPatientId);
+        const formatCpf = (cpf: string) => cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        const patientIdLabel = !startsWithPid && isCpf ? 'CPF' : 'Id do Paciente';
+        const patientIdValue = !startsWithPid && isCpf ? formatCpf(compactPatientId) : safePatientId;
 
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
-        const marginX = 12;
-        const headerTop = 10;
-        const headerHeight = 28;
-        const footerHeight = 8;
-        const imageTop = headerTop + headerHeight + 2;
-        const imageBottom = pageHeight - footerHeight - 4;
+        const imageTop = 100;
+        const imageBottom = pageHeight - 10;
         const imageAreaHeight = imageBottom - imageTop;
-        const imageAreaWidth = pageWidth - marginX * 2;
+        const imageAreaWidth = pageWidth - 24;
 
-        const drawPageChrome = (pageNumber: number) => {
-          pdf.setDrawColor(220, 220, 220);
-          pdf.setLineWidth(0.3);
-          pdf.rect(marginX, headerTop, pageWidth - marginX * 2, headerHeight);
+        const truncate = (value: string, max = 50) => (
+          value.length > max ? `${value.slice(0, max - 3)}...` : value
+        );
+
+        const drawPageChrome = (imageNumber: number) => {
+          // Fundo cinza claro da página
+          pdf.setFillColor(240, 240, 240);
+          pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+
+          // Faixa azul do cabeçalho
+          pdf.setFillColor(38, 66, 142);
+          pdf.rect(0, 0, pageWidth, 72, 'F');
 
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(11);
-          pdf.text('BitPacs - Relatório de Imagens', marginX + 2, headerTop + 5);
+          pdf.setFontSize(13.5);
+          pdf.setTextColor(255, 255, 255);
+          pdf.text('BitPacs - Relatório de Imagens', 15, 15);
 
           pdf.setFont('helvetica', 'normal');
-          pdf.setFontSize(8.5);
-          pdf.text(`Paciente: ${safePatientName}`, marginX + 2, headerTop + 10);
-          pdf.text(`ID: ${safePatientId}`, marginX + 2, headerTop + 14);
-          pdf.text(`Nascimento: ${safeBirthDate}`, marginX + 2, headerTop + 18);
+          pdf.setFontSize(9.5);
+          pdf.text(`Gerado em: ${generatedAt}`, 15, 24.5);
 
-          pdf.text(`Estudo: ${safeDescription}`, pageWidth / 2, headerTop + 10);
-          pdf.text(`Data: ${safeStudyDate}`, pageWidth / 2, headerTop + 14);
-          pdf.text(`Modalidade: ${safeModality}`, pageWidth / 2, headerTop + 18);
-          pdf.text(`StudyUID: ${compactStudyInstanceUID}`, pageWidth / 2, headerTop + 22);
+          pdf.setFontSize(9.6);
+          pdf.text(`Paciente: ${truncate(safePatientName, 56)}`, 15, 35.5);
+          pdf.text(`${patientIdLabel}: ${truncate(patientIdValue, 44)}`, 15, 43.5);
+          pdf.text(`Data de Nascimento: ${truncate(safeBirthDate, 24)}`, 15, 51.5);
+          pdf.text(`Data do Exame: ${truncate(safeStudyDate, 24)}`, 15, 59.5);
 
-          pdf.setFontSize(8);
-          pdf.setTextColor(120, 120, 120);
-          pdf.text(
-            `Gerado em ${new Date().toLocaleString('pt-BR')} | Página ${pageNumber}`,
-            pageWidth - marginX,
-            pageHeight - 2,
-            { align: 'right' }
-          );
+          pdf.text(`Modalidade: ${truncate(safeModality, 20)}`, 105, 51.5);
+          pdf.text(`Órgão: ${truncate(safeBodyPart, 22)}`, 105, 59.5);
+
+          // Área de conteúdo
+          pdf.setTextColor(0, 0, 0);
+          pdf.setFontSize(10.8);
+          pdf.text(`Descrição: ${truncate(safeDescription, 80)}`, 15, 84);
+
+          pdf.setFontSize(9.6);
+          pdf.setTextColor(118, 118, 118);
+          pdf.text(`Imagem ${imageNumber} - ${truncate(safeModality, 16)}`, 15, 94);
           pdf.setTextColor(0, 0, 0);
         };
 
