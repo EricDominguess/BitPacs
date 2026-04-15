@@ -108,6 +108,38 @@ const router = createBrowserRouter([
       </Suspense>
     ),
   },
+  // Rotas legadas para compatibilidade (evita 404 em links antigos no mobile)
+  {
+    path: '/view',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <ProtectedRoute>
+          <Viewer />
+        </ProtectedRoute>
+      </Suspense>
+    ),
+  },
+  {
+    path: '/view/:studyId',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <ProtectedRoute>
+          <Viewer />
+        </ProtectedRoute>
+      </Suspense>
+    ),
+  },
+  // Alias extra para URL truncada/digitada incorretamente
+  {
+    path: '/viewe',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <ProtectedRoute>
+          <Viewer />
+        </ProtectedRoute>
+      </Suspense>
+    ),
+  },
   {
     path: '/ohif-viewer/:studyId',
     element: (
