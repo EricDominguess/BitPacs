@@ -864,14 +864,17 @@ export function Studies() {
         downloadBlob(blob, `${studyForDownload.patient.replace(/\s+/g, '_') || 'estudo'}_dicom.zip`);
       } else if (downloadFormat === 'jpeg') {
         const zip = new JSZip();
+        const safePatientFolder = studyForDownload.patient
+          .replace(/[^a-zA-Z0-9À-ÿ _-]/g, '')
+          .replace(/\s+/g, '_')
+          .trim() || 'paciente';
 
         for (let i = 0; i < selectedInstances.length; i += 1) {
           const item = selectedInstances[i];
           const imgRes = await fetch(`${proxyPrefix}/instances/${item.id}/preview`);
           if (!imgRes.ok) continue;
           const imgBlob = await imgRes.blob();
-          const safeSeries = item.seriesDescription.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60) || 'serie';
-          zip.file(`${safeSeries}/img_${String(i + 1).padStart(3, '0')}.jpg`, imgBlob);
+          zip.file(`${safePatientFolder}/img_${String(i + 1).padStart(3, '0')}.jpg`, imgBlob);
         }
 
         const zipBlob = await zip.generateAsync({ type: 'blob' });
