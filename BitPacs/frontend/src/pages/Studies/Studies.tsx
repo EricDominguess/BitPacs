@@ -847,12 +847,16 @@ export function Studies() {
         const safeStudyDate = (studyForDownload.date || 'Não informado').trim();
         const safeModality = (studyForDownload.modality || 'Não informado').trim();
         const safeDescription = (studyForDownload.description || 'Sem descrição').replace(/\^/g, ' ').trim();
+        const safeStudyInstanceUID = (studyForDownload.studyInstanceUID || 'Não informado').trim();
+        const compactStudyInstanceUID = safeStudyInstanceUID.length > 52
+          ? `${safeStudyInstanceUID.slice(0, 24)}...${safeStudyInstanceUID.slice(-24)}`
+          : safeStudyInstanceUID;
 
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
         const marginX = 12;
         const headerTop = 10;
-        const headerHeight = 24;
+        const headerHeight = 28;
         const footerHeight = 8;
         const imageTop = headerTop + headerHeight + 2;
         const imageBottom = pageHeight - footerHeight - 4;
@@ -877,6 +881,7 @@ export function Studies() {
           pdf.text(`Estudo: ${safeDescription}`, pageWidth / 2, headerTop + 10);
           pdf.text(`Data: ${safeStudyDate}`, pageWidth / 2, headerTop + 14);
           pdf.text(`Modalidade: ${safeModality}`, pageWidth / 2, headerTop + 18);
+          pdf.text(`StudyUID: ${compactStudyInstanceUID}`, pageWidth / 2, headerTop + 22);
 
           pdf.setFontSize(8);
           pdf.setTextColor(120, 120, 120);
