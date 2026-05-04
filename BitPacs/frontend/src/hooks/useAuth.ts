@@ -4,7 +4,7 @@ export interface User {
   id: number;
   nome: string;
   email: string;
-  role: 'Master' | 'Admin' | 'Radiologist' | 'Technician';
+  role: 'Master' | 'Admin' | 'Medico' | 'Enfermeiro';
   unidadeId?: string;
   avatarUrl?: string;
 }

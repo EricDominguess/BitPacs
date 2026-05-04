@@ -3,3 +3,4 @@ export { Dashboard } from './Dashboard';
 export { Studies } from './Studies';
 export { Viewer } from './Viewer';
 export { Login } from './Login';
+export { Reports } from './Reports';

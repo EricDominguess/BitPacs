@@ -40,6 +40,15 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    label: 'Relatórios',
+    href: '/reports',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-6m4 6V7m4 10v-4m-2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z" />
+      </svg>
+    ),
+  },
 ];
 
 interface SidebarProps {
@@ -113,6 +122,7 @@ export function Sidebar({
             if (item.href === '/dashboard') return user.role === 'Master' || user.role === 'Admin';
             if (item.href === '/user-dashboard') return user.role !== 'Master' && user.role !== 'Admin';
             if (item.href === '/users') return user.role === 'Master' || user.role === 'Admin';
+            if (item.href === '/reports') return user.role === 'Master' || user.role === 'Admin';
 
             return true;
           })

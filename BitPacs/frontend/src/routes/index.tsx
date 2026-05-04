@@ -9,6 +9,7 @@ const Login = lazy(() => import('../pages/Login/Login').then(m => ({ default: m.
 const Dashboard = lazy(() => import('../pages/Dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
 const UserDashboard = lazy(() => import('../pages/Dashboard/UserDashboard').then(m => ({ default: m.UserDashboard })));
 const Studies = lazy(() => import('../pages/Studies/Studies').then(m => ({ default: m.Studies })));
+const Reports = lazy(() => import('../pages/Reports/Reports').then(m => ({ default: m.Reports })));
 const Viewer = lazy(() => import('../pages/Viewer/Viewer').then(m => ({ default: m.Viewer })));
 const OHIFViewer = lazy(() => import('../pages/Viewer/OHIFViewer').then(m => ({ default: m.OHIFViewer })));
 
@@ -84,6 +85,16 @@ const router = createBrowserRouter([
       <Suspense fallback={<PageLoader />}>
         <ProtectedRoute>
           <Studies />
+        </ProtectedRoute>
+      </Suspense>
+    ),
+  },
+  {
+    path: '/reports',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <ProtectedRoute allowedRoles={['Master', 'Admin']}>
+          <Reports />
         </ProtectedRoute>
       </Suspense>
     ),
