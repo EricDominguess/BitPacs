@@ -116,22 +116,30 @@ export function Reports() {
               {isMaster ? (
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-theme-secondary">Unidades</label>
-                  <select
-                    multiple
-                    value={selectedUnits}
-                    onChange={(event) => {
-                      const values = Array.from(event.target.selectedOptions).map((option) => option.value as UnidadeKey);
-                      setSelectedUnits(values);
-                    }}
-                    className="min-h-[118px] w-full px-3 py-2 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent"
-                  >
-                    {unidadesOptions.map((item) => (
-                      <option key={item.value} value={item.value} className="text-theme-primary">
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="text-xs text-theme-muted">Use Ctrl/⌘ para selecionar mais de uma unidade.</span>
+                  <div className="border border-theme-border rounded-lg bg-theme-primary p-3 max-h-44 overflow-y-auto space-y-2">
+                    {unidadesOptions.map((item) => {
+                      const isChecked = selectedUnits.includes(item.value as UnidadeKey);
+                      return (
+                        <label key={item.value} className="flex items-center gap-2 text-sm text-theme-primary">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-theme-border text-nautico focus:ring-nautico"
+                            checked={isChecked}
+                            onChange={(event) => {
+                              const value = item.value as UnidadeKey;
+                              setSelectedUnits((prev) => {
+                                if (event.target.checked) {
+                                  return [...prev, value];
+                                }
+                                return prev.filter((unit) => unit !== value);
+                              });
+                            }}
+                          />
+                          <span>{item.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-1.5">
