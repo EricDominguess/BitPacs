@@ -71,7 +71,6 @@ export function Reports() {
   const [quickRange, setQuickRange] = useState<'30' | '14' | '7' | ''>('');
   const [selectedUnits, setSelectedUnits] = useState<UnidadeKey[]>([]);
   const [modality, setModality] = useState('');
-  const [medico, setMedico] = useState('');
   const [status, setStatus] = useState('');
   const [hasGenerated, setHasGenerated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -106,7 +105,6 @@ export function Reports() {
     setQuickRange('');
     setSelectedUnits(isMaster ? [] : [unidade]);
     setModality('');
-    setMedico('');
     setStatus('');
     setHasGenerated(false);
     setResults(null);
@@ -146,7 +144,6 @@ export function Reports() {
         params.set('unidades', unidade);
       }
       if (modality) params.set('modality', modality);
-      if (medico) params.set('medico', medico);
       if (status) params.set('status', status);
       params.set('page', '1');
       params.set('pageSize', '50');
@@ -233,7 +230,7 @@ export function Reports() {
     cursorY += 6;
     pdf.text(`Período: ${startDate || '—'} até ${endDate || '—'}`, marginX, cursorY);
     cursorY += 6;
-    pdf.text(`Modalidade: ${modality || 'Todas'} | Médico: ${medico || 'Todos'} | Status: ${status || 'Todos'}`, marginX, cursorY);
+    pdf.text(`Modalidade: ${modality || 'Todas'} | Status: ${status || 'Todos'}`, marginX, cursorY);
     cursorY += 8;
 
     const columns = ['Data', 'Paciente', 'Modalidade', 'Unidade', 'Ação', 'Usuário'];
@@ -394,13 +391,6 @@ export function Reports() {
                   ))}
                 </select>
               </div>
-
-              <Input
-                label="Médico"
-                placeholder="Digite o nome do médico"
-                value={medico}
-                onChange={(event) => setMedico(event.target.value)}
-              />
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-theme-secondary">Status</label>

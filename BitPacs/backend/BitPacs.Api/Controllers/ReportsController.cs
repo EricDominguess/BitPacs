@@ -95,7 +95,8 @@ namespace BitPacs.Api.Controllers
 
                 if (unidadesSelecionadas.Count > 0)
                 {
-                    query = query.Where(l => l.UnidadeNome != null && unidadesSelecionadas.Contains(l.UnidadeNome));
+                    var unidadesLower = unidadesSelecionadas.Select(u => u.ToLowerInvariant()).ToList();
+                    query = query.Where(l => l.UnidadeNome != null && unidadesLower.Contains(l.UnidadeNome.ToLower()));
                 }
 
                 if (!string.IsNullOrWhiteSpace(modality))
@@ -104,11 +105,7 @@ namespace BitPacs.Api.Controllers
                     query = query.Where(l => l.Modality == modalityValue);
                 }
 
-                if (!string.IsNullOrWhiteSpace(medico))
-                {
-                    var term = medico.Trim().ToLower();
-                    query = query.Where(l => l.User != null && l.User.Nome.ToLower().Contains(term));
-                }
+                _ = medico;
 
                 _ = status;
 
