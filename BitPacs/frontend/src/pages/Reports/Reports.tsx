@@ -1,66 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import { MainLayout } from '../../components/layout';
-import { Button, Card, Input } from '../../components/common';
+import { Card } from '../../components/common';
 import { useUnidade } from '../../contexts';
 import type { UnidadeKey } from '../../contexts/UnidadeContext';
 import { fetchWithAuth } from '../../utils/fetchWithAuth';
+import { ReportsFilters, ReportsResults } from './components';
+import type { DoctorOption, ReportResponse, ReportType } from './types';
 
 interface StoredUser {
   role?: 'Master' | 'Admin' | 'Medico' | 'Enfermeiro';
   unidadeId?: string;
 }
-
-interface ReportTotals {
-  totalLogs: number;
-  totalStudies: number;
-  totalPatients: number;
-  totalViews: number;
-  totalDownloads: number;
-}
-
-interface ReportRecord {
-  id: number;
-  timestamp: string;
-  patientName: string | null;
-  studyDescription: string | null;
-  modality: string | null;
-  unidadeNome: string | null;
-  actionType: string;
-  userName: string | null;
-}
-
-interface ReportResponse {
-  totals: ReportTotals;
-  records: ReportRecord[];
-  summaries?: {
-    byDoctor?: Array<{ doctorId: number; doctorName: string; totalActions: number; totalViews: number; totalDownloads: number }>;
-    byUnit?: Array<{ unidade: string; totalActions: number; totalViews: number; totalDownloads: number }>;
-  };
-}
-
-const MODALIDADES = [
-  { value: '', label: 'Todas' },
-  { value: 'CR', label: 'Raio-X (CR)' },
-  { value: 'CT', label: 'Tomografia (CT)' },
-  { value: 'MR', label: 'Ressonância (MR)' },
-  { value: 'US', label: 'Ultrassom (US)' },
-  { value: 'DX', label: 'Radiografia Digital (DX)' },
-  { value: 'MG', label: 'Mamografia (MG)' },
-  { value: 'XA', label: 'Angiografia (XA)' },
-  { value: 'NM', label: 'Medicina Nuclear (NM)' },
-  { value: 'PT', label: 'PET (PT)' },
-  { value: 'RF', label: 'Fluoroscopia (RF)' },
-  { value: 'SC', label: 'Cintilografia (SC)' },
-  { value: 'OT', label: 'Outros (OT)' },
-];
-
-const STATUS_OPTIONS = [
-  { value: '', label: 'Todos' },
-  { value: 'pending', label: 'Pendente' },
-  { value: 'in-progress', label: 'Em andamento' },
-  { value: 'done', label: 'Finalizado' },
-];
 
 export function Reports() {
   const { unidadesDisponiveis, unidade, unidadeLabel } = useUnidade();
@@ -78,13 +29,13 @@ export function Reports() {
     [unidadesDisponiveis]
   );
 
-  const [reportType, setReportType] = useState<'activity' | 'exams'>('exams');
+  const [reportType, setReportType] = useState<ReportType>('exams');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [quickRange, setQuickRange] = useState<'30' | '14' | '7' | ''>('');
   const [selectedUnits, setSelectedUnits] = useState<UnidadeKey[]>([]);
   const [activityUnit, setActivityUnit] = useState<UnidadeKey | ''>('');
-  const [doctors, setDoctors] = useState<Array<{ id: number; nome: string; unidadeId?: string }>>([]);
+  const [doctors, setDoctors] = useState<DoctorOption[]>([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
   const [modality, setModality] = useState('');
@@ -151,7 +102,7 @@ export function Reports() {
         const query = params.toString() ? `?${params.toString()}` : '';
         const response = await fetchWithAuth(`/api/reports/doctors${query}`);
         if (!response.ok) return;
-        const list = (await response.json()) as Array<{ id: number; nome: string; unidadeId?: string }>;
+        const list = (await response.json()) as DoctorOption[];
         setDoctors(list);
       } catch {
         setDoctors([]);
@@ -464,343 +415,55 @@ export function Reports() {
           </Card>
         )}
 
-        {(isMaster || isAdmin) && (
-          <Card title="Filtros">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-theme-secondary">Tipo de relatório</label>
-                <select
-                  value={reportType}
-                  onChange={(event) => {
-                    setReportType(event.target.value as 'activity' | 'exams');
-                    setResults(null);
-                    setHasGenerated(false);
-                  }}
-                  className="w-full px-3 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent"
-                >
-                  <option value="activity">Atividade dos médicos</option>
-                  <option value="exams">Exames realizados</option>
-                </select>
-              </div>
-
-              <Input
-                type="date"
-                label="Data inicial"
-                value={startDate}
-                onChange={(event) => {
-                  setStartDate(event.target.value);
-                  setQuickRange('');
-                }}
-              />
-              <Input
-                type="date"
-                label="Data final"
-                value={endDate}
-                onChange={(event) => {
-                  setEndDate(event.target.value);
-                  setQuickRange('');
-                }}
-              />
-
-              <div className="md:col-span-2 xl:col-span-2 text-xs text-theme-muted">
-                Para períodos personalizados, preencha as datas acima.
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-theme-secondary">Período rápido</span>
-                <div className="flex flex-wrap gap-3">
-                  {[30, 14, 7].map((days) => (
-                    <label key={days} className="flex items-center gap-2 text-sm text-theme-primary">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 rounded border-theme-border text-nautico focus:ring-nautico"
-                        checked={quickRange === String(days)}
-                        onChange={(event) => {
-                          if (event.target.checked) {
-                            setQuickRange(String(days) as '30' | '14' | '7');
-                            applyQuickRange(days as 30 | 14 | 7);
-                          } else {
-                            setQuickRange('');
-                          }
-                        }}
-                      />
-                      <span>Últimos {days} dias</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {reportType === 'activity' ? (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-theme-secondary">Unidade</label>
-                  {isMaster ? (
-                    <select
-                      value={activityUnit}
-                      onChange={(event) => {
-                        setActivityUnit(event.target.value as UnidadeKey);
-                        setSelectedDoctorId('');
-                      }}
-                      className="w-full px-3 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent"
-                    >
-                      <option value="" className="text-theme-muted">Selecione</option>
-                      {unidadesOptions.map((item) => (
-                        <option key={item.value} value={item.value} className="text-theme-primary">
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="px-4 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary">
-                      {unidadeLabel}
-                    </div>
-                  )}
-                </div>
-              ) : isMaster ? (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-theme-secondary">Unidades</label>
-                  <div className="border border-theme-border rounded-lg bg-theme-primary p-3 max-h-44 overflow-y-auto space-y-2">
-                    {unidadesOptions.map((item) => {
-                      const isChecked = selectedUnits.includes(item.value as UnidadeKey);
-                      return (
-                        <label key={item.value} className="flex items-center gap-2 text-sm text-theme-primary">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 rounded border-theme-border text-nautico focus:ring-nautico"
-                            checked={isChecked}
-                            onChange={(event) => {
-                              const value = item.value as UnidadeKey;
-                              setSelectedUnits((prev) => {
-                                if (event.target.checked) {
-                                  return [...prev, value];
-                                }
-                                return prev.filter((unit) => unit !== value);
-                              });
-                            }}
-                          />
-                          <span>{item.label}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-theme-secondary">Unidade</label>
-                  <div className="px-4 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary">
-                    {unidadeLabel}
-                  </div>
-                </div>
-              )}
-
-              {reportType === 'activity' && (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-theme-secondary">Médico</label>
-                  <select
-                    value={selectedDoctorId}
-                    onChange={(event) => setSelectedDoctorId(event.target.value)}
-                    className="w-full px-3 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent"
-                  >
-                    <option value="">Todos</option>
-                    {isLoadingDoctors && (
-                      <option value="" disabled>Carregando médicos...</option>
-                    )}
-                    {doctors.map((doctor) => (
-                      <option key={doctor.id} value={String(doctor.id)}>
-                        {doctor.nome}
-                      </option>
-                    ))}
-                    {!isLoadingDoctors && doctors.length === 0 && (
-                      <option value="" disabled>Nenhum médico encontrado</option>
-                    )}
-                  </select>
-                  {!isLoadingDoctors && doctors.length === 0 && (
-                    <span className="text-xs text-theme-muted">Cadastre usuários com função Médico para aparecer aqui.</span>
-                  )}
-                </div>
-              )}
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-theme-secondary">Modalidade</label>
-                <select
-                  value={modality}
-                  onChange={(event) => setModality(event.target.value)}
-                  className="w-full px-3 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent"
-                >
-                  {MODALIDADES.map((item) => (
-                    <option key={item.value} value={item.value} className="text-theme-primary">
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-theme-secondary">Status</label>
-                <select
-                  value={status}
-                  onChange={(event) => setStatus(event.target.value)}
-                  className="w-full px-3 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent"
-                >
-                  {STATUS_OPTIONS.map((item) => (
-                    <option key={item.value} value={item.value} className="text-theme-primary">
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button variant="outline" onClick={handleClearFilters}>
-                Limpar filtros
-              </Button>
-              <Button onClick={handleGenerateReport} disabled={!isFormValid || isLoading}>
-                {isLoading ? 'Gerando...' : 'Gerar relatório'}
-              </Button>
-            </div>
-
-            {!hasValidDates && (
-              <p className="mt-2 text-xs text-red-200">
-                Preencha uma data inicial e final válidas (data inicial menor ou igual à final).
-              </p>
-            )}
-          </Card>
-        )}
+        <ReportsFilters
+          isMaster={isMaster}
+          isAdmin={isAdmin}
+          reportType={reportType}
+          setReportType={(value) => {
+            setReportType(value);
+            setResults(null);
+            setHasGenerated(false);
+          }}
+          startDate={startDate}
+          endDate={endDate}
+          setStartDate={setStartDate}
+          setEndDate={setEndDate}
+          quickRange={quickRange}
+          setQuickRange={setQuickRange}
+          applyQuickRange={applyQuickRange}
+          unidadesOptions={unidadesOptions}
+          selectedUnits={selectedUnits}
+          setSelectedUnits={setSelectedUnits}
+          activityUnit={activityUnit}
+          setActivityUnit={setActivityUnit}
+          unidadeLabel={unidadeLabel}
+          doctors={doctors}
+          selectedDoctorId={selectedDoctorId}
+          setSelectedDoctorId={setSelectedDoctorId}
+          isLoadingDoctors={isLoadingDoctors}
+          modality={modality}
+          setModality={setModality}
+          status={status}
+          setStatus={setStatus}
+          onClearFilters={handleClearFilters}
+          onGenerateReport={handleGenerateReport}
+          isFormValid={isFormValid}
+          isLoading={isLoading}
+          hasValidDates={hasValidDates}
+        />
 
         {(isMaster || isAdmin) && (
-          <Card title="Resultados">
-            {isLoading && (
-              <div className="flex items-center gap-3 text-theme-muted">
-                <div className="w-5 h-5 border-2 border-nautico border-t-transparent rounded-full animate-spin" />
-                Gerando relatório...
-              </div>
-            )}
-
-            {!isLoading && error && (
-              <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
-                {error}
-              </div>
-            )}
-
-            {!isLoading && !hasGenerated && (
-              <p className="text-theme-muted">Selecione os filtros e clique em Gerar relatório.</p>
-            )}
-
-            {!isLoading && hasGenerated && !error && (
-              <div className="space-y-5">
-                {reportType === 'activity' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
-                      <p className="text-xs text-theme-muted">Total de ações</p>
-                      <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalLogs ?? 0}</p>
-                    </div>
-                    <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
-                      <p className="text-xs text-theme-muted">Pacientes únicos</p>
-                      <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalPatients ?? 0}</p>
-                    </div>
-                    <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
-                      <p className="text-xs text-theme-muted">Ações registradas</p>
-                      <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalLogs ?? 0}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                    <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
-                      <p className="text-xs text-theme-muted">Total de estudos</p>
-                      <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalStudies ?? 0}</p>
-                    </div>
-                    <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
-                      <p className="text-xs text-theme-muted">Pacientes únicos</p>
-                      <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalPatients ?? 0}</p>
-                    </div>
-                    <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
-                      <p className="text-xs text-theme-muted">Views</p>
-                      <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalViews ?? 0}</p>
-                    </div>
-                    <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
-                      <p className="text-xs text-theme-muted">Downloads</p>
-                      <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalDownloads ?? 0}</p>
-                    </div>
-                  </div>
-                )}
-
-                {!results?.records?.length && (
-                  <div className="rounded-lg border border-theme-border p-4 text-theme-muted">
-                    Nenhum dado encontrado para os filtros selecionados.
-                  </div>
-                )}
-
-                {(results?.summaries?.byDoctor?.length || results?.summaries?.byUnit?.length) && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {!!results?.summaries?.byDoctor?.length && (
-                      <div className="rounded-lg border border-theme-border">
-                        <div className="px-4 py-3 bg-theme-secondary text-sm text-theme-muted">Resumo por médico</div>
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full text-sm text-theme-primary">
-                            <thead className="bg-theme-card text-theme-muted">
-                              <tr>
-                                <th className="px-4 py-2 text-left font-medium">Médico</th>
-                                <th className="px-4 py-2 text-left font-medium">Ações</th>
-                                <th className="px-4 py-2 text-left font-medium">Views</th>
-                                <th className="px-4 py-2 text-left font-medium">Downloads</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {results.summaries?.byDoctor?.map((item) => (
-                                <tr key={item.doctorId} className="border-t border-theme-border">
-                                  <td className="px-4 py-2">{item.doctorName}</td>
-                                  <td className="px-4 py-2">{item.totalActions}</td>
-                                  <td className="px-4 py-2">{item.totalViews}</td>
-                                  <td className="px-4 py-2">{item.totalDownloads}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-
-                    {!!results?.summaries?.byUnit?.length && (
-                      <div className="rounded-lg border border-theme-border">
-                        <div className="px-4 py-3 bg-theme-secondary text-sm text-theme-muted">Resumo por unidade</div>
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full text-sm text-theme-primary">
-                            <thead className="bg-theme-card text-theme-muted">
-                              <tr>
-                                <th className="px-4 py-2 text-left font-medium">Unidade</th>
-                                <th className="px-4 py-2 text-left font-medium">Ações</th>
-                                <th className="px-4 py-2 text-left font-medium">Views</th>
-                                <th className="px-4 py-2 text-left font-medium">Downloads</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {results.summaries?.byUnit?.map((item) => (
-                                <tr key={item.unidade} className="border-t border-theme-border">
-                                  <td className="px-4 py-2">{getUnidadeLabel(item.unidade)}</td>
-                                  <td className="px-4 py-2">{item.totalActions}</td>
-                                  <td className="px-4 py-2">{item.totalViews}</td>
-                                  <td className="px-4 py-2">{item.totalDownloads}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex flex-wrap gap-3">
-                  <Button variant="secondary" onClick={handleExportCsv} disabled={!hasResults}>
-                    Exportar CSV
-                  </Button>
-                  <Button variant="secondary" onClick={handleExportPdf} disabled={!hasResults}>
-                    Exportar PDF
-                  </Button>
-                </div>
-              </div>
-            )}
-          </Card>
+          <ReportsResults
+            isLoading={isLoading}
+            error={error}
+            hasGenerated={hasGenerated}
+            reportType={reportType}
+            results={results}
+            hasResults={hasResults}
+            onExportCsv={handleExportCsv}
+            onExportPdf={handleExportPdf}
+            getUnidadeLabel={getUnidadeLabel}
+          />
         )}
       </div>
     </MainLayout>
