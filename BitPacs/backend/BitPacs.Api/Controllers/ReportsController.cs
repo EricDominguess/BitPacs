@@ -11,10 +11,12 @@ namespace BitPacs.Api.Controllers
     public class ReportsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ILogger<ReportsController> _logger;
 
-        public ReportsController(AppDbContext context)
+        public ReportsController(AppDbContext context, ILogger<ReportsController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -29,121 +31,135 @@ namespace BitPacs.Api.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50)
         {
-            var role = User.FindFirst(ClaimTypes.Role)?.Value;
-            var unidadeClaim = User.FindFirst("UnidadeId")?.Value;
-
-            if (role != "Master" && role != "Admin")
+            try
             {
-                return Forbid("Você não tem permissão para acessar relatórios.");
-            }
+                var role = User.FindFirst(ClaimTypes.Role)?.Value;
+                var unidadeClaim = User.FindFirst("UnidadeId")?.Value;
 
-            var unidadesSelecionadas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            if (role == "Admin")
-            {
-                if (!string.IsNullOrWhiteSpace(unidadeClaim))
+                if (role != "Master" && role != "Admin")
                 {
-                    unidadesSelecionadas.Add(unidadeClaim.Trim());
+                    return Forbid("Você não tem permissão para acessar relatórios.");
                 }
-            }
-            else if (!string.IsNullOrWhiteSpace(unidades))
-            {
-                foreach (var item in unidades.Split(',', StringSplitOptions.RemoveEmptyEntries))
+
+                var unidadesSelecionadas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (role == "Admin")
                 {
-                    var value = item.Trim();
-                    if (!string.IsNullOrWhiteSpace(value))
+                    if (!string.IsNullOrWhiteSpace(unidadeClaim))
                     {
-                        unidadesSelecionadas.Add(value);
+                        unidadesSelecionadas.Add(unidadeClaim.Trim());
                     }
                 }
-            }
-
-            DateTime? start = null;
-            DateTime? end = null;
-            if (DateTime.TryParse(startDate, out var startParsed))
-            {
-                start = startParsed.Date;
-            }
-            if (DateTime.TryParse(endDate, out var endParsed))
-            {
-                end = endParsed.Date.AddDays(1).AddTicks(-1);
-            }
-
-            var query = _context.StudyLogs
-                .AsNoTracking()
-                .Include(l => l.User)
-                .Where(l => l.ActionType == "VIEW" || l.ActionType == "DOWNLOAD");
-
-            if (start.HasValue)
-            {
-                query = query.Where(l => l.Timestamp >= start.Value);
-            }
-
-            if (end.HasValue)
-            {
-                query = query.Where(l => l.Timestamp <= end.Value);
-            }
-
-            if (unidadesSelecionadas.Count > 0)
-            {
-                query = query.Where(l => l.UnidadeNome != null && unidadesSelecionadas.Contains(l.UnidadeNome));
-            }
-
-            if (!string.IsNullOrWhiteSpace(modality))
-            {
-                var modalityValue = modality.Trim();
-                query = query.Where(l => l.Modality == modalityValue);
-            }
-
-            if (!string.IsNullOrWhiteSpace(medico))
-            {
-                var term = medico.Trim().ToLower();
-                query = query.Where(l => l.User != null && l.User.Nome.ToLower().Contains(term));
-            }
-
-            _ = status;
-
-            var totalLogs = await query.CountAsync();
-            var totalStudies = await query.Select(l => l.StudyId).Distinct().CountAsync();
-            var totalPatients = await query
-                .Where(l => l.PatientName != null && l.PatientName != "")
-                .Select(l => l.PatientName!)
-                .Distinct()
-                .CountAsync();
-            var totalViews = await query.CountAsync(l => l.ActionType == "VIEW");
-            var totalDownloads = await query.CountAsync(l => l.ActionType == "DOWNLOAD");
-
-            var safePage = page < 1 ? 1 : page;
-            var safePageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 200);
-
-            var records = await query
-                .OrderByDescending(l => l.Timestamp)
-                .Skip((safePage - 1) * safePageSize)
-                .Take(safePageSize)
-                .Select(l => new
+                else if (!string.IsNullOrWhiteSpace(unidades))
                 {
-                    l.Id,
-                    Timestamp = l.Timestamp,
-                    l.PatientName,
-                    l.StudyDescription,
-                    l.Modality,
-                    l.UnidadeNome,
-                    l.ActionType,
-                    UserName = l.User != null ? l.User.Nome : null
-                })
-                .ToListAsync();
+                    foreach (var item in unidades.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var value = item.Trim();
+                        if (!string.IsNullOrWhiteSpace(value))
+                        {
+                            unidadesSelecionadas.Add(value);
+                        }
+                    }
+                }
 
-            return Ok(new
-            {
-                totals = new
+                DateTime? start = null;
+                DateTime? end = null;
+                if (!string.IsNullOrWhiteSpace(startDate))
                 {
-                    totalLogs,
-                    totalStudies,
-                    totalPatients,
-                    totalViews,
-                    totalDownloads
-                },
-                records
-            });
+                    if (DateTime.TryParse(startDate, out var startParsed))
+                    {
+                        start = startParsed.Date;
+                    }
+                }
+                if (!string.IsNullOrWhiteSpace(endDate))
+                {
+                    if (DateTime.TryParse(endDate, out var endParsed))
+                    {
+                        end = endParsed.Date.AddDays(1).AddTicks(-1);
+                    }
+                }
+
+                var query = _context.StudyLogs
+                    .AsNoTracking()
+                    .Include(l => l.User)
+                    .Where(l => l.ActionType == "VIEW" || l.ActionType == "DOWNLOAD");
+
+                if (start.HasValue)
+                {
+                    query = query.Where(l => l.Timestamp >= start.Value);
+                }
+
+                if (end.HasValue)
+                {
+                    query = query.Where(l => l.Timestamp <= end.Value);
+                }
+
+                if (unidadesSelecionadas.Count > 0)
+                {
+                    query = query.Where(l => l.UnidadeNome != null && unidadesSelecionadas.Contains(l.UnidadeNome));
+                }
+
+                if (!string.IsNullOrWhiteSpace(modality))
+                {
+                    var modalityValue = modality.Trim();
+                    query = query.Where(l => l.Modality == modalityValue);
+                }
+
+                if (!string.IsNullOrWhiteSpace(medico))
+                {
+                    var term = medico.Trim().ToLower();
+                    query = query.Where(l => l.User != null && l.User.Nome.ToLower().Contains(term));
+                }
+
+                _ = status;
+
+                var totalLogs = await query.CountAsync();
+                var totalStudies = await query.Select(l => l.StudyId).Distinct().CountAsync();
+                var totalPatients = await query
+                    .Where(l => l.PatientName != null && l.PatientName != "")
+                    .Select(l => l.PatientName!)
+                    .Distinct()
+                    .CountAsync();
+                var totalViews = await query.CountAsync(l => l.ActionType == "VIEW");
+                var totalDownloads = await query.CountAsync(l => l.ActionType == "DOWNLOAD");
+
+                var safePage = page < 1 ? 1 : page;
+                var safePageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 200);
+
+                var records = await query
+                    .OrderByDescending(l => l.Timestamp)
+                    .Skip((safePage - 1) * safePageSize)
+                    .Take(safePageSize)
+                    .Select(l => new
+                    {
+                        l.Id,
+                        Timestamp = l.Timestamp,
+                        l.PatientName,
+                        l.StudyDescription,
+                        l.Modality,
+                        l.UnidadeNome,
+                        l.ActionType,
+                        UserName = l.User != null ? l.User.Nome : null
+                    })
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    totals = new
+                    {
+                        totalLogs,
+                        totalStudies,
+                        totalPatients,
+                        totalViews,
+                        totalDownloads
+                    },
+                    records
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao gerar relatório.");
+                return StatusCode(500, new { message = "Erro ao gerar relatório.", detail = ex.Message });
+            }
         }
     }
 }

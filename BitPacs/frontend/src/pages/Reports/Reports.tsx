@@ -68,6 +68,7 @@ export function Reports() {
 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [quickRange, setQuickRange] = useState<'30' | '14' | '7' | ''>('');
   const [selectedUnits, setSelectedUnits] = useState<UnidadeKey[]>([]);
   const [modality, setModality] = useState('');
   const [medico, setMedico] = useState('');
@@ -102,6 +103,7 @@ export function Reports() {
   const handleClearFilters = () => {
     setStartDate('');
     setEndDate('');
+    setQuickRange('');
     setSelectedUnits(isMaster ? [] : [unidade]);
     setModality('');
     setMedico('');
@@ -109,6 +111,21 @@ export function Reports() {
     setHasGenerated(false);
     setResults(null);
     setError(null);
+  };
+
+  const formatDateInput = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const applyQuickRange = (days: 30 | 14 | 7) => {
+    const today = new Date();
+    const start = new Date();
+    start.setDate(today.getDate() - days);
+    setStartDate(formatDateInput(start));
+    setEndDate(formatDateInput(today));
   };
 
   const handleGenerateReport = async () => {
@@ -137,7 +154,12 @@ export function Reports() {
       const response = await fetchWithAuth(`/api/reports?${params.toString()}`);
       if (!response.ok) {
         const payload = await response.text();
-        throw new Error(payload || 'Falha ao gerar relatório.');
+        try {
+          const parsed = JSON.parse(payload);
+          throw new Error(parsed?.message || 'Falha ao gerar relatório.');
+        } catch {
+          throw new Error(payload || 'Falha ao gerar relatório.');
+        }
       }
 
       const data = (await response.json()) as ReportResponse;
@@ -153,6 +175,8 @@ export function Reports() {
   };
 
   const canGenerate = (isMaster || isAdmin) && (!isMaster || selectedUnits.length > 0);
+  const hasValidDates = !!startDate && !!endDate && new Date(startDate) <= new Date(endDate);
+  const isFormValid = canGenerate && hasValidDates;
   const hasResults = !!results?.records?.length;
 
   const handleExportCsv = () => {
@@ -280,14 +304,44 @@ export function Reports() {
                 type="date"
                 label="Data inicial"
                 value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
+                onChange={(event) => {
+                  setStartDate(event.target.value);
+                  setQuickRange('');
+                }}
               />
               <Input
                 type="date"
                 label="Data final"
                 value={endDate}
-                onChange={(event) => setEndDate(event.target.value)}
+                onChange={(event) => {
+                  setEndDate(event.target.value);
+                  setQuickRange('');
+                }}
               />
+
+              <div className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-theme-secondary">Período rápido</span>
+                <div className="flex flex-wrap gap-3">
+                  {[30, 14, 7].map((days) => (
+                    <label key={days} className="flex items-center gap-2 text-sm text-theme-primary">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-theme-border text-nautico focus:ring-nautico"
+                        checked={quickRange === String(days)}
+                        onChange={(event) => {
+                          if (event.target.checked) {
+                            setQuickRange(String(days) as '30' | '14' | '7');
+                            applyQuickRange(days as 30 | 14 | 7);
+                          } else {
+                            setQuickRange('');
+                          }
+                        }}
+                      />
+                      <span>Últimos {days} dias</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
 
               {isMaster ? (
                 <div className="flex flex-col gap-1.5">
@@ -368,10 +422,16 @@ export function Reports() {
               <Button variant="outline" onClick={handleClearFilters}>
                 Limpar filtros
               </Button>
-              <Button onClick={handleGenerateReport} disabled={!canGenerate || isLoading}>
+              <Button onClick={handleGenerateReport} disabled={!isFormValid || isLoading}>
                 {isLoading ? 'Gerando...' : 'Gerar relatório'}
               </Button>
             </div>
+
+            {!hasValidDates && (
+              <p className="mt-2 text-xs text-red-200">
+                Preencha uma data inicial e final válidas (data inicial menor ou igual à final).
+              </p>
+            )}
           </Card>
         )}
 
