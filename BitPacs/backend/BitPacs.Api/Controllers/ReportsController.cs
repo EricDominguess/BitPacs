@@ -181,25 +181,25 @@ namespace BitPacs.Api.Controllers
                         }
                     }
 
-                    var totalStudies = examRecords.Select(r => r.StudyId).Distinct().Count();
-                    var totalPatients = examRecords
+                    var examTotalStudies = examRecords.Select(r => r.StudyId).Distinct().Count();
+                    var examTotalPatients = examRecords
                         .Where(r => !string.IsNullOrWhiteSpace(r.PatientName))
                         .Select(r => r.PatientName!)
                         .Distinct()
                         .Count();
 
-                    var totalLogs = examRecords.Count;
+                    var examTotalLogs = examRecords.Count;
 
-                    var safePage = page < 1 ? 1 : page;
-                    var safePageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 200);
+                    var examPage = page < 1 ? 1 : page;
+                    var examPageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 200);
 
-                    var records = examRecords
+                    var examRecordsPaged = examRecords
                         .OrderByDescending(r => r.StudyDate ?? DateTime.MinValue)
-                        .Skip((safePage - 1) * safePageSize)
-                        .Take(safePageSize)
+                        .Skip((examPage - 1) * examPageSize)
+                        .Take(examPageSize)
                         .Select((r, index) => new
                         {
-                            Id = index + 1 + ((safePage - 1) * safePageSize),
+                            Id = index + 1 + ((examPage - 1) * examPageSize),
                             Timestamp = r.StudyDate ?? DateTime.UtcNow,
                             r.PatientName,
                             r.StudyDescription,
@@ -210,7 +210,7 @@ namespace BitPacs.Api.Controllers
                         })
                         .ToList();
 
-                    var byUnit = examRecords
+                    var examByUnit = examRecords
                         .GroupBy(r => r.Unidade)
                         .Select(g => new
                         {
@@ -226,17 +226,17 @@ namespace BitPacs.Api.Controllers
                     {
                         totals = new
                         {
-                            totalLogs,
-                            totalStudies,
-                            totalPatients,
+                            totalLogs = examTotalLogs,
+                            totalStudies = examTotalStudies,
+                            totalPatients = examTotalPatients,
                             totalViews = 0,
                             totalDownloads = 0
                         },
-                        records,
+                        records = examRecordsPaged,
                         summaries = new
                         {
                             byDoctor = new List<object>(),
-                            byUnit
+                            byUnit = examByUnit
                         }
                     });
                 }
