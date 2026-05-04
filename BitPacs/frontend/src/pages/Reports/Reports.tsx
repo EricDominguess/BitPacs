@@ -98,6 +98,8 @@ export function Reports() {
     return found?.label ?? value;
   };
 
+  const normalizeText = (value: string) => value.trim().toLowerCase();
+
   const getSelectedUnidadesLabel = () => {
     if (isMaster) {
       if (!selectedUnits.length) return 'Todas';
@@ -143,12 +145,14 @@ export function Reports() {
         const response = await fetchWithAuth('/api/auth/users');
         if (!response.ok) return;
         const users = (await response.json()) as Array<{ id: number; nome: string; role: string; unidadeId?: string }>;
-        const normalizedTarget = String(targetUnit).trim().toLowerCase();
+        const normalizedTarget = normalizeText(String(targetUnit));
+        const normalizedTargetLabel = normalizeText(getUnidadeLabel(String(targetUnit)));
         const filtered = users
           .filter((user) => user.role === 'Medico')
           .filter((user) => {
             if (!normalizedTarget) return true;
-            return String(user.unidadeId || '').trim().toLowerCase() === normalizedTarget;
+            const normalizedUserUnit = normalizeText(String(user.unidadeId || ''));
+            return normalizedUserUnit === normalizedTarget || normalizedUserUnit === normalizedTargetLabel;
           })
           .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
         setDoctors(filtered);
@@ -464,38 +468,20 @@ export function Reports() {
         {(isMaster || isAdmin) && (
           <Card title="Filtros">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-theme-secondary">Tipo de relatório</span>
-                <div className="flex flex-wrap gap-3">
-                  <label className="flex items-center gap-2 text-sm text-theme-primary">
-                    <input
-                      type="radio"
-                      name="reportType"
-                      className="h-4 w-4 border-theme-border text-nautico focus:ring-nautico"
-                      checked={reportType === 'activity'}
-                      onChange={() => {
-                        setReportType('activity');
-                        setResults(null);
-                        setHasGenerated(false);
-                      }}
-                    />
-                    <span>Atividade dos médicos</span>
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-theme-primary">
-                    <input
-                      type="radio"
-                      name="reportType"
-                      className="h-4 w-4 border-theme-border text-nautico focus:ring-nautico"
-                      checked={reportType === 'exams'}
-                      onChange={() => {
-                        setReportType('exams');
-                        setResults(null);
-                        setHasGenerated(false);
-                      }}
-                    />
-                    <span>Exames realizados</span>
-                  </label>
-                </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-theme-secondary">Tipo de relatório</label>
+                <select
+                  value={reportType}
+                  onChange={(event) => {
+                    setReportType(event.target.value as 'activity' | 'exams');
+                    setResults(null);
+                    setHasGenerated(false);
+                  }}
+                  className="w-full px-3 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent"
+                >
+                  <option value="activity">Atividade dos médicos</option>
+                  <option value="exams">Exames realizados</option>
+                </select>
               </div>
 
               <Input
@@ -516,6 +502,10 @@ export function Reports() {
                   setQuickRange('');
                 }}
               />
+
+              <div className="md:col-span-2 xl:col-span-2 text-xs text-theme-muted">
+                Para períodos personalizados, preencha as datas acima.
+              </div>
 
               <div className="flex flex-col gap-2">
                 <span className="text-sm font-medium text-theme-secondary">Período rápido</span>
@@ -539,7 +529,6 @@ export function Reports() {
                     </label>
                   ))}
                 </div>
-                <span className="text-xs text-theme-muted">Para períodos personalizados, preencha as datas acima.</span>
               </div>
 
               {reportType === 'activity' ? (
