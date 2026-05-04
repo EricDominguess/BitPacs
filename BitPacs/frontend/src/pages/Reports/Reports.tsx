@@ -143,9 +143,14 @@ export function Reports() {
         const response = await fetchWithAuth('/api/auth/users');
         if (!response.ok) return;
         const users = (await response.json()) as Array<{ id: number; nome: string; role: string; unidadeId?: string }>;
-        const filtered = users.filter(
-          (user) => user.role === 'Medico' && (!targetUnit || user.unidadeId === targetUnit)
-        );
+        const normalizedTarget = String(targetUnit).trim().toLowerCase();
+        const filtered = users
+          .filter((user) => user.role === 'Medico')
+          .filter((user) => {
+            if (!normalizedTarget) return true;
+            return String(user.unidadeId || '').trim().toLowerCase() === normalizedTarget;
+          })
+          .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
         setDoctors(filtered);
       } catch {
         setDoctors([]);
@@ -534,6 +539,7 @@ export function Reports() {
                     </label>
                   ))}
                 </div>
+                <span className="text-xs text-theme-muted">Para períodos personalizados, preencha as datas acima.</span>
               </div>
 
               {reportType === 'activity' ? (
