@@ -19,6 +19,38 @@ namespace BitPacs.Api.Controllers
             _logger = logger;
         }
 
+        [HttpGet("doctors")]
+        [Authorize]
+        public async Task<IActionResult> GetDoctors([FromQuery] string? unidade)
+        {
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            var unidadeClaim = User.FindFirst("UnidadeId")?.Value;
+
+            if (role != "Master" && role != "Admin")
+            {
+                return Forbid("Você não tem permissão para acessar médicos.");
+            }
+
+            var unidadeFilter = role == "Admin" ? unidadeClaim : unidade;
+            var normalizedUnit = (unidadeFilter ?? string.Empty).Trim().ToLowerInvariant();
+
+            var query = _context.Users
+                .AsNoTracking()
+                .Where(u => u.Role == "Medico" || u.Role == "Médico");
+
+            if (!string.IsNullOrWhiteSpace(normalizedUnit))
+            {
+                query = query.Where(u => (u.UnidadeId ?? "").ToLower() == normalizedUnit);
+            }
+
+            var doctors = await query
+                .OrderBy(u => u.Nome)
+                .Select(u => new { u.Id, u.Nome, u.UnidadeId })
+                .ToListAsync();
+
+            return Ok(doctors);
+        }
+
         [HttpGet]
         [Authorize]
         public async Task<IActionResult> GetReports(

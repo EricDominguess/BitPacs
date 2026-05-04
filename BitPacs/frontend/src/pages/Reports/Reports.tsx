@@ -98,7 +98,6 @@ export function Reports() {
     return found?.label ?? value;
   };
 
-  const normalizeText = (value: string) => value.trim().toLowerCase();
 
   const getSelectedUnidadesLabel = () => {
     if (isMaster) {
@@ -142,20 +141,12 @@ export function Reports() {
 
     const loadDoctors = async () => {
       try {
-        const response = await fetchWithAuth('/api/auth/users');
+        const unitValue = isMaster ? activityUnit : unidade;
+        const query = unitValue ? `?unidade=${encodeURIComponent(unitValue)}` : '';
+        const response = await fetchWithAuth(`/api/reports/doctors${query}`);
         if (!response.ok) return;
-        const users = (await response.json()) as Array<{ id: number; nome: string; role: string; unidadeId?: string }>;
-        const normalizedTarget = normalizeText(String(targetUnit));
-        const normalizedTargetLabel = normalizeText(getUnidadeLabel(String(targetUnit)));
-        const filtered = users
-          .filter((user) => user.role === 'Medico')
-          .filter((user) => {
-            if (!normalizedTarget) return true;
-            const normalizedUserUnit = normalizeText(String(user.unidadeId || ''));
-            return normalizedUserUnit === normalizedTarget || normalizedUserUnit === normalizedTargetLabel;
-          })
-          .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-        setDoctors(filtered);
+        const list = (await response.json()) as Array<{ id: number; nome: string; unidadeId?: string }>;
+        setDoctors(list);
       } catch {
         setDoctors([]);
       }
