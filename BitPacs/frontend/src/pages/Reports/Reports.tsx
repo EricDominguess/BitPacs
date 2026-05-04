@@ -1,12 +1,38 @@
 import { useEffect, useMemo, useState } from 'react';
+import { jsPDF } from 'jspdf';
 import { MainLayout } from '../../components/layout';
 import { Button, Card, Input } from '../../components/common';
 import { useUnidade } from '../../contexts';
 import type { UnidadeKey } from '../../contexts/UnidadeContext';
+import { fetchWithAuth } from '../../utils/fetchWithAuth';
 
 interface StoredUser {
   role?: 'Master' | 'Admin' | 'Medico' | 'Enfermeiro';
   unidadeId?: string;
+}
+
+interface ReportTotals {
+  totalLogs: number;
+  totalStudies: number;
+  totalPatients: number;
+  totalViews: number;
+  totalDownloads: number;
+}
+
+interface ReportRecord {
+  id: number;
+  timestamp: string;
+  patientName: string | null;
+  studyDescription: string | null;
+  modality: string | null;
+  unidadeNome: string | null;
+  actionType: string;
+  userName: string | null;
+}
+
+interface ReportResponse {
+  totals: ReportTotals;
+  records: ReportRecord[];
 }
 
 const MODALIDADES = [
@@ -48,6 +74,21 @@ export function Reports() {
   const [status, setStatus] = useState('');
   const [hasGenerated, setHasGenerated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [results, setResults] = useState<ReportResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const getUnidadeLabel = (value: string) => {
+    const found = unidadesOptions.find((item) => item.value === value);
+    return found?.label ?? value;
+  };
+
+  const getSelectedUnidadesLabel = () => {
+    if (isMaster) {
+      if (!selectedUnits.length) return 'Todas';
+      return selectedUnits.map((item) => getUnidadeLabel(item)).join(', ');
+    }
+    return unidadeLabel;
+  };
 
   useEffect(() => {
     if (!isMaster) return;
@@ -66,22 +107,157 @@ export function Reports() {
     setMedico('');
     setStatus('');
     setHasGenerated(false);
+    setResults(null);
+    setError(null);
   };
 
-  const handleGenerateReport = () => {
+  const handleGenerateReport = async () => {
     if (!isMaster && !isAdmin) return;
     if (isMaster && selectedUnits.length === 0) return;
 
     setIsLoading(true);
     setHasGenerated(false);
+    setError(null);
 
-    window.setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const params = new URLSearchParams();
+      if (startDate) params.set('startDate', startDate);
+      if (endDate) params.set('endDate', endDate);
+      if (isMaster) {
+        params.set('unidades', selectedUnits.join(','));
+      } else if (isAdmin) {
+        params.set('unidades', unidade);
+      }
+      if (modality) params.set('modality', modality);
+      if (medico) params.set('medico', medico);
+      if (status) params.set('status', status);
+      params.set('page', '1');
+      params.set('pageSize', '50');
+
+      const response = await fetchWithAuth(`/api/reports?${params.toString()}`);
+      if (!response.ok) {
+        const payload = await response.text();
+        throw new Error(payload || 'Falha ao gerar relatório.');
+      }
+
+      const data = (await response.json()) as ReportResponse;
+      setResults(data);
       setHasGenerated(true);
-    }, 600);
+    } catch (err) {
+      setResults(null);
+      setError(err instanceof Error ? err.message : 'Erro ao gerar relatório.');
+      setHasGenerated(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const canGenerate = (isMaster || isAdmin) && (!isMaster || selectedUnits.length > 0);
+  const hasResults = !!results?.records?.length;
+
+  const handleExportCsv = () => {
+    if (!results) return;
+
+    const headers = ['Data', 'Paciente', 'Modalidade', 'Unidade', 'Ação', 'Usuário'];
+    const rows = results.records.map((record) => [
+      record.timestamp ? new Date(record.timestamp).toLocaleString('pt-BR') : '',
+      record.patientName ?? '',
+      record.modality ?? '',
+      record.unidadeNome ?? '',
+      record.actionType ?? '',
+      record.userName ?? '',
+    ]);
+
+    const escapeValue = (value: string) => `"${value.replace(/"/g, '""')}"`;
+    const csvContent = [
+      headers.map(escapeValue).join(','),
+      ...rows.map((row) => row.map((value) => escapeValue(String(value))).join(',')),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `relatorio_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPdf = () => {
+    if (!results) return;
+
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const marginX = 10;
+    const marginTop = 12;
+    const lineHeight = 6.5;
+    let cursorY = marginTop;
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(14);
+    pdf.text('Relatório de Estudos', marginX, cursorY);
+    cursorY += 8;
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9.5);
+    pdf.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, marginX, cursorY);
+    cursorY += 6;
+    pdf.text(`Unidades: ${getSelectedUnidadesLabel()}`, marginX, cursorY);
+    cursorY += 6;
+    pdf.text(`Período: ${startDate || '—'} até ${endDate || '—'}`, marginX, cursorY);
+    cursorY += 6;
+    pdf.text(`Modalidade: ${modality || 'Todas'} | Médico: ${medico || 'Todos'} | Status: ${status || 'Todos'}`, marginX, cursorY);
+    cursorY += 8;
+
+    const columns = ['Data', 'Paciente', 'Modalidade', 'Unidade', 'Ação', 'Usuário'];
+    const columnWidths = [32, 55, 25, 42, 22, 42];
+
+    const drawHeader = () => {
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFillColor(230, 230, 230);
+      pdf.rect(marginX, cursorY - 4.5, pageWidth - marginX * 2, 7.5, 'F');
+      let x = marginX + 1;
+      columns.forEach((text, index) => {
+        pdf.text(text, x, cursorY);
+        x += columnWidths[index];
+      });
+      cursorY += 6.5;
+      pdf.setFont('helvetica', 'normal');
+    };
+
+    drawHeader();
+
+    results.records.forEach((record) => {
+      if (cursorY + lineHeight > pageHeight - marginTop) {
+        pdf.addPage();
+        cursorY = marginTop;
+        drawHeader();
+      }
+
+      let x = marginX + 1;
+      const values = [
+        record.timestamp ? new Date(record.timestamp).toLocaleString('pt-BR') : '—',
+        record.patientName || '—',
+        record.modality || '—',
+        record.unidadeNome || '—',
+        record.actionType || '—',
+        record.userName || '—',
+      ];
+
+      values.forEach((value, index) => {
+        const trimmed = value.length > 42 ? `${value.slice(0, 39)}...` : value;
+        pdf.text(trimmed, x, cursorY);
+        x += columnWidths[index];
+      });
+
+      cursorY += lineHeight;
+    });
+
+    pdf.save(`relatorio_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
 
   return (
     <MainLayout>
@@ -208,39 +384,74 @@ export function Reports() {
               </div>
             )}
 
+            {!isLoading && error && (
+              <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
+                {error}
+              </div>
+            )}
+
             {!isLoading && !hasGenerated && (
               <p className="text-theme-muted">Selecione os filtros e clique em Gerar relatório.</p>
             )}
 
-            {!isLoading && hasGenerated && (
+            {!isLoading && hasGenerated && !error && (
               <div className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
                     <p className="text-xs text-theme-muted">Total de exames</p>
-                    <p className="text-xl font-semibold text-theme-primary">—</p>
+                    <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalStudies ?? 0}</p>
                   </div>
                   <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
                     <p className="text-xs text-theme-muted">Pacientes únicos</p>
-                    <p className="text-xl font-semibold text-theme-primary">—</p>
+                    <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalPatients ?? 0}</p>
                   </div>
                   <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
-                    <p className="text-xs text-theme-muted">Tempo médio</p>
-                    <p className="text-xl font-semibold text-theme-primary">—</p>
+                    <p className="text-xs text-theme-muted">Ações registradas</p>
+                    <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalLogs ?? 0}</p>
                   </div>
                 </div>
 
                 <div className="overflow-hidden rounded-lg border border-theme-border">
                   <div className="px-4 py-3 bg-theme-secondary text-sm text-theme-muted">Tabela detalhada</div>
-                  <div className="p-4 text-theme-muted">
-                    Nenhum dado carregado. Integre com a API para exibir resultados reais.
-                  </div>
+                  {results?.records?.length ? (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm text-theme-primary">
+                        <thead className="bg-theme-card text-theme-muted">
+                          <tr>
+                            <th className="px-4 py-3 text-left font-medium">Data</th>
+                            <th className="px-4 py-3 text-left font-medium">Paciente</th>
+                            <th className="px-4 py-3 text-left font-medium">Modalidade</th>
+                            <th className="px-4 py-3 text-left font-medium">Unidade</th>
+                            <th className="px-4 py-3 text-left font-medium">Ação</th>
+                            <th className="px-4 py-3 text-left font-medium">Usuário</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {results.records.map((record) => (
+                            <tr key={record.id} className="border-t border-theme-border">
+                              <td className="px-4 py-3 text-theme-muted">
+                                {record.timestamp ? new Date(record.timestamp).toLocaleString('pt-BR') : '—'}
+                              </td>
+                              <td className="px-4 py-3">{record.patientName || '—'}</td>
+                              <td className="px-4 py-3">{record.modality || '—'}</td>
+                              <td className="px-4 py-3">{record.unidadeNome || '—'}</td>
+                              <td className="px-4 py-3">{record.actionType}</td>
+                              <td className="px-4 py-3">{record.userName || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="p-4 text-theme-muted">Nenhum dado encontrado para os filtros selecionados.</div>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  <Button variant="secondary" disabled>
+                  <Button variant="secondary" onClick={handleExportCsv} disabled={!hasResults}>
                     Exportar CSV
                   </Button>
-                  <Button variant="secondary" disabled>
+                  <Button variant="secondary" onClick={handleExportPdf} disabled={!hasResults}>
                     Exportar PDF
                   </Button>
                 </div>
