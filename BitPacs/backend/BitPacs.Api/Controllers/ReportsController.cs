@@ -67,14 +67,14 @@ namespace BitPacs.Api.Controllers
                 {
                     if (DateTime.TryParse(startDate, out var startParsed))
                     {
-                        start = startParsed.Date;
+                        start = DateTime.SpecifyKind(startParsed.Date, DateTimeKind.Utc);
                     }
                 }
                 if (!string.IsNullOrWhiteSpace(endDate))
                 {
                     if (DateTime.TryParse(endDate, out var endParsed))
                     {
-                        end = endParsed.Date.AddDays(1).AddTicks(-1);
+                        end = DateTime.SpecifyKind(endParsed.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
                     }
                 }
 
