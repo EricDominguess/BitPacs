@@ -142,7 +142,11 @@ export function Reports() {
     const loadDoctors = async () => {
       try {
         const unitValue = isMaster ? activityUnit : unidade;
-        const query = unitValue ? `?unidade=${encodeURIComponent(unitValue)}` : '';
+        const unitLabel = unitValue ? getUnidadeLabel(String(unitValue)) : '';
+        const params = new URLSearchParams();
+        if (unitValue) params.set('unidade', unitValue);
+        if (unitLabel) params.set('unidadeLabel', unitLabel);
+        const query = params.toString() ? `?${params.toString()}` : '';
         const response = await fetchWithAuth(`/api/reports/doctors${query}`);
         if (!response.ok) return;
         const list = (await response.json()) as Array<{ id: number; nome: string; unidadeId?: string }>;

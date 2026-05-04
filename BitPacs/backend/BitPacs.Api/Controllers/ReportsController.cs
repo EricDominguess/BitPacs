@@ -21,7 +21,7 @@ namespace BitPacs.Api.Controllers
 
         [HttpGet("doctors")]
         [Authorize]
-        public async Task<IActionResult> GetDoctors([FromQuery] string? unidade)
+        public async Task<IActionResult> GetDoctors([FromQuery] string? unidade, [FromQuery] string? unidadeLabel)
         {
             var role = User.FindFirst(ClaimTypes.Role)?.Value;
             var unidadeClaim = User.FindFirst("UnidadeId")?.Value;
@@ -33,14 +33,18 @@ namespace BitPacs.Api.Controllers
 
             var unidadeFilter = role == "Admin" ? unidadeClaim : unidade;
             var normalizedUnit = (unidadeFilter ?? string.Empty).Trim().ToLowerInvariant();
+            var normalizedLabel = (unidadeLabel ?? string.Empty).Trim().ToLowerInvariant();
 
             var query = _context.Users
                 .AsNoTracking()
                 .Where(u => u.Role == "Medico" || u.Role == "Médico");
 
-            if (!string.IsNullOrWhiteSpace(normalizedUnit))
+            if (!string.IsNullOrWhiteSpace(normalizedUnit) || !string.IsNullOrWhiteSpace(normalizedLabel))
             {
-                query = query.Where(u => (u.UnidadeId ?? "").ToLower() == normalizedUnit);
+                query = query.Where(u =>
+                    (u.UnidadeId ?? "").ToLower() == normalizedUnit
+                    || (!string.IsNullOrWhiteSpace(normalizedLabel) && (u.UnidadeId ?? "").ToLower() == normalizedLabel)
+                );
             }
 
             var doctors = await query
