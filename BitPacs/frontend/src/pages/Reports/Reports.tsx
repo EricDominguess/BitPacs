@@ -688,24 +688,41 @@ export function Reports() {
 
             {!isLoading && hasGenerated && !error && (
               <div className="space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
-                    <p className="text-xs text-theme-muted">
-                      {reportType === 'activity' ? 'Total de ações' : 'Total de exames'}
-                    </p>
-                    <p className="text-xl font-semibold text-theme-primary">
-                      {reportType === 'activity' ? results?.totals.totalLogs ?? 0 : results?.totals.totalStudies ?? 0}
-                    </p>
+                {reportType === 'activity' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
+                      <p className="text-xs text-theme-muted">Total de ações</p>
+                      <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalLogs ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
+                      <p className="text-xs text-theme-muted">Pacientes únicos</p>
+                      <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalPatients ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
+                      <p className="text-xs text-theme-muted">Ações registradas</p>
+                      <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalLogs ?? 0}</p>
+                    </div>
                   </div>
-                  <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
-                    <p className="text-xs text-theme-muted">Pacientes únicos</p>
-                    <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalPatients ?? 0}</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
+                      <p className="text-xs text-theme-muted">Total de estudos</p>
+                      <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalStudies ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
+                      <p className="text-xs text-theme-muted">Pacientes únicos</p>
+                      <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalPatients ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
+                      <p className="text-xs text-theme-muted">Views</p>
+                      <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalViews ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
+                      <p className="text-xs text-theme-muted">Downloads</p>
+                      <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalDownloads ?? 0}</p>
+                    </div>
                   </div>
-                  <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
-                    <p className="text-xs text-theme-muted">Ações registradas</p>
-                    <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalLogs ?? 0}</p>
-                  </div>
-                </div>
+                )}
 
                 {!results?.records?.length && (
                   <div className="rounded-lg border border-theme-border p-4 text-theme-muted">

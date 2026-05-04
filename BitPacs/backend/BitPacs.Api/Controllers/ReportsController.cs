@@ -157,6 +157,9 @@ namespace BitPacs.Api.Controllers
 
                             if (!item.TryGetProperty("MainDicomTags", out var tags)) continue;
 
+                            JsonElement patientTags = default;
+                            var hasPatientTags = item.TryGetProperty("PatientMainDicomTags", out patientTags);
+
                             var studyDateStr = GetString(tags, "StudyDate");
                             var studyDate = TryParseStudyDate(studyDateStr);
 
@@ -174,8 +177,10 @@ namespace BitPacs.Api.Controllers
                                 }
                             }
 
-                            var patientName = GetString(tags, "PatientName");
-                            var patientId = GetString(tags, "PatientID");
+                            var patientName = GetString(tags, "PatientName")
+                                ?? (hasPatientTags ? GetString(patientTags, "PatientName") : null);
+                            var patientId = GetString(tags, "PatientID")
+                                ?? (hasPatientTags ? GetString(patientTags, "PatientID") : null);
                             var studyDescription = GetString(tags, "StudyDescription");
 
                             examRecords.Add((studyId, studyDate, NormalizePatientName(patientName), patientId, studyDescription, modalityRaw, unit));
@@ -189,7 +194,35 @@ namespace BitPacs.Api.Controllers
                         .Distinct()
                         .Count();
 
-                    var examTotalLogs = examRecords.Count;
+                    var logsQuery = _context.StudyLogs
+                        .AsNoTracking()
+                        .Where(l => l.ActionType == "VIEW" || l.ActionType == "DOWNLOAD");
+
+                    if (start.HasValue)
+                    {
+                        logsQuery = logsQuery.Where(l => l.Timestamp >= start.Value);
+                    }
+
+                    if (end.HasValue)
+                    {
+                        logsQuery = logsQuery.Where(l => l.Timestamp <= end.Value);
+                    }
+
+                    if (units.Count > 0)
+                    {
+                        var unitsLower = units.Select(u => u.ToLowerInvariant()).ToList();
+                        logsQuery = logsQuery.Where(l => l.UnidadeNome != null && unitsLower.Contains(l.UnidadeNome.ToLower()));
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(modality))
+                    {
+                        var modalityValue = modality.Trim();
+                        logsQuery = logsQuery.Where(l => l.Modality == modalityValue);
+                    }
+
+                    var examTotalViews = await logsQuery.CountAsync(l => l.ActionType == "VIEW");
+                    var examTotalDownloads = await logsQuery.CountAsync(l => l.ActionType == "DOWNLOAD");
+                    var examTotalLogs = examTotalViews + examTotalDownloads;
 
                     var examPage = page < 1 ? 1 : page;
                     var examPageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 200);
@@ -230,8 +263,8 @@ namespace BitPacs.Api.Controllers
                             totalLogs = examTotalLogs,
                             totalStudies = examTotalStudies,
                             totalPatients = examTotalPatients,
-                            totalViews = 0,
-                            totalDownloads = 0
+                            totalViews = examTotalViews,
+                            totalDownloads = examTotalDownloads
                         },
                         records = examRecordsPaged,
                         summaries = new
