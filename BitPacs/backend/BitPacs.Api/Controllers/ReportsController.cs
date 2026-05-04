@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using BitPacs.Api.Data;
+using BitPacs.API.Services;
+using System.Globalization;
+using System.Text.Json;
 
 namespace BitPacs.Api.Controllers
 {
@@ -12,11 +15,13 @@ namespace BitPacs.Api.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<ReportsController> _logger;
+        private readonly OrthancDashboardService _orthancService;
 
-        public ReportsController(AppDbContext context, ILogger<ReportsController> logger)
+        public ReportsController(AppDbContext context, ILogger<ReportsController> logger, OrthancDashboardService orthancService)
         {
             _context = context;
             _logger = logger;
+            _orthancService = orthancService;
         }
 
         [HttpGet("doctors")]
@@ -117,6 +122,124 @@ namespace BitPacs.Api.Controllers
                 }
 
                 var resolvedReportType = string.IsNullOrWhiteSpace(reportType) ? "exams" : reportType.Trim().ToLowerInvariant();
+
+                if (resolvedReportType == "exams")
+                {
+                    var units = unidadesSelecionadas.Count > 0
+                        ? unidadesSelecionadas.ToList()
+                        : new List<string>();
+
+                    if (role == "Admin" && !string.IsNullOrWhiteSpace(unidadeClaim))
+                    {
+                        units = new List<string> { unidadeClaim.Trim() };
+                    }
+
+                    if (units.Count == 0)
+                    {
+                        return BadRequest(new { message = "Selecione ao menos uma unidade." });
+                    }
+
+                    var examRecords = new List<(string StudyId, DateTime? StudyDate, string? PatientName, string? StudyDescription, string? Modality, string Unidade)>();
+
+                    foreach (var unit in units)
+                    {
+                        var orthancUrl = GetOrthancUrl(unit);
+                        var cacheKey = $"reports_studies_{unit.ToLowerInvariant()}";
+                        var data = await _orthancService.GetDataWithCacheAsync(orthancUrl, "/studies?expand", cacheKey);
+
+                        using var doc = JsonDocument.Parse(data);
+                        if (doc.RootElement.ValueKind != JsonValueKind.Array) continue;
+
+                        foreach (var item in doc.RootElement.EnumerateArray())
+                        {
+                            var studyId = GetString(item, "ID") ?? string.Empty;
+                            if (string.IsNullOrWhiteSpace(studyId)) continue;
+
+                            if (!item.TryGetProperty("MainDicomTags", out var tags)) continue;
+
+                            var studyDateStr = GetString(tags, "StudyDate");
+                            var studyDate = TryParseStudyDate(studyDateStr);
+
+                            if (start.HasValue && (!studyDate.HasValue || studyDate.Value < start.Value)) continue;
+                            if (end.HasValue && (!studyDate.HasValue || studyDate.Value > end.Value)) continue;
+
+                            var modalityRaw = GetString(tags, "ModalitiesInStudy") ?? GetString(tags, "Modality");
+                            if (!string.IsNullOrWhiteSpace(modality))
+                            {
+                                var modalityValue = modality.Trim();
+                                var modalities = (modalityRaw ?? string.Empty).Split('\\', StringSplitOptions.RemoveEmptyEntries);
+                                if (!modalities.Contains(modalityValue))
+                                {
+                                    continue;
+                                }
+                            }
+
+                            var patientName = GetString(tags, "PatientName") ?? GetString(tags, "PatientID");
+                            var studyDescription = GetString(tags, "StudyDescription");
+
+                            examRecords.Add((studyId, studyDate, NormalizePatientName(patientName), studyDescription, modalityRaw, unit));
+                        }
+                    }
+
+                    var totalStudies = examRecords.Select(r => r.StudyId).Distinct().Count();
+                    var totalPatients = examRecords
+                        .Where(r => !string.IsNullOrWhiteSpace(r.PatientName))
+                        .Select(r => r.PatientName!)
+                        .Distinct()
+                        .Count();
+
+                    var totalLogs = examRecords.Count;
+
+                    var safePage = page < 1 ? 1 : page;
+                    var safePageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 200);
+
+                    var records = examRecords
+                        .OrderByDescending(r => r.StudyDate ?? DateTime.MinValue)
+                        .Skip((safePage - 1) * safePageSize)
+                        .Take(safePageSize)
+                        .Select((r, index) => new
+                        {
+                            Id = index + 1 + ((safePage - 1) * safePageSize),
+                            Timestamp = r.StudyDate ?? DateTime.UtcNow,
+                            r.PatientName,
+                            r.StudyDescription,
+                            Modality = r.Modality,
+                            UnidadeNome = r.Unidade,
+                            ActionType = "EXAM",
+                            UserName = (string?)null
+                        })
+                        .ToList();
+
+                    var byUnit = examRecords
+                        .GroupBy(r => r.Unidade)
+                        .Select(g => new
+                        {
+                            unidade = g.Key,
+                            totalActions = g.Count(),
+                            totalViews = 0,
+                            totalDownloads = 0
+                        })
+                        .OrderByDescending(x => x.totalActions)
+                        .ToList();
+
+                    return Ok(new
+                    {
+                        totals = new
+                        {
+                            totalLogs,
+                            totalStudies,
+                            totalPatients,
+                            totalViews = 0,
+                            totalDownloads = 0
+                        },
+                        records,
+                        summaries = new
+                        {
+                            byDoctor = new List<object>(),
+                            byUnit
+                        }
+                    });
+                }
 
                 var query = _context.StudyLogs
                     .AsNoTracking()
@@ -239,6 +362,52 @@ namespace BitPacs.Api.Controllers
                 _logger.LogError(ex, "Erro ao gerar relatório.");
                 return StatusCode(500, new { message = "Erro ao gerar relatório.", detail = ex.Message });
             }
+        }
+
+        private static DateTime? TryParseStudyDate(string? studyDate)
+        {
+            if (string.IsNullOrWhiteSpace(studyDate)) return null;
+
+            if (DateTime.TryParseExact(studyDate, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed))
+            {
+                return DateTime.SpecifyKind(parsed.Date, DateTimeKind.Utc);
+            }
+
+            return null;
+        }
+
+        private static string? GetString(JsonElement element, string propertyName)
+        {
+            if (element.ValueKind == JsonValueKind.Object && element.TryGetProperty(propertyName, out var prop))
+            {
+                if (prop.ValueKind == JsonValueKind.String)
+                {
+                    return prop.GetString();
+                }
+            }
+            return null;
+        }
+
+        private static string? NormalizePatientName(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return name;
+            return name.Replace("^", " ").Trim();
+        }
+
+        private string GetOrthancUrl(string unidade)
+        {
+            return unidade.ToLower() switch
+            {
+                "foziguacu" => "http://10.31.0.39:8042",
+                "fazenda" => "http://10.31.0.38:8042",
+                "riobranco" => "http://10.31.0.36:8042",
+                "faxinal" => "http://10.31.0.37:8042",
+                "santamariana" => "http://10.31.0.46:8042",
+                "guarapuava" => "http://10.31.0.47:8042",
+                "carlopolis" => "http://10.31.0.48:8042",
+                "arapoti" => "http://10.31.0.49:8042",
+                _ => "http://localhost:8042"
+            };
         }
     }
 }
