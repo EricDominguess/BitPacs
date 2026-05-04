@@ -27,6 +27,8 @@ namespace BitPacs.Api.Controllers
             [FromQuery] string? unidades,
             [FromQuery] string? modality,
             [FromQuery] string? medico,
+            [FromQuery] int? medicoId,
+            [FromQuery] string? reportType,
             [FromQuery] string? status,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50)
@@ -78,6 +80,8 @@ namespace BitPacs.Api.Controllers
                     }
                 }
 
+                var resolvedReportType = string.IsNullOrWhiteSpace(reportType) ? "exams" : reportType.Trim().ToLowerInvariant();
+
                 var query = _context.StudyLogs
                     .AsNoTracking()
                     .Include(l => l.User)
@@ -105,7 +109,17 @@ namespace BitPacs.Api.Controllers
                     query = query.Where(l => l.Modality == modalityValue);
                 }
 
+                if (resolvedReportType == "activity")
+                {
+                    query = query.Where(l => l.User != null && l.User.Role == "Medico");
+                    if (medicoId.HasValue)
+                    {
+                        query = query.Where(l => l.UserId == medicoId.Value);
+                    }
+                }
+
                 _ = medico;
+                _ = status;
 
                 _ = status;
 
@@ -118,6 +132,33 @@ namespace BitPacs.Api.Controllers
                     .CountAsync();
                 var totalViews = await query.CountAsync(l => l.ActionType == "VIEW");
                 var totalDownloads = await query.CountAsync(l => l.ActionType == "DOWNLOAD");
+
+                var byDoctor = await query
+                    .Where(l => l.User != null)
+                    .GroupBy(l => new { l.UserId, l.User!.Nome })
+                    .Select(g => new
+                    {
+                        doctorId = g.Key.UserId,
+                        doctorName = g.Key.Nome,
+                        totalActions = g.Count(),
+                        totalViews = g.Count(x => x.ActionType == "VIEW"),
+                        totalDownloads = g.Count(x => x.ActionType == "DOWNLOAD")
+                    })
+                    .OrderByDescending(x => x.totalActions)
+                    .ToListAsync();
+
+                var byUnit = await query
+                    .Where(l => l.UnidadeNome != null)
+                    .GroupBy(l => l.UnidadeNome!)
+                    .Select(g => new
+                    {
+                        unidade = g.Key,
+                        totalActions = g.Count(),
+                        totalViews = g.Count(x => x.ActionType == "VIEW"),
+                        totalDownloads = g.Count(x => x.ActionType == "DOWNLOAD")
+                    })
+                    .OrderByDescending(x => x.totalActions)
+                    .ToListAsync();
 
                 var safePage = page < 1 ? 1 : page;
                 var safePageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 200);
@@ -149,7 +190,12 @@ namespace BitPacs.Api.Controllers
                         totalViews,
                         totalDownloads
                     },
-                    records
+                    records,
+                    summaries = new
+                    {
+                        byDoctor,
+                        byUnit
+                    }
                 });
             }
             catch (Exception ex)

@@ -33,14 +33,26 @@ interface ReportRecord {
 interface ReportResponse {
   totals: ReportTotals;
   records: ReportRecord[];
+  summaries?: {
+    byDoctor?: Array<{ doctorId: number; doctorName: string; totalActions: number; totalViews: number; totalDownloads: number }>;
+    byUnit?: Array<{ unidade: string; totalActions: number; totalViews: number; totalDownloads: number }>;
+  };
 }
 
 const MODALIDADES = [
   { value: '', label: 'Todas' },
+  { value: 'CR', label: 'Raio-X (CR)' },
   { value: 'CT', label: 'Tomografia (CT)' },
   { value: 'MR', label: 'Ressonância (MR)' },
   { value: 'US', label: 'Ultrassom (US)' },
-  { value: 'CR', label: 'Raio-X (CR)' },
+  { value: 'DX', label: 'Radiografia Digital (DX)' },
+  { value: 'MG', label: 'Mamografia (MG)' },
+  { value: 'XA', label: 'Angiografia (XA)' },
+  { value: 'NM', label: 'Medicina Nuclear (NM)' },
+  { value: 'PT', label: 'PET (PT)' },
+  { value: 'RF', label: 'Fluoroscopia (RF)' },
+  { value: 'SC', label: 'Cintilografia (SC)' },
+  { value: 'OT', label: 'Outros (OT)' },
 ];
 
 const STATUS_OPTIONS = [
@@ -66,10 +78,14 @@ export function Reports() {
     [unidadesDisponiveis]
   );
 
+  const [reportType, setReportType] = useState<'activity' | 'exams'>('exams');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [quickRange, setQuickRange] = useState<'30' | '14' | '7' | ''>('');
   const [selectedUnits, setSelectedUnits] = useState<UnidadeKey[]>([]);
+  const [activityUnit, setActivityUnit] = useState<UnidadeKey | ''>('');
+  const [doctors, setDoctors] = useState<Array<{ id: number; nome: string; unidadeId?: string }>>([]);
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
   const [modality, setModality] = useState('');
   const [status, setStatus] = useState('');
   const [hasGenerated, setHasGenerated] = useState(false);
@@ -99,11 +115,53 @@ export function Reports() {
     }
   }, [isMaster, selectedUnits.length, unidadesOptions]);
 
+  useEffect(() => {
+    if (!isMaster) {
+      setActivityUnit(unidade);
+      return;
+    }
+
+    if (reportType !== 'activity') return;
+    if (activityUnit) return;
+    const fallback = unidadesOptions[0]?.value;
+    if (fallback) {
+      setActivityUnit(fallback as UnidadeKey);
+    }
+  }, [activityUnit, isMaster, reportType, unidade, unidadesOptions]);
+
+  useEffect(() => {
+    if (reportType !== 'activity') return;
+
+    const targetUnit = isMaster ? activityUnit : unidade;
+    if (!targetUnit) {
+      setDoctors([]);
+      return;
+    }
+
+    const loadDoctors = async () => {
+      try {
+        const response = await fetchWithAuth('/api/auth/users');
+        if (!response.ok) return;
+        const users = (await response.json()) as Array<{ id: number; nome: string; role: string; unidadeId?: string }>;
+        const filtered = users.filter(
+          (user) => user.role === 'Medico' && (!targetUnit || user.unidadeId === targetUnit)
+        );
+        setDoctors(filtered);
+      } catch {
+        setDoctors([]);
+      }
+    };
+
+    loadDoctors();
+  }, [activityUnit, isMaster, reportType, unidade]);
+
   const handleClearFilters = () => {
     setStartDate('');
     setEndDate('');
     setQuickRange('');
     setSelectedUnits(isMaster ? [] : [unidade]);
+    setActivityUnit(isMaster ? '' : unidade);
+    setSelectedDoctorId('');
     setModality('');
     setStatus('');
     setHasGenerated(false);
@@ -138,10 +196,21 @@ export function Reports() {
       const params = new URLSearchParams();
       if (startDate) params.set('startDate', startDate);
       if (endDate) params.set('endDate', endDate);
-      if (isMaster) {
-        params.set('unidades', selectedUnits.join(','));
-      } else if (isAdmin) {
-        params.set('unidades', unidade);
+      params.set('reportType', reportType);
+      if (reportType === 'activity') {
+        const unitValue = isMaster ? activityUnit : unidade;
+        if (unitValue) {
+          params.set('unidades', unitValue);
+        }
+        if (selectedDoctorId) {
+          params.set('medicoId', selectedDoctorId);
+        }
+      } else {
+        if (isMaster) {
+          params.set('unidades', selectedUnits.join(','));
+        } else if (isAdmin) {
+          params.set('unidades', unidade);
+        }
       }
       if (modality) params.set('modality', modality);
       if (status) params.set('status', status);
@@ -171,7 +240,9 @@ export function Reports() {
     }
   };
 
-  const canGenerate = (isMaster || isAdmin) && (!isMaster || selectedUnits.length > 0);
+  const canGenerateActivity = (isMaster || isAdmin) && (!!activityUnit || !isMaster);
+  const canGenerateExams = (isMaster || isAdmin) && (!isMaster || selectedUnits.length > 0);
+  const canGenerate = reportType === 'activity' ? canGenerateActivity : canGenerateExams;
   const hasValidDates = !!startDate && !!endDate && new Date(startDate) <= new Date(endDate);
   const isFormValid = canGenerate && hasValidDates;
   const hasResults = !!results?.records?.length;
@@ -190,10 +261,40 @@ export function Reports() {
     ]);
 
     const escapeValue = (value: string) => `"${value.replace(/"/g, '""')}"`;
-    const csvContent = [
+    const contentLines = [
       headers.map(escapeValue).join(','),
       ...rows.map((row) => row.map((value) => escapeValue(String(value))).join(',')),
-    ].join('\n');
+    ];
+
+    if (results.summaries?.byDoctor?.length) {
+      contentLines.push('');
+      contentLines.push(escapeValue('Resumo por médico'));
+      contentLines.push(['Médico', 'Ações', 'Views', 'Downloads'].map(escapeValue).join(','));
+      results.summaries.byDoctor.forEach((item) => {
+        contentLines.push([
+          item.doctorName,
+          String(item.totalActions),
+          String(item.totalViews),
+          String(item.totalDownloads),
+        ].map(escapeValue).join(','));
+      });
+    }
+
+    if (results.summaries?.byUnit?.length) {
+      contentLines.push('');
+      contentLines.push(escapeValue('Resumo por unidade'));
+      contentLines.push(['Unidade', 'Ações', 'Views', 'Downloads'].map(escapeValue).join(','));
+      results.summaries.byUnit.forEach((item) => {
+        contentLines.push([
+          getUnidadeLabel(item.unidade),
+          String(item.totalActions),
+          String(item.totalViews),
+          String(item.totalDownloads),
+        ].map(escapeValue).join(','));
+      });
+    }
+
+    const csvContent = contentLines.join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -230,11 +331,16 @@ export function Reports() {
     cursorY += 6;
     pdf.text(`Período: ${startDate || '—'} até ${endDate || '—'}`, marginX, cursorY);
     cursorY += 6;
-    pdf.text(`Modalidade: ${modality || 'Todas'} | Status: ${status || 'Todos'}`, marginX, cursorY);
+    const reportLabel = reportType === 'activity' ? 'Atividade dos médicos' : 'Exames realizados';
+    pdf.text(`Tipo: ${reportLabel}`, marginX, cursorY);
     cursorY += 8;
 
-    const columns = ['Data', 'Paciente', 'Modalidade', 'Unidade', 'Ação', 'Usuário'];
-    const columnWidths = [32, 55, 25, 42, 22, 42];
+    const columns = reportType === 'activity'
+      ? ['Data', 'Médico', 'Modalidade', 'Unidade', 'Ação', 'Paciente']
+      : ['Data', 'Paciente', 'Modalidade', 'Unidade', 'Ação', 'Usuário'];
+    const columnWidths = reportType === 'activity'
+      ? [32, 50, 25, 40, 22, 50]
+      : [32, 55, 25, 42, 22, 42];
 
     const drawHeader = () => {
       pdf.setFont('helvetica', 'bold');
@@ -259,14 +365,23 @@ export function Reports() {
       }
 
       let x = marginX + 1;
-      const values = [
-        record.timestamp ? new Date(record.timestamp).toLocaleString('pt-BR') : '—',
-        record.patientName || '—',
-        record.modality || '—',
-        record.unidadeNome || '—',
-        record.actionType || '—',
-        record.userName || '—',
-      ];
+      const values = reportType === 'activity'
+        ? [
+          record.timestamp ? new Date(record.timestamp).toLocaleString('pt-BR') : '—',
+          record.userName || '—',
+          record.modality || '—',
+          record.unidadeNome || '—',
+          record.actionType || '—',
+          record.patientName || '—',
+        ]
+        : [
+          record.timestamp ? new Date(record.timestamp).toLocaleString('pt-BR') : '—',
+          record.patientName || '—',
+          record.modality || '—',
+          record.unidadeNome || '—',
+          record.actionType || '—',
+          record.userName || '—',
+        ];
 
       values.forEach((value, index) => {
         const trimmed = value.length > 42 ? `${value.slice(0, 39)}...` : value;
@@ -276,6 +391,53 @@ export function Reports() {
 
       cursorY += lineHeight;
     });
+
+    if (results.summaries?.byDoctor?.length) {
+      if (cursorY + 16 > pageHeight - marginTop) {
+        pdf.addPage();
+        cursorY = marginTop;
+      }
+
+      cursorY += 6;
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Resumo por médico', marginX, cursorY);
+      cursorY += 6;
+      pdf.setFont('helvetica', 'normal');
+
+      results.summaries.byDoctor.forEach((item) => {
+        if (cursorY + lineHeight > pageHeight - marginTop) {
+          pdf.addPage();
+          cursorY = marginTop;
+        }
+        const line = `${item.doctorName} | Ações: ${item.totalActions} | Views: ${item.totalViews} | Downloads: ${item.totalDownloads}`;
+        pdf.text(line, marginX, cursorY);
+        cursorY += lineHeight;
+      });
+    }
+
+    if (results.summaries?.byUnit?.length) {
+      if (cursorY + 16 > pageHeight - marginTop) {
+        pdf.addPage();
+        cursorY = marginTop;
+      }
+
+      cursorY += 6;
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Resumo por unidade', marginX, cursorY);
+      cursorY += 6;
+      pdf.setFont('helvetica', 'normal');
+
+      results.summaries.byUnit.forEach((item) => {
+        if (cursorY + lineHeight > pageHeight - marginTop) {
+          pdf.addPage();
+          cursorY = marginTop;
+        }
+        const label = getUnidadeLabel(item.unidade);
+        const line = `${label} | Ações: ${item.totalActions} | Views: ${item.totalViews} | Downloads: ${item.totalDownloads}`;
+        pdf.text(line, marginX, cursorY);
+        cursorY += lineHeight;
+      });
+    }
 
     pdf.save(`relatorio_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
@@ -297,6 +459,40 @@ export function Reports() {
         {(isMaster || isAdmin) && (
           <Card title="Filtros">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-theme-secondary">Tipo de relatório</span>
+                <div className="flex flex-wrap gap-3">
+                  <label className="flex items-center gap-2 text-sm text-theme-primary">
+                    <input
+                      type="radio"
+                      name="reportType"
+                      className="h-4 w-4 border-theme-border text-nautico focus:ring-nautico"
+                      checked={reportType === 'activity'}
+                      onChange={() => {
+                        setReportType('activity');
+                        setResults(null);
+                        setHasGenerated(false);
+                      }}
+                    />
+                    <span>Atividade dos médicos</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-theme-primary">
+                    <input
+                      type="radio"
+                      name="reportType"
+                      className="h-4 w-4 border-theme-border text-nautico focus:ring-nautico"
+                      checked={reportType === 'exams'}
+                      onChange={() => {
+                        setReportType('exams');
+                        setResults(null);
+                        setHasGenerated(false);
+                      }}
+                    />
+                    <span>Exames realizados</span>
+                  </label>
+                </div>
+              </div>
+
               <Input
                 type="date"
                 label="Data inicial"
@@ -340,7 +536,32 @@ export function Reports() {
                 </div>
               </div>
 
-              {isMaster ? (
+              {reportType === 'activity' ? (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-theme-secondary">Unidade</label>
+                  {isMaster ? (
+                    <select
+                      value={activityUnit}
+                      onChange={(event) => {
+                        setActivityUnit(event.target.value as UnidadeKey);
+                        setSelectedDoctorId('');
+                      }}
+                      className="w-full px-3 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent"
+                    >
+                      <option value="" className="text-theme-muted">Selecione</option>
+                      {unidadesOptions.map((item) => (
+                        <option key={item.value} value={item.value} className="text-theme-primary">
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="px-4 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary">
+                      {unidadeLabel}
+                    </div>
+                  )}
+                </div>
+              ) : isMaster ? (
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-theme-secondary">Unidades</label>
                   <div className="border border-theme-border rounded-lg bg-theme-primary p-3 max-h-44 overflow-y-auto space-y-2">
@@ -374,6 +595,24 @@ export function Reports() {
                   <div className="px-4 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary">
                     {unidadeLabel}
                   </div>
+                </div>
+              )}
+
+              {reportType === 'activity' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-theme-secondary">Médico</label>
+                  <select
+                    value={selectedDoctorId}
+                    onChange={(event) => setSelectedDoctorId(event.target.value)}
+                    className="w-full px-3 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent"
+                  >
+                    <option value="">Todos</option>
+                    {doctors.map((doctor) => (
+                      <option key={doctor.id} value={String(doctor.id)}>
+                        {doctor.nome}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
 
@@ -448,8 +687,12 @@ export function Reports() {
               <div className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
-                    <p className="text-xs text-theme-muted">Total de exames</p>
-                    <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalStudies ?? 0}</p>
+                    <p className="text-xs text-theme-muted">
+                      {reportType === 'activity' ? 'Total de ações' : 'Total de exames'}
+                    </p>
+                    <p className="text-xl font-semibold text-theme-primary">
+                      {reportType === 'activity' ? results?.totals.totalLogs ?? 0 : results?.totals.totalStudies ?? 0}
+                    </p>
                   </div>
                   <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
                     <p className="text-xs text-theme-muted">Pacientes únicos</p>
@@ -469,11 +712,15 @@ export function Reports() {
                         <thead className="bg-theme-card text-theme-muted">
                           <tr>
                             <th className="px-4 py-3 text-left font-medium">Data</th>
-                            <th className="px-4 py-3 text-left font-medium">Paciente</th>
+                            <th className="px-4 py-3 text-left font-medium">
+                              {reportType === 'activity' ? 'Médico' : 'Paciente'}
+                            </th>
                             <th className="px-4 py-3 text-left font-medium">Modalidade</th>
                             <th className="px-4 py-3 text-left font-medium">Unidade</th>
                             <th className="px-4 py-3 text-left font-medium">Ação</th>
-                            <th className="px-4 py-3 text-left font-medium">Usuário</th>
+                            <th className="px-4 py-3 text-left font-medium">
+                              {reportType === 'activity' ? 'Paciente' : 'Usuário'}
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
@@ -482,11 +729,15 @@ export function Reports() {
                               <td className="px-4 py-3 text-theme-muted">
                                 {record.timestamp ? new Date(record.timestamp).toLocaleString('pt-BR') : '—'}
                               </td>
-                              <td className="px-4 py-3">{record.patientName || '—'}</td>
+                              <td className="px-4 py-3">
+                                {reportType === 'activity' ? record.userName || '—' : record.patientName || '—'}
+                              </td>
                               <td className="px-4 py-3">{record.modality || '—'}</td>
                               <td className="px-4 py-3">{record.unidadeNome || '—'}</td>
                               <td className="px-4 py-3">{record.actionType}</td>
-                              <td className="px-4 py-3">{record.userName || '—'}</td>
+                              <td className="px-4 py-3">
+                                {reportType === 'activity' ? record.patientName || '—' : record.userName || '—'}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -496,6 +747,66 @@ export function Reports() {
                     <div className="p-4 text-theme-muted">Nenhum dado encontrado para os filtros selecionados.</div>
                   )}
                 </div>
+
+                {(results?.summaries?.byDoctor?.length || results?.summaries?.byUnit?.length) && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {!!results?.summaries?.byDoctor?.length && (
+                      <div className="rounded-lg border border-theme-border">
+                        <div className="px-4 py-3 bg-theme-secondary text-sm text-theme-muted">Resumo por médico</div>
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-sm text-theme-primary">
+                            <thead className="bg-theme-card text-theme-muted">
+                              <tr>
+                                <th className="px-4 py-2 text-left font-medium">Médico</th>
+                                <th className="px-4 py-2 text-left font-medium">Ações</th>
+                                <th className="px-4 py-2 text-left font-medium">Views</th>
+                                <th className="px-4 py-2 text-left font-medium">Downloads</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {results.summaries?.byDoctor?.map((item) => (
+                                <tr key={item.doctorId} className="border-t border-theme-border">
+                                  <td className="px-4 py-2">{item.doctorName}</td>
+                                  <td className="px-4 py-2">{item.totalActions}</td>
+                                  <td className="px-4 py-2">{item.totalViews}</td>
+                                  <td className="px-4 py-2">{item.totalDownloads}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {!!results?.summaries?.byUnit?.length && (
+                      <div className="rounded-lg border border-theme-border">
+                        <div className="px-4 py-3 bg-theme-secondary text-sm text-theme-muted">Resumo por unidade</div>
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-sm text-theme-primary">
+                            <thead className="bg-theme-card text-theme-muted">
+                              <tr>
+                                <th className="px-4 py-2 text-left font-medium">Unidade</th>
+                                <th className="px-4 py-2 text-left font-medium">Ações</th>
+                                <th className="px-4 py-2 text-left font-medium">Views</th>
+                                <th className="px-4 py-2 text-left font-medium">Downloads</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {results.summaries?.byUnit?.map((item) => (
+                                <tr key={item.unidade} className="border-t border-theme-border">
+                                  <td className="px-4 py-2">{getUnidadeLabel(item.unidade)}</td>
+                                  <td className="px-4 py-2">{item.totalActions}</td>
+                                  <td className="px-4 py-2">{item.totalViews}</td>
+                                  <td className="px-4 py-2">{item.totalDownloads}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex flex-wrap gap-3">
                   <Button variant="secondary" onClick={handleExportCsv} disabled={!hasResults}>
