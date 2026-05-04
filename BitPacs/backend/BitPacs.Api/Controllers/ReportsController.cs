@@ -37,7 +37,7 @@ namespace BitPacs.Api.Controllers
 
             var query = _context.Users
                 .AsNoTracking()
-                .Where(u => u.Role == "Medico" || u.Role == "Médico");
+                .Where(u => u.Role == "Medico" || u.Role == "Médico" || u.Role == "Admin" || u.Role == "Administrador");
 
             if (!string.IsNullOrWhiteSpace(normalizedUnit) || !string.IsNullOrWhiteSpace(normalizedLabel))
             {

@@ -86,6 +86,7 @@ export function Reports() {
   const [activityUnit, setActivityUnit] = useState<UnidadeKey | ''>('');
   const [doctors, setDoctors] = useState<Array<{ id: number; nome: string; unidadeId?: string }>>([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
   const [modality, setModality] = useState('');
   const [status, setStatus] = useState('');
   const [hasGenerated, setHasGenerated] = useState(false);
@@ -141,6 +142,7 @@ export function Reports() {
 
     const loadDoctors = async () => {
       try {
+        setIsLoadingDoctors(true);
         const unitValue = isMaster ? activityUnit : unidade;
         const unitLabel = unitValue ? getUnidadeLabel(String(unitValue)) : '';
         const params = new URLSearchParams();
@@ -153,6 +155,8 @@ export function Reports() {
         setDoctors(list);
       } catch {
         setDoctors([]);
+      } finally {
+        setIsLoadingDoctors(false);
       }
     };
 
@@ -597,12 +601,21 @@ export function Reports() {
                     className="w-full px-3 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent"
                   >
                     <option value="">Todos</option>
+                    {isLoadingDoctors && (
+                      <option value="" disabled>Carregando médicos...</option>
+                    )}
                     {doctors.map((doctor) => (
                       <option key={doctor.id} value={String(doctor.id)}>
                         {doctor.nome}
                       </option>
                     ))}
+                    {!isLoadingDoctors && doctors.length === 0 && (
+                      <option value="" disabled>Nenhum médico encontrado</option>
+                    )}
                   </select>
+                  {!isLoadingDoctors && doctors.length === 0 && (
+                    <span className="text-xs text-theme-muted">Cadastre usuários com função Médico para aparecer aqui.</span>
+                  )}
                 </div>
               )}
 
