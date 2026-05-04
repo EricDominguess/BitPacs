@@ -707,49 +707,11 @@ export function Reports() {
                   </div>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border border-theme-border">
-                  <div className="px-4 py-3 bg-theme-secondary text-sm text-theme-muted">Tabela detalhada</div>
-                  {results?.records?.length ? (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-sm text-theme-primary">
-                        <thead className="bg-theme-card text-theme-muted">
-                          <tr>
-                            <th className="px-4 py-3 text-left font-medium">Data</th>
-                            <th className="px-4 py-3 text-left font-medium">
-                              {reportType === 'activity' ? 'Médico' : 'Paciente'}
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium">Modalidade</th>
-                            <th className="px-4 py-3 text-left font-medium">Unidade</th>
-                            <th className="px-4 py-3 text-left font-medium">Ação</th>
-                            <th className="px-4 py-3 text-left font-medium">
-                              {reportType === 'activity' ? 'Paciente' : 'Usuário'}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {results.records.map((record) => (
-                            <tr key={record.id} className="border-t border-theme-border">
-                              <td className="px-4 py-3 text-theme-muted">
-                                {record.timestamp ? new Date(record.timestamp).toLocaleString('pt-BR') : '—'}
-                              </td>
-                              <td className="px-4 py-3">
-                                {reportType === 'activity' ? record.userName || '—' : record.patientName || '—'}
-                              </td>
-                              <td className="px-4 py-3">{record.modality || '—'}</td>
-                              <td className="px-4 py-3">{record.unidadeNome || '—'}</td>
-                              <td className="px-4 py-3">{record.actionType}</td>
-                              <td className="px-4 py-3">
-                                {reportType === 'activity' ? record.patientName || '—' : record.userName || '—'}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="p-4 text-theme-muted">Nenhum dado encontrado para os filtros selecionados.</div>
-                  )}
-                </div>
+                {!results?.records?.length && (
+                  <div className="rounded-lg border border-theme-border p-4 text-theme-muted">
+                    Nenhum dado encontrado para os filtros selecionados.
+                  </div>
+                )}
 
                 {(results?.summaries?.byDoctor?.length || results?.summaries?.byUnit?.length) && (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

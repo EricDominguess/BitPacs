@@ -139,7 +139,7 @@ namespace BitPacs.Api.Controllers
                         return BadRequest(new { message = "Selecione ao menos uma unidade." });
                     }
 
-                    var examRecords = new List<(string StudyId, DateTime? StudyDate, string? PatientName, string? StudyDescription, string? Modality, string Unidade)>();
+                    var examRecords = new List<(string StudyId, DateTime? StudyDate, string? PatientName, string? PatientId, string? StudyDescription, string? Modality, string Unidade)>();
 
                     foreach (var unit in units)
                     {
@@ -174,17 +174,18 @@ namespace BitPacs.Api.Controllers
                                 }
                             }
 
-                            var patientName = GetString(tags, "PatientName") ?? GetString(tags, "PatientID");
+                            var patientName = GetString(tags, "PatientName");
+                            var patientId = GetString(tags, "PatientID");
                             var studyDescription = GetString(tags, "StudyDescription");
 
-                            examRecords.Add((studyId, studyDate, NormalizePatientName(patientName), studyDescription, modalityRaw, unit));
+                            examRecords.Add((studyId, studyDate, NormalizePatientName(patientName), patientId, studyDescription, modalityRaw, unit));
                         }
                     }
 
                     var examTotalStudies = examRecords.Select(r => r.StudyId).Distinct().Count();
                     var examTotalPatients = examRecords
-                        .Where(r => !string.IsNullOrWhiteSpace(r.PatientName))
-                        .Select(r => r.PatientName!)
+                        .Select(r => NormalizePatientName(r.PatientName) ?? r.PatientId)
+                        .Where(r => !string.IsNullOrWhiteSpace(r))
                         .Distinct()
                         .Count();
 
@@ -201,7 +202,7 @@ namespace BitPacs.Api.Controllers
                         {
                             Id = index + 1 + ((examPage - 1) * examPageSize),
                             Timestamp = r.StudyDate ?? DateTime.UtcNow,
-                            r.PatientName,
+                            PatientName = r.PatientName ?? r.PatientId,
                             r.StudyDescription,
                             Modality = r.Modality,
                             UnidadeNome = r.Unidade,
