@@ -48,7 +48,8 @@ export function useOrthancData(): UseOrthancDataReturn {
   const getUnidadeAtual = useCallback(() => {
     const userStorage = sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user');
     const user = JSON.parse(userStorage || '{}');
-    const isMaster = user?.role === 'Master';
+    const normalizedRole = user?.role === 'Admin' ? 'AdminLocal' : user?.role;
+    const isMaster = normalizedRole === 'Master' || normalizedRole === 'AdminGlobal';
 
     if (isMaster) {
       return localStorage.getItem('bitpacs-unidade-master') || 'riobranco';
