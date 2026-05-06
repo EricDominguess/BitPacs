@@ -1079,7 +1079,14 @@ export function Studies() {
                 <div key={study.id} className="p-4 space-y-3 hover:bg-nautico/5 transition-colors">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-semibold text-theme-primary break-words">{study.patient}</p>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenViewerModal(study)}
+                        className="font-semibold text-theme-primary break-words text-left hover:underline"
+                        title="Abrir visualizador"
+                      >
+                        {study.patient}
+                      </button>
                       <p className="text-xs text-theme-muted">Nascimento: {study.birthDate || '-'}</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1123,11 +1130,16 @@ export function Studies() {
                     {reportStatusLoadingByStudy[study.id] ? (
                       <span className="inline-flex h-2.5 w-2.5 rounded-full bg-theme-muted/50 animate-pulse" title="Verificando laudo" />
                     ) : reportStatusByStudy[study.id] ? (
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500/15 text-green-500" title="Laudado">
+                      <button
+                        type="button"
+                        onClick={() => logic.handleViewReports(study)}
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500/15 text-green-500 hover:bg-green-500/25 transition-colors"
+                        title="Visualizar laudo"
+                      >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                         </svg>
-                      </span>
+                      </button>
                     ) : (
                       <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-theme-tertiary text-theme-muted" title="Sem laudo">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1172,7 +1184,14 @@ export function Studies() {
                   currentItems.map((study) => (
                     <tr key={study.id} className="hover:bg-nautico/10 transition-colors">
                       <td className="px-6 py-4">
-                        <span className="font-medium text-theme-primary">{study.patient}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenViewerModal(study)}
+                          className="font-medium text-theme-primary text-left hover:underline"
+                          title="Abrir visualizador"
+                        >
+                          {study.patient}
+                        </button>
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-theme-muted text-sm">{study.birthDate}</span>
@@ -1196,14 +1215,16 @@ export function Studies() {
                           {reportStatusLoadingByStudy[study.id] ? (
                             <span className="inline-flex h-2.5 w-2.5 rounded-full bg-theme-muted/50 animate-pulse" title="Verificando laudo" />
                           ) : reportStatusByStudy[study.id] ? (
-                            <span
-                              className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500/15 text-green-500"
-                              title="Laudado"
+                            <button
+                              type="button"
+                              onClick={() => logic.handleViewReports(study)}
+                              className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500/15 text-green-500 hover:bg-green-500/25 transition-colors"
+                              title="Visualizar laudo"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                               </svg>
-                            </span>
+                            </button>
                           ) : (
                             <span
                               className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-theme-tertiary text-theme-muted"

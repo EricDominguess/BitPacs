@@ -59,7 +59,7 @@ export function ViewerModal({ isOpen, study, onClose, onSelectViewer }: ViewerMo
         </div>
 
         {/* Opções de Visualizador */}
-        <div className="p-4 sm:p-6 space-y-3">
+        <div className="p-4 sm:p-6 space-y-4">
           {/* Visualizador Interno */}
           <button
             onClick={() => onSelectViewer('bitpacs', rememberDefault)}
@@ -102,19 +102,22 @@ export function ViewerModal({ isOpen, study, onClose, onSelectViewer }: ViewerMo
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
           </button>
+
+          <div className="flex items-center justify-center">
+            <label className="flex items-center gap-3 text-sm text-theme-muted">
+              <input
+                type="checkbox"
+                checked={rememberDefault}
+                onChange={(e) => setRememberDefault(e.target.checked)}
+                className="h-4 w-4 rounded border-theme-border text-nautico focus:ring-nautico"
+              />
+              Manter este visualizador como padrão
+            </label>
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="px-4 sm:px-6 py-4 border-t border-theme-border bg-theme-secondary/30 space-y-3">
-          <label className="flex items-center gap-3 text-sm text-theme-muted">
-            <input
-              type="checkbox"
-              checked={rememberDefault}
-              onChange={(e) => setRememberDefault(e.target.checked)}
-              className="h-4 w-4 rounded border-theme-border text-nautico focus:ring-nautico"
-            />
-            Manter este visualizador como padrão
-          </label>
+        <div className="px-4 sm:px-6 py-4 border-t border-theme-border bg-theme-secondary/30">
           <button
             onClick={onClose}
             className="w-full py-2 text-sm text-theme-muted hover:text-theme-primary transition-colors"
