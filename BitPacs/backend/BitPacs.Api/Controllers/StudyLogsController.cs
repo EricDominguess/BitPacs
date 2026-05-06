@@ -155,7 +155,7 @@ namespace BitPacs.Api.Controllers
             if (currentUserRole != "Master" && currentUserRole != "AdminGlobal")
                 return Forbid("Apenas administradores podem ver todos os logs.");
 
-            var logsQuery = _context.StudyLogs
+            IQueryable<StudyLog> logsQuery = _context.StudyLogs
                 .Include(l => l.User);
 
             if (currentUserRole == "AdminGlobal")
