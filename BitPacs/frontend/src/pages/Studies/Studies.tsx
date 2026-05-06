@@ -277,7 +277,14 @@ export function Studies() {
 
   const studiesFormatted = useMemo(() =>
     periodFilteredStudies
-      .map(s => ({
+      .map(s => {
+        const studyDescription = (s.MainDicomTags?.StudyDescription || '').trim();
+        const bodyPartExamined = (
+          (s.MainDicomTags?.BodyPartExamined || '').trim() ||
+          (detailsCache[s.ID]?.bodyPartExamined || '').trim()
+        );
+
+        return {
         id: s.ID || '',
         studyInstanceUID: s.MainDicomTags?.StudyInstanceUID || '',
         patient: normalizePatientName(s.PatientMainDicomTags?.PatientName),
@@ -288,13 +295,13 @@ export function Studies() {
         rawModalities: s.MainDicomTags?.ModalitiesInStudy || s.ModalitiesInStudy || s.MainDicomTags?.Modality || '',
         modality: getPrimaryModality(s),
         normalizedModalities: getNormalizedModalities(s),
-        description: (s.MainDicomTags?.StudyDescription || '').trim() || (s.MainDicomTags?.BodyPartExamined || '').trim() || 'sem descrição',
-        bodyPartExamined: (s.MainDicomTags?.BodyPartExamined || '').trim(),
+        description: studyDescription || bodyPartExamined || 'sem descrição',
+        bodyPartExamined,
         date: formatDicomDate(s.MainDicomTags?.StudyDate),
         studyTimestamp: getStudyTimestamp(s.MainDicomTags?.StudyDate, s.MainDicomTags?.StudyTime),
         seriesCount: detailsCache[s.ID]?.seriesCount || 0,
         imagesCount: detailsCache[s.ID]?.imagesCount || 0
-      }))
+      }})
       .sort((a, b) => {
         if (b.studyTimestamp !== a.studyTimestamp) {
           return b.studyTimestamp - a.studyTimestamp;
@@ -513,18 +520,30 @@ export function Studies() {
         carregarSeriesDoEstudo(study.id).then((seriesData: any) => {
           let totalInstances = 0;
           let realModality = 'Desconhecido';
+          let bodyPartFromSeries = '';
           if (seriesData?.length > 0) {
             totalInstances = seriesData.reduce((acc: number, s: any) => acc + (s.Instances?.length || 0), 0);
             if (seriesData[0].MainDicomTags?.Modality) {
               realModality = seriesData[0].MainDicomTags.Modality;
             }
+            bodyPartFromSeries = (seriesData || [])
+              .map((s: any) => (
+                s?.MainDicomTags?.BodyPartExamined ||
+                s?.MainDicomTags?.RequestedProcedureDescription ||
+                s?.MainDicomTags?.PerformedProcedureStepDescription ||
+                s?.MainDicomTags?.ProtocolName ||
+                ''
+              ))
+              .map((value: string) => String(value || '').trim())
+              .find((value: string) => Boolean(value)) || '';
           }
           setDetailsCache(prev => ({
             ...prev,
             [study.id]: {
               modality: realModality,
               seriesCount: seriesData ? seriesData.length : 0,
-              imagesCount: totalInstances
+              imagesCount: totalInstances,
+              bodyPartExamined: bodyPartFromSeries
             }
           }));
         }).finally(() => {

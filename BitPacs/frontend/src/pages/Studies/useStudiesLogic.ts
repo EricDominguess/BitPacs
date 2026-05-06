@@ -186,7 +186,11 @@ export function useStudiesLogic(unidadeAtual: string) {
       });
 
       if (response.ok) {
-        await response.json();
+        try {
+          await response.json();
+        } catch {
+          // ignore non-JSON success responses
+        }
         setUploadNotice({
           message: `Laudo anexado com sucesso para ${selectedStudyForReport.patient}!`,
           type: 'success',
@@ -199,8 +203,23 @@ export function useStudiesLogic(unidadeAtual: string) {
           at: Date.now(),
         });
       } else {
-        const error = await response.json();
-        setUploadNotice({ message: `Erro ao anexar laudo: ${error.message}`, type: 'error', at: Date.now() });
+        if (response.status === 413) {
+          setUploadNotice({ message: 'Erro ao anexar laudo: arquivo muito grande.', type: 'error', at: Date.now() });
+          return;
+        }
+
+        let message = 'Não foi possível anexar o laudo.';
+        try {
+          const error = await response.json();
+          message = error?.message ? `Erro ao anexar laudo: ${error.message}` : message;
+        } catch {
+          const text = await response.text();
+          if (text) {
+            message = `Erro ao anexar laudo: ${text}`;
+          }
+        }
+
+        setUploadNotice({ message, type: 'error', at: Date.now() });
       }
     } catch (err) {
       console.error('Erro ao fazer upload do laudo:', err);
