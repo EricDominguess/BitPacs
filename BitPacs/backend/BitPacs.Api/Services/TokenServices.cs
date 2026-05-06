@@ -31,12 +31,14 @@ namespace BitPacs.Api.Services
             var tokenId = Guid.NewGuid().ToString();
 
             // 2. Define as "Claims" (os dados que vão dentro do Token)
+            var normalizedRole = NormalizeRole(user.Role);
+
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Nome),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role), // Importante para saber se é Admin
+                new Claim(ClaimTypes.Role, normalizedRole), // Importante para saber se é Admin
                 new Claim("UnidadeId", user.UnidadeId ?? ""), // Unidades dos usuários
                 new Claim("TokenId", tokenId) // ID único do token para validação de single login
             };
@@ -70,6 +72,12 @@ namespace BitPacs.Api.Services
         public string? GetTokenIdFromClaims(System.Security.Claims.ClaimsPrincipal user)
         {
             return user.FindFirst("TokenId")?.Value;
+        }
+
+        private static string NormalizeRole(string? role)
+        {
+            if (string.IsNullOrWhiteSpace(role)) return string.Empty;
+            return role == "Admin" ? "AdminLocal" : role;
         }
     }
 }

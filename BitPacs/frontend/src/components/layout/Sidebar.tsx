@@ -119,10 +119,11 @@ export function Sidebar({
       )}>
         {navItems
           .filter(item => {
-            if (item.href === '/dashboard') return user.role === 'Master' || user.role === 'Admin';
-            if (item.href === '/user-dashboard') return user.role !== 'Master' && user.role !== 'Admin';
-            if (item.href === '/users') return user.role === 'Master' || user.role === 'Admin';
-            if (item.href === '/reports') return user.role === 'Master' || user.role === 'Admin';
+            const role = user.role === 'Admin' ? 'AdminLocal' : user.role;
+            if (item.href === '/dashboard') return role === 'Master' || role === 'AdminGlobal' || role === 'AdminLocal';
+            if (item.href === '/user-dashboard') return role !== 'Master' && role !== 'AdminGlobal' && role !== 'AdminLocal';
+            if (item.href === '/users') return role === 'Master' || role === 'AdminGlobal' || role === 'AdminLocal';
+            if (item.href === '/reports') return role === 'Master' || role === 'AdminGlobal' || role === 'AdminLocal';
 
             return true;
           })

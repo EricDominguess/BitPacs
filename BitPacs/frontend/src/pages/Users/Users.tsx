@@ -7,14 +7,14 @@ interface User {
   id: number;
   nome: string;
   email: string;
-  role: 'Master' | 'Admin' | 'Medico' | 'Enfermeiro';
+  role: 'Master' | 'AdminGlobal' | 'AdminLocal' | 'Admin' | 'Medico' | 'Enfermeiro';
   // ✅ unidadeId agora é string slug (ex: "guarapuava")
   unidadeId?: string;
   createdAt?: string;
   isActive?: boolean;
 }
 
-type UserRole = 'Master' | 'Admin' | 'Medico' | 'Enfermeiro';
+type UserRole = 'Master' | 'AdminGlobal' | 'AdminLocal' | 'Admin' | 'Medico' | 'Enfermeiro';
 
 interface FormData {
   nome: string;
@@ -25,15 +25,18 @@ interface FormData {
 }
 
 const roleColors: Record<string, { badge: 'default' | 'success' | 'warning' | 'error', label: string }> = {
-  Master:     { badge: 'success', label: 'Master' },
-  Admin:      { badge: 'warning', label: 'Administrador' },
-  Medico:     { badge: 'default', label: 'Médico' },
-  Enfermeiro: { badge: 'default', label: 'Enfermeiro' },
+  Master:      { badge: 'success', label: 'Master' },
+  AdminGlobal: { badge: 'warning', label: 'Administrador global' },
+  AdminLocal:  { badge: 'warning', label: 'Administrador local' },
+  Admin:       { badge: 'warning', label: 'Administrador local' },
+  Medico:      { badge: 'default', label: 'Médico' },
+  Enfermeiro:  { badge: 'default', label: 'Enfermeiro' },
 };
 
 const allowedRolesToCreate: Record<string, UserRole[]> = {
-  Master: ['Master', 'Admin', 'Medico', 'Enfermeiro'],
-  Admin:  ['Medico', 'Enfermeiro'],
+  Master: ['Master', 'AdminGlobal', 'AdminLocal', 'Medico', 'Enfermeiro'],
+  AdminGlobal: ['AdminLocal', 'Medico', 'Enfermeiro'],
+  AdminLocal:  ['Medico', 'Enfermeiro'],
 };
 
 const ITEMS_PER_PAGE = 8;
@@ -41,7 +44,8 @@ const ITEMS_PER_PAGE = 8;
 const ROLE_FILTER_OPTIONS = [
   { value: 'all', label: 'Todos os tipos' },
   { value: 'Master', label: roleColors.Master.label },
-  { value: 'Admin', label: roleColors.Admin.label },
+  { value: 'AdminGlobal', label: roleColors.AdminGlobal.label },
+  { value: 'AdminLocal', label: roleColors.AdminLocal.label },
   { value: 'Medico', label: roleColors.Medico.label },
   { value: 'Enfermeiro', label: roleColors.Enfermeiro.label },
 ];
@@ -61,14 +65,15 @@ const unidades = [
 export function Users() {
   const navigate = useNavigate();
   const currentUser = JSON.parse((sessionStorage.getItem('bitpacs_user') || localStorage.getItem('bitpacs_user')) || '{}');
+  const currentUserRole = (currentUser.role === 'Admin' ? 'AdminLocal' : currentUser.role) as UserRole;
 
   useEffect(() => {
-    if (currentUser.role !== 'Master' && currentUser.role !== 'Admin') {
+    if (currentUserRole !== 'Master' && currentUserRole !== 'AdminGlobal' && currentUserRole !== 'AdminLocal') {
       navigate('/dashboard');
     }
-  }, [navigate, currentUser.role]);
+  }, [navigate, currentUserRole]);
 
-  const availableRoles = allowedRolesToCreate[currentUser.role] || [];
+  const availableRoles = allowedRolesToCreate[currentUserRole] || [];
 
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -137,7 +142,8 @@ export function Users() {
       const matchesSearch =
         user.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesRole = selectedRole === 'all' || user.role === selectedRole;
+      const normalizedRole = user.role === 'Admin' ? 'AdminLocal' : user.role;
+      const matchesRole = selectedRole === 'all' || normalizedRole === selectedRole;
       return matchesSearch && matchesRole;
     });
   }, [users, searchTerm, selectedRole]);
@@ -160,15 +166,26 @@ export function Users() {
       .toUpperCase();
 
   const getUserUnitLabel = (user: User) => {
-    if (user.role === 'Master') return 'Todas (Acesso Global)';
+    const role = user.role === 'Admin' ? 'AdminLocal' : user.role;
+    if (role === 'Master' || role === 'AdminGlobal') return 'Todas (Acesso Global)';
     return unidades.find(u => u.value === user.unidadeId)?.label || 'Não atribuída';
+  };
+
+  const canDeleteUser = (targetUser: User) => {
+    const actorRole = currentUserRole;
+    const targetRole = targetUser.role === 'Admin' ? 'AdminLocal' : targetUser.role;
+
+    if (actorRole === 'Master') return targetRole !== 'Master';
+    if (actorRole === 'AdminGlobal') return targetRole === 'AdminLocal' || targetRole === 'Medico' || targetRole === 'Enfermeiro';
+    if (actorRole === 'AdminLocal') return targetRole === 'Medico' || targetRole === 'Enfermeiro';
+    return false;
   };
 
   const handleCreate = () => {
     setModalMode('create');
     setEditingUser(null);
     // Admin: pré-seleciona sua própria unidade (lockada)
-    const initialUnidade = currentUser.role === 'Admin' ? (currentUser.unidadeId || '') : '';
+    const initialUnidade = currentUserRole === 'AdminLocal' ? (currentUser.unidadeId || '') : '';
     setFormData({ nome: '', email: '', password: '', role: availableRoles[0] || 'Medico', unidade: initialUnidade });
     setFormError('');
     setShowModal(true);
@@ -178,7 +195,7 @@ export function Users() {
     setModalMode('edit');
     setEditingUser(user);
     // ✅ unidadeId já é string slug — sem .toString() ou parseInt
-    setFormData({ nome: user.nome, email: user.email, password: '', role: user.role, unidade: user.unidadeId || '' });
+    setFormData({ nome: user.nome, email: user.email, password: '', role: (user.role === 'Admin' ? 'AdminLocal' : user.role), unidade: user.unidadeId || '' });
     setFormError('');
     setShowModal(true);
   };
@@ -210,11 +227,11 @@ export function Users() {
         nome: formData.nome,
         email: formData.email,
         // Não envia role se Admin estiver editando seu próprio perfil (role já está travado)
-        role: (modalMode === 'edit' && currentUser.role === 'Admin' && editingUser?.id === currentUser.id) 
+        role: (modalMode === 'edit' && currentUserRole === 'AdminLocal' && editingUser?.id === currentUser.id) 
           ? undefined 
           : formData.role,
         // ✅ Envia o slug direto — sem parseInt
-        unidadeId: formData.unidade || null,
+        unidadeId: (formData.role === 'Master' || formData.role === 'AdminGlobal') ? null : (formData.unidade || null),
       };
 
       if (formData.password) payload.password = formData.password;
@@ -404,14 +421,14 @@ export function Users() {
                       </div>
                     </div>
 
-                    <Badge variant={roleColors[user.role]?.badge || 'default'}>
-                      {roleColors[user.role]?.label || user.role}
+                    <Badge variant={roleColors[user.role === 'Admin' ? 'AdminLocal' : user.role]?.badge || 'default'}>
+                      {roleColors[user.role === 'Admin' ? 'AdminLocal' : user.role]?.label || user.role}
                     </Badge>
                   </div>
 
                   <div>
                     <p className="text-xs text-theme-muted">Unidade</p>
-                    {user.role === 'Master' ? (
+                    {(user.role === 'Master' || user.role === 'AdminGlobal') ? (
                       <p className="text-sm text-nautico font-medium break-words">{getUserUnitLabel(user)}</p>
                     ) : (
                       <p className="text-sm text-theme-secondary break-words">{getUserUnitLabel(user)}</p>
@@ -429,15 +446,17 @@ export function Users() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </Button>
-                    <Button variant="ghost" size="sm" title="Excluir" onClick={() => {
-                      setUserToDelete(user);
-                      setShowDeleteFinalConfirm(false);
-                      setShowDeleteConfirm(true);
-                    }}>
-                      <svg className="w-4 h-4 text-accent-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </Button>
+                    {canDeleteUser(user) && (
+                      <Button variant="ghost" size="sm" title="Excluir" onClick={() => {
+                        setUserToDelete(user);
+                        setShowDeleteFinalConfirm(false);
+                        setShowDeleteConfirm(true);
+                      }}>
+                        <svg className="w-4 h-4 text-accent-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))
@@ -488,13 +507,13 @@ export function Users() {
                         <span className="text-theme-muted">{user.email}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <Badge variant={roleColors[user.role]?.badge || 'default'}>
-                          {roleColors[user.role]?.label || user.role}
+                        <Badge variant={roleColors[user.role === 'Admin' ? 'AdminLocal' : user.role]?.badge || 'default'}>
+                          {roleColors[user.role === 'Admin' ? 'AdminLocal' : user.role]?.label || user.role}
                         </Badge>
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-theme-muted text-sm">
-                          {user.role === 'Master'
+                          {(user.role === 'Master' || user.role === 'AdminGlobal')
                             ? <span className="text-nautico font-medium">{getUserUnitLabel(user)}</span>
                             : getUserUnitLabel(user)
                           }
@@ -512,15 +531,17 @@ export function Users() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                           </Button>
-                          <Button variant="ghost" size="sm" title="Excluir" onClick={() => {
-                            setUserToDelete(user);
-                            setShowDeleteFinalConfirm(false);
-                            setShowDeleteConfirm(true);
-                          }}>
-                            <svg className="w-4 h-4 text-accent-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </Button>
+                          {canDeleteUser(user) && (
+                            <Button variant="ghost" size="sm" title="Excluir" onClick={() => {
+                              setUserToDelete(user);
+                              setShowDeleteFinalConfirm(false);
+                              setShowDeleteConfirm(true);
+                            }}>
+                              <svg className="w-4 h-4 text-accent-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -595,7 +616,7 @@ export function Users() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-theme-secondary">Função</label>
                 {/* Admin editando seu próprio perfil: função travada */}
-                {modalMode === 'edit' && currentUser.role === 'Admin' && editingUser?.id === currentUser.id ? (
+                {modalMode === 'edit' && currentUserRole === 'AdminLocal' && editingUser?.id === currentUser.id ? (
                   <>
                     <div className="w-full px-4 py-2.5 bg-theme-secondary border border-theme-border rounded-lg text-theme-muted cursor-not-allowed">
                       {roleColors[formData.role]?.label || formData.role}
@@ -610,18 +631,21 @@ export function Users() {
                         <option key={role} value={role}>{roleColors[role]?.label || role}</option>
                       ))}
                     </select>
-                    {currentUser.role === 'Admin' && (
-                      <p className="text-xs text-theme-muted mt-1">Como administrador, você só pode criar Médicos e Enfermeiros.</p>
+                    {currentUserRole === 'AdminLocal' && (
+                      <p className="text-xs text-theme-muted mt-1">Como administrador local, você só pode criar Médicos e Enfermeiros.</p>
+                    )}
+                    {currentUserRole === 'AdminGlobal' && (
+                      <p className="text-xs text-theme-muted mt-1">Como administrador global, você pode criar administradores locais e abaixo.</p>
                     )}
                   </>
                 )}
               </div>
 
-              {formData.role !== 'Master' && (
+              {formData.role !== 'Master' && formData.role !== 'AdminGlobal' && (
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-theme-secondary">Unidade</label>
-                  {currentUser.role === 'Admin' ? (
-                    // Admin: mostra unidade lockada (não editável)
+                  {currentUserRole === 'AdminLocal' ? (
+                    // Admin local: mostra unidade lockada (não editável)
                     <>
                       <div className="w-full px-4 py-2.5 bg-theme-secondary border border-theme-border rounded-lg text-theme-muted cursor-not-allowed">
                         {unidades.find(u => u.value === currentUser.unidadeId)?.label || 'Unidade não definida'}
@@ -629,7 +653,7 @@ export function Users() {
                       <p className="text-xs text-theme-muted mt-1">Você só pode criar usuários para sua própria unidade.</p>
                     </>
                   ) : (
-                    // Master: pode escolher qualquer unidade
+                    // Master/AdminGlobal: pode escolher qualquer unidade
                     <select value={formData.unidade} onChange={(e) => setFormData(prev => ({ ...prev, unidade: e.target.value }))}
                       className="w-full px-4 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent transition-all duration-200">
                       <option value="">Selecione uma unidade...</option>

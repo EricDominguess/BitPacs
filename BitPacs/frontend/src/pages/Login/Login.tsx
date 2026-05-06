@@ -37,7 +37,8 @@ export function Login() {
           // Token ainda é válido, faz auto-login
           if (user) {
             const userData = JSON.parse(user);
-            const isAdminOrMaster = userData.role === 'Master' || userData.role === 'Admin';
+            const role = userData.role === 'Admin' ? 'AdminLocal' : userData.role;
+            const isAdminOrMaster = role === 'Master' || role === 'AdminGlobal' || role === 'AdminLocal';
             window.location.href = isAdminOrMaster ? '/dashboard' : '/user-dashboard';
           }
         } else {
@@ -104,7 +105,8 @@ export function Login() {
         localStorage.setItem('bitpacs-theme', 'light');        
 
         // Redireciona baseado no role do usuário
-        const isAdminOrMaster = data.user.role === 'Master' || data.user.role === 'Admin';
+        const role = data.user.role === 'Admin' ? 'AdminLocal' : data.user.role;
+        const isAdminOrMaster = role === 'Master' || role === 'AdminGlobal' || role === 'AdminLocal';
         window.location.href = isAdminOrMaster ? '/dashboard' : '/user-dashboard';
       } else {
         setError('E-mail ou senha incorretos.');

@@ -80,6 +80,9 @@ export function Studies() {
   const [reportStatusLoadingByStudy, setReportStatusLoadingByStudy] = useState<Record<string, boolean>>({});
   const [modalityServerStudyIds, setModalityServerStudyIds] = useState<Set<string> | null>(null);
   const [isLoadingModalityFilter, setIsLoadingModalityFilter] = useState(false);
+
+  const normalizedCurrentRole = currentUser?.role === 'Admin' ? 'AdminLocal' : currentUser?.role;
+  const canDeleteReports = normalizedCurrentRole === 'Master' || normalizedCurrentRole === 'AdminLocal';
   const fetchingRef = useRef<Set<string>>(new Set());
   const modalityAbortRef = useRef<AbortController | null>(null);
   const modalityFilterCacheRef = useRef<Map<string, ModalityCacheEntry>>(new Map());
@@ -1359,6 +1362,7 @@ export function Studies() {
         reports={logic.studyReports}
         isLoading={logic.reportLoading}
         onOpenReport={logic.handleOpenReport}
+        canDeleteReport={canDeleteReports}
         onDeleteReport={logic.handleDeleteReport}
       />
 

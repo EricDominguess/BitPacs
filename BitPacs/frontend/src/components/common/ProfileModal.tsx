@@ -11,7 +11,9 @@ interface ProfileModalProps {
 // Cores por role
 const roleColors: Record<string, { badge: 'default' | 'success' | 'warning' | 'error', label: string }> = {
   Master: { badge: 'success', label: 'Master' },
-  Admin: { badge: 'warning', label: 'Administrador' },
+  AdminGlobal: { badge: 'warning', label: 'Administrador global' },
+  AdminLocal: { badge: 'warning', label: 'Administrador local' },
+  Admin: { badge: 'warning', label: 'Administrador local' },
   Medico: { badge: 'default', label: 'Médico' },
   Enfermeiro: { badge: 'default', label: 'Enfermeiro' },
 };
@@ -54,9 +56,11 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   }, [isOpen]);
 
   // Dados do usuário logado
+  const normalizedRole = storedUser.role === 'Admin' ? 'AdminLocal' : storedUser.role;
   const readOnlyData = {
     email: storedUser.email || 'email@exemplo.com',
-    cargo: storedUser.role || 'Usuário',
+    roleKey: normalizedRole || 'Usuário',
+    cargo: roleColors[normalizedRole]?.label || normalizedRole || 'Usuário',
     instituicao: isMaster ? 'Acesso Global (Todas as Unidades)' : unidadeLabel,
   };
 
@@ -230,8 +234,8 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   </svg>
                   <span className="text-xs font-semibold text-theme-muted uppercase tracking-wider">Cargo</span>
                 </div>
-                <Badge variant={roleColors[readOnlyData.cargo]?.badge || 'default'}>
-                  {roleColors[readOnlyData.cargo]?.label || readOnlyData.cargo}
+                <Badge variant={roleColors[readOnlyData.roleKey]?.badge || 'default'}>
+                  {roleColors[readOnlyData.roleKey]?.label || readOnlyData.cargo}
                 </Badge>
               </div>
 

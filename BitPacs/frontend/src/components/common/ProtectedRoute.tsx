@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  allowedRoles?: ('Master' | 'Admin' | 'Medico' | 'Enfermeiro')[];
+  allowedRoles?: ('Master' | 'AdminGlobal' | 'AdminLocal' | 'Admin' | 'Medico' | 'Enfermeiro')[];
   requireAuth?: boolean;
 }
 
@@ -25,11 +25,16 @@ function getCurrentUser() {
   }
 }
 
+function normalizeRole(role?: string) {
+  if (!role) return '';
+  return role === 'Admin' ? 'AdminLocal' : role;
+}
+
 // Verifica se o usuário tem uma das roles permitidas
 function hasPermission(allowedRoles: string[]): boolean {
   const user = getCurrentUser();
   if (!user || !user.role) return false;
-  return allowedRoles.includes(user.role);
+  return allowedRoles.includes(normalizeRole(user.role));
 }
 
 // Retorna a dashboard correta baseada no role do usuário
@@ -37,7 +42,8 @@ function getDefaultDashboard(): string {
   const user = getCurrentUser();
   if (!user) return '/login';
   
-  if (user.role === 'Master' || user.role === 'Admin') {
+  const role = normalizeRole(user.role);
+  if (role === 'Master' || role === 'AdminGlobal' || role === 'AdminLocal') {
     return '/dashboard';
   }
   return '/user-dashboard';

@@ -84,7 +84,8 @@ export function UnidadeProvider({ children }: UnidadeProviderProps) {
     return stored ? JSON.parse(stored) : null;
   });
 
-  const isMaster = currentUser?.role === 'Master';
+  const normalizedRole = currentUser?.role === 'Admin' ? 'AdminLocal' : currentUser?.role;
+  const isMaster = normalizedRole === 'Master' || normalizedRole === 'AdminGlobal';
 
   const getInitialUnidade = (): UnidadeKey => {
     if (isMaster) {

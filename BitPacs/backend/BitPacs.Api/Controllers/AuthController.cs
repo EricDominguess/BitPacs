@@ -39,10 +39,12 @@ namespace BitPacs.Api.Controllers
             user.LastLoginAt = DateTime.UtcNow;
             _context.SaveChanges();
 
+            var normalizedRole = NormalizeRole(user.Role);
+
             return Ok(new
             {
                 token = tokenResult.Token,
-                user = new { user.Id, user.Nome, user.Email, user.Role, user.UnidadeId, user.AvatarUrl }
+                user = new { user.Id, user.Nome, user.Email, Role = normalizedRole, user.UnidadeId, user.AvatarUrl }
             });
         }
 
@@ -50,7 +52,7 @@ namespace BitPacs.Api.Controllers
         [Authorize]
         public IActionResult GetUsers()
         {
-            var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var currentUserRole = NormalizeRole(User.FindFirst(ClaimTypes.Role)?.Value);
             var currentUserUnidade = User.FindFirst("UnidadeId")?.Value;
             var query = _context.Users.AsQueryable();
 
@@ -58,10 +60,15 @@ namespace BitPacs.Api.Controllers
             {
                 // Master vê todos os usuários
             }
-            else if (currentUserRole == "Admin")
+            else if (currentUserRole == "AdminGlobal")
             {
-                // Admin vê apenas usuários da sua unidade (exceto Masters)
-                query = query.Where(u => u.Role != "Master" && u.UnidadeId == currentUserUnidade);
+                // Admin global vê todos exceto Master
+                query = query.Where(u => u.Role != "Master");
+            }
+            else if (currentUserRole == "AdminLocal")
+            {
+                // Admin local vê apenas usuários da sua unidade (exceto Masters e Admins Globais)
+                query = query.Where(u => u.Role != "Master" && u.Role != "AdminGlobal" && u.UnidadeId == currentUserUnidade);
             }
             else
             {
@@ -71,6 +78,8 @@ namespace BitPacs.Api.Controllers
 
             var users = query
                 .Select(u => new { u.Id, u.Nome, u.Email, u.Role, u.UnidadeId, u.AvatarUrl })
+                .ToList()
+                .Select(u => new { u.Id, u.Nome, u.Email, Role = NormalizeRole(u.Role), u.UnidadeId, u.AvatarUrl })
                 .ToList();
 
             return Ok(users);
@@ -84,17 +93,21 @@ namespace BitPacs.Api.Controllers
             if (user == null)
                 return NotFound("Usuário não encontrado.");
 
-            return Ok(new { user.Id, user.Nome, user.Email, user.Role, user.UnidadeId, user.AvatarUrl });
+            return Ok(new { user.Id, user.Nome, user.Email, Role = NormalizeRole(user.Role), user.UnidadeId, user.AvatarUrl });
         }
 
         [HttpPost("register")]
         [Authorize]
         public IActionResult Register([FromBody] RegisterRequest request)
         {
-            var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var currentUserRole = NormalizeRole(User.FindFirst(ClaimTypes.Role)?.Value);
+            var requestedRole = NormalizeRole(request.Role);
 
-            if (!CanCreateRole(currentUserRole, request.Role))
+            if (!CanCreateRole(currentUserRole, requestedRole))
                 return Forbid("Você não tem permissão para criar este tipo de usuário.");
+
+            if (requestedRole != "Master" && requestedRole != "AdminGlobal" && string.IsNullOrWhiteSpace(request.UnidadeId))
+                return BadRequest(new { message = "Unidade é obrigatória para este tipo de usuário." });
 
             if (_context.Users.Any(u => u.Email == request.Email))
                 return BadRequest(new { message = "Este e-mail já está cadastrado." });
@@ -104,9 +117,9 @@ namespace BitPacs.Api.Controllers
                 Nome = request.Nome,
                 Email = request.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                Role = request.Role,
+                Role = requestedRole,
                 // ✅ UnidadeId agora é string diretamente (ex: "guarapuava")
-                UnidadeId = request.Role != "Master" ? request.UnidadeId : null
+                UnidadeId = requestedRole == "Master" || requestedRole == "AdminGlobal" ? null : request.UnidadeId
             };
 
             _context.Users.Add(user);
@@ -132,7 +145,7 @@ namespace BitPacs.Api.Controllers
                 _context.SaveChanges();
             }
 
-            return Ok(new { user.Id, user.Nome, user.Email, user.Role, user.UnidadeId, user.AvatarUrl });
+            return Ok(new { user.Id, user.Nome, user.Email, Role = NormalizeRole(user.Role), user.UnidadeId, user.AvatarUrl });
         }
 
         [HttpPut("users/{id}")]
@@ -143,12 +156,14 @@ namespace BitPacs.Api.Controllers
             if (user == null)
                 return NotFound("Usuário não encontrado.");
 
-            var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var currentUserRole = NormalizeRole(User.FindFirst(ClaimTypes.Role)?.Value);
             var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             int.TryParse(currentUserIdClaim, out int currentUserId);
 
+            var requestedRole = string.IsNullOrEmpty(request.Role) ? null : NormalizeRole(request.Role);
+
             // Só valida permissão de role se estiver tentando MUDAR o role (não apenas manter o atual)
-            if (!string.IsNullOrEmpty(request.Role) && request.Role != user.Role && !CanCreateRole(currentUserRole, request.Role))
+            if (!string.IsNullOrEmpty(request.Role) && requestedRole != NormalizeRole(user.Role) && !CanCreateRole(currentUserRole, requestedRole!))
                 return Forbid("Você não tem permissão para definir este tipo de usuário.");
 
             bool passwordChanged = !string.IsNullOrEmpty(request.Password);
@@ -167,11 +182,11 @@ namespace BitPacs.Api.Controllers
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
             if (!string.IsNullOrEmpty(request.Role))
-                user.Role = request.Role;
+                user.Role = requestedRole!;
 
             // ✅ UnidadeId agora é string — sem parseInt, sem conversão
             if (request.UnidadeId != null)
-                user.UnidadeId = user.Role != "Master" ? request.UnidadeId : null;
+                user.UnidadeId = user.Role == "Master" || user.Role == "AdminGlobal" ? null : request.UnidadeId;
 
             _context.SaveChanges();
 
@@ -197,7 +212,7 @@ namespace BitPacs.Api.Controllers
                 _context.SaveChanges();
             }
 
-            return Ok(new { user.Id, user.Nome, user.Email, user.Role, user.UnidadeId, user.AvatarUrl });
+            return Ok(new { user.Id, user.Nome, user.Email, Role = NormalizeRole(user.Role), user.UnidadeId, user.AvatarUrl });
         }
 
         [HttpDelete("users/{id}")]
@@ -208,20 +223,20 @@ namespace BitPacs.Api.Controllers
             if (user == null)
                 return NotFound("Usuário não encontrado.");
 
-            var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var currentUserRole = NormalizeRole(User.FindFirst(ClaimTypes.Role)?.Value);
             var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             int.TryParse(currentUserIdClaim, out int currentUserId);
 
             if (currentUserIdClaim == id.ToString())
                 return BadRequest(new { message = "Você não pode excluir sua própria conta." });
 
-            if (!CanDeleteRole(currentUserRole, user.Role))
+            if (!CanDeleteRole(currentUserRole, NormalizeRole(user.Role)))
                 return Forbid("Você não tem permissão para excluir este usuário.");
 
             // Guardar dados do usuário antes de deletar para o log
             var deletedUserName = user.Nome;
             var deletedUserEmail = user.Email;
-            var deletedUserRole = user.Role;
+            var deletedUserRole = NormalizeRole(user.Role);
 
             _context.Users.Remove(user);
             _context.SaveChanges();
@@ -253,7 +268,8 @@ namespace BitPacs.Api.Controllers
             return creatorRole switch
             {
                 "Master" => true,
-                "Admin" => targetRole == "Medico" || targetRole == "Enfermeiro",
+                "AdminGlobal" => targetRole == "AdminLocal" || targetRole == "Medico" || targetRole == "Enfermeiro",
+                "AdminLocal" => targetRole == "Medico" || targetRole == "Enfermeiro",
                 _ => false
             };
         }
@@ -263,9 +279,16 @@ namespace BitPacs.Api.Controllers
             return deleterRole switch
             {
                 "Master" => targetRole != "Master",
-                "Admin" => targetRole == "Medico" || targetRole == "Enfermeiro",
+                "AdminGlobal" => targetRole == "AdminLocal" || targetRole == "Medico" || targetRole == "Enfermeiro",
+                "AdminLocal" => targetRole == "Medico" || targetRole == "Enfermeiro",
                 _ => false
             };
+        }
+
+        private static string NormalizeRole(string? role)
+        {
+            if (string.IsNullOrWhiteSpace(role)) return string.Empty;
+            return role == "Admin" ? "AdminLocal" : role;
         }
 
         [HttpPost("avatar")]

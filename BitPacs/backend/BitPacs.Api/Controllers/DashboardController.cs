@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using BitPacs.API.Services; // Confirme se este é o namespace correto do seu Service
 using BitPacs.Api.Data;
@@ -43,10 +45,17 @@ namespace BitPacs.API.Controllers
 
         // ✅ NOVO: Endpoint para deletar um estudo (apenas Master)
         [HttpDelete("study/{unidade}/{studyId}")]
+        [Authorize]
         public async Task<IActionResult> DeleteStudy(string unidade, string studyId)
         {
             try
             {
+                var role = NormalizeRole(User.FindFirst(ClaimTypes.Role)?.Value);
+                if (role != "Master")
+                {
+                    return Forbid("Apenas Master pode deletar estudos.");
+                }
+
                 // 1. Descobre a URL do Orthanc baseado na unidade
                 string orthancUrl = GetOrthancUrl(unidade);
                 
@@ -76,6 +85,7 @@ namespace BitPacs.API.Controllers
 
         // ✅ NOVO: Endpoint para anexar laudo (upload)
         [HttpPost("reports/{unidade}")]
+        [Authorize]
         public async Task<IActionResult> UploadReport(string unidade, [FromForm] IFormFile file, [FromForm] string studyId, [FromForm] string patientName)
         {
             try
@@ -201,10 +211,17 @@ namespace BitPacs.API.Controllers
 
         // ✅ NOVO: Endpoint para deletar laudo
         [HttpDelete("reports/{unidade}/{studyId}")]
+        [Authorize]
         public async Task<IActionResult> DeleteReport(string unidade, string studyId)
         {
             try
             {
+                var role = NormalizeRole(User.FindFirst(ClaimTypes.Role)?.Value);
+                if (role != "Master" && role != "AdminLocal")
+                {
+                    return Forbid("Você não tem permissão para deletar laudos.");
+                }
+
                 // 1. Buscar laudo no banco
                 var report = await _dbContext.Reports
                     .FirstOrDefaultAsync(r => r.StudyId == studyId && r.Status == "Active" && r.UnidadeNome == unidade);
@@ -318,6 +335,12 @@ namespace BitPacs.API.Controllers
                 "arapoti" => "http://10.31.0.49:8042",
                 _ => "http://localhost:8042" // Padrão
             };
+        }
+
+        private static string NormalizeRole(string? role)
+        {
+            if (string.IsNullOrWhiteSpace(role)) return string.Empty;
+            return role == "Admin" ? "AdminLocal" : role;
         }
     }
 }

@@ -65,12 +65,40 @@ namespace BitPacs.Api.Controllers
         public IActionResult GetUserLogs(int userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 8)
         {
             // Verifica se o usuário tem permissão (Master ou Admin podem ver qualquer um)
-            var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var currentUserRole = NormalizeRole(User.FindFirst(ClaimTypes.Role)?.Value);
             var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            // Apenas Master/Admin podem ver logs de outros usuários
-            if (currentUserRole != "Master" && currentUserRole != "Admin" && currentUserId != userId.ToString())
+            if (currentUserRole == "Master")
+            {
+                // ok
+            }
+            else if (currentUserRole == "AdminGlobal")
+            {
+                var targetUser = _context.Users.AsNoTracking().FirstOrDefault(u => u.Id == userId);
+                if (targetUser == null)
+                    return NotFound("Usuário não encontrado.");
+
+                var targetRole = NormalizeRole(targetUser.Role);
+                if (targetRole == "Master")
+                    return Forbid("Você não tem permissão para ver os logs deste usuário.");
+            }
+            else if (currentUserRole == "AdminLocal")
+            {
+                var targetUser = _context.Users.AsNoTracking().FirstOrDefault(u => u.Id == userId);
+                if (targetUser == null)
+                    return NotFound("Usuário não encontrado.");
+
+                var targetRole = NormalizeRole(targetUser.Role);
+                var currentUserUnidade = User.FindFirst("UnidadeId")?.Value;
+
+                var isAllowedRole = targetRole == "AdminLocal" || targetRole == "Medico" || targetRole == "Médico" || targetRole == "Enfermeiro" || targetRole == "Admin";
+                if (!isAllowedRole || targetRole == "AdminGlobal" || targetRole == "Master" || targetUser.UnidadeId != currentUserUnidade)
+                    return Forbid("Você não tem permissão para ver os logs deste usuário.");
+            }
+            else if (currentUserId != userId.ToString())
+            {
                 return Forbid("Você não tem permissão para ver os logs deste usuário.");
+            }
 
             // Verifica se o usuário existe
             var userExists = _context.Users.Any(u => u.Id == userId);
@@ -122,16 +150,23 @@ namespace BitPacs.Api.Controllers
         [Authorize]
         public IActionResult GetAllLogs([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var currentUserRole = NormalizeRole(User.FindFirst(ClaimTypes.Role)?.Value);
 
-            if (currentUserRole != "Master" && currentUserRole != "Admin")
+            if (currentUserRole != "Master" && currentUserRole != "AdminGlobal")
                 return Forbid("Apenas administradores podem ver todos os logs.");
 
-            var totalLogs = _context.StudyLogs.Count();
+            var logsQuery = _context.StudyLogs
+                .Include(l => l.User);
+
+            if (currentUserRole == "AdminGlobal")
+            {
+                logsQuery = logsQuery.Where(l => l.User == null || l.User.Role != "Master");
+            }
+
+            var totalLogs = logsQuery.Count();
             var totalPages = (int)Math.Ceiling((double)totalLogs / pageSize);
 
-            var logs = _context.StudyLogs
-                .Include(l => l.User)
+            var logs = logsQuery
                 .OrderByDescending(l => l.Timestamp)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -207,6 +242,12 @@ namespace BitPacs.Api.Controllers
         private static DateTime GetBrazilTime()
         {
             return DateTime.UtcNow.AddHours(-3);
+        }
+
+        private static string NormalizeRole(string? role)
+        {
+            if (string.IsNullOrWhiteSpace(role)) return string.Empty;
+            return role == "Admin" ? "AdminLocal" : role;
         }
     }
 

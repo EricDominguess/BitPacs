@@ -43,7 +43,7 @@ const router = createBrowserRouter([
     path: '/users',
     element: (
       <Suspense fallback={<PageLoader />}>
-        <ProtectedRoute allowedRoles={['Master', 'Admin']}>
+        <ProtectedRoute allowedRoles={['Master', 'AdminGlobal', 'AdminLocal', 'Admin']}>
           <Users />
         </ProtectedRoute>
       </Suspense>
@@ -63,7 +63,7 @@ const router = createBrowserRouter([
     path: '/dashboard',
     element: (
       <Suspense fallback={<PageLoader />}>
-        <ProtectedRoute allowedRoles={['Master', 'Admin']}>
+        <ProtectedRoute allowedRoles={['Master', 'AdminGlobal', 'AdminLocal', 'Admin']}>
           <Dashboard />
         </ProtectedRoute>
       </Suspense>
@@ -93,7 +93,7 @@ const router = createBrowserRouter([
     path: '/reports',
     element: (
       <Suspense fallback={<PageLoader />}>
-        <ProtectedRoute allowedRoles={['Master', 'Admin']}>
+        <ProtectedRoute allowedRoles={['Master', 'AdminGlobal', 'AdminLocal', 'Admin']}>
           <Reports />
         </ProtectedRoute>
       </Suspense>

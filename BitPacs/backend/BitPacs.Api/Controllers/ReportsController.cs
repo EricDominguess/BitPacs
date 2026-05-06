@@ -28,21 +28,23 @@ namespace BitPacs.Api.Controllers
         [Authorize]
         public async Task<IActionResult> GetDoctors([FromQuery] string? unidade, [FromQuery] string? unidadeLabel)
         {
-            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            var role = NormalizeRole(User.FindFirst(ClaimTypes.Role)?.Value);
             var unidadeClaim = User.FindFirst("UnidadeId")?.Value;
 
-            if (role != "Master" && role != "Admin")
+            if (role != "Master" && role != "AdminGlobal" && role != "AdminLocal")
             {
                 return Forbid("Você não tem permissão para acessar médicos.");
             }
 
-            var unidadeFilter = role == "Admin" ? unidadeClaim : unidade;
+            var unidadeFilter = role == "AdminLocal" ? unidadeClaim : unidade;
             var normalizedUnit = (unidadeFilter ?? string.Empty).Trim().ToLowerInvariant();
             var normalizedLabel = (unidadeLabel ?? string.Empty).Trim().ToLowerInvariant();
 
+            var allowedRoles = new[] { "Medico", "Médico", "Enfermeiro", "AdminLocal", "AdminGlobal", "Admin" };
+
             var query = _context.Users
                 .AsNoTracking()
-                .Where(u => u.Role == "Medico" || u.Role == "Médico" || u.Role == "Admin" || u.Role == "Administrador");
+                .Where(u => allowedRoles.Contains(u.Role));
 
             if (!string.IsNullOrWhiteSpace(normalizedUnit) || !string.IsNullOrWhiteSpace(normalizedLabel))
             {
@@ -76,16 +78,16 @@ namespace BitPacs.Api.Controllers
         {
             try
             {
-                var role = User.FindFirst(ClaimTypes.Role)?.Value;
+                var role = NormalizeRole(User.FindFirst(ClaimTypes.Role)?.Value);
                 var unidadeClaim = User.FindFirst("UnidadeId")?.Value;
 
-                if (role != "Master" && role != "Admin")
+                if (role != "Master" && role != "AdminGlobal" && role != "AdminLocal")
                 {
                     return Forbid("Você não tem permissão para acessar relatórios.");
                 }
 
                 var unidadesSelecionadas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                if (role == "Admin")
+                if (role == "AdminLocal")
                 {
                     if (!string.IsNullOrWhiteSpace(unidadeClaim))
                     {
@@ -129,7 +131,7 @@ namespace BitPacs.Api.Controllers
                         ? unidadesSelecionadas.ToList()
                         : new List<string>();
 
-                    if (role == "Admin" && !string.IsNullOrWhiteSpace(unidadeClaim))
+                    if (role == "AdminLocal" && !string.IsNullOrWhiteSpace(unidadeClaim))
                     {
                         units = new List<string> { unidadeClaim.Trim() };
                     }
@@ -196,6 +198,7 @@ namespace BitPacs.Api.Controllers
 
                     var logsQuery = _context.StudyLogs
                         .AsNoTracking()
+                        .Include(l => l.User)
                         .Where(l => l.ActionType == "VIEW" || l.ActionType == "DOWNLOAD");
 
                     if (start.HasValue)
@@ -218,6 +221,11 @@ namespace BitPacs.Api.Controllers
                     {
                         var modalityValue = modality.Trim();
                         logsQuery = logsQuery.Where(l => l.Modality == modalityValue);
+                    }
+
+                    if (role == "AdminGlobal" || role == "AdminLocal")
+                    {
+                        logsQuery = logsQuery.Where(l => l.User == null || l.User.Role != "Master");
                     }
 
                     var examTotalViews = await logsQuery.CountAsync(l => l.ActionType == "VIEW");
@@ -302,9 +310,18 @@ namespace BitPacs.Api.Controllers
                     query = query.Where(l => l.Modality == modalityValue);
                 }
 
+                if (role == "AdminGlobal" || role == "AdminLocal")
+                {
+                    query = query.Where(l => l.User == null || l.User.Role != "Master");
+                }
+
                 if (resolvedReportType == "activity")
                 {
-                    query = query.Where(l => l.User != null && l.User.Role == "Medico");
+                    var allowedActivityRoles = role == "AdminLocal"
+                        ? new[] { "Medico", "Médico", "Enfermeiro", "AdminLocal", "Admin" }
+                        : new[] { "Medico", "Médico", "Enfermeiro", "AdminLocal", "AdminGlobal", "Admin" };
+
+                    query = query.Where(l => l.User != null && allowedActivityRoles.Contains(l.User.Role));
                     if (medicoId.HasValue)
                     {
                         query = query.Where(l => l.UserId == medicoId.Value);
@@ -442,6 +459,12 @@ namespace BitPacs.Api.Controllers
                 "arapoti" => "http://10.31.0.49:8042",
                 _ => "http://localhost:8042"
             };
+        }
+
+        private static string NormalizeRole(string? role)
+        {
+            if (string.IsNullOrWhiteSpace(role)) return string.Empty;
+            return role == "Admin" ? "AdminLocal" : role;
         }
     }
 }

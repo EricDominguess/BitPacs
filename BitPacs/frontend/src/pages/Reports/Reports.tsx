@@ -9,9 +9,11 @@ import { ReportsFilters, ReportsResults } from './components';
 import type { DoctorOption, ReportResponse, ReportType } from './types';
 
 interface StoredUser {
-  role?: 'Master' | 'Admin' | 'Medico' | 'Enfermeiro';
+  role?: 'Master' | 'AdminGlobal' | 'AdminLocal' | 'Admin' | 'Medico' | 'Enfermeiro';
   unidadeId?: string;
 }
+
+const normalizeRole = (role?: string) => (role === 'Admin' ? 'AdminLocal' : role);
 
 export function Reports() {
   const { unidadesDisponiveis, unidade, unidadeLabel } = useUnidade();
@@ -21,8 +23,9 @@ export function Reports() {
     return userStr ? JSON.parse(userStr) : {};
   }, []);
 
-  const isMaster = user.role === 'Master';
-  const isAdmin = user.role === 'Admin';
+  const normalizedRole = normalizeRole(user.role);
+  const isMaster = normalizedRole === 'Master' || normalizedRole === 'AdminGlobal';
+  const isAdmin = normalizedRole === 'AdminLocal';
 
   const unidadesOptions = useMemo(
     () => Object.values(unidadesDisponiveis).filter((item) => item.value !== 'localhost'),
@@ -290,7 +293,7 @@ export function Reports() {
     cursorY += 6;
     pdf.text(`Período: ${startDate || '—'} até ${endDate || '—'}`, marginX, cursorY);
     cursorY += 6;
-    const reportLabel = reportType === 'activity' ? 'Atividade dos médicos' : 'Exames realizados';
+    const reportLabel = reportType === 'activity' ? 'Atividade dos usuários' : 'Exames realizados';
     pdf.text(`Tipo: ${reportLabel}`, marginX, cursorY);
     cursorY += 8;
 

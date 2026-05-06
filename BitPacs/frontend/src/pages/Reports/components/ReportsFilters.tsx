@@ -80,7 +80,7 @@ export function ReportsFilters({
             onChange={(event) => setReportType(event.target.value as ReportType)}
             className="w-full px-3 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent"
           >
-            <option value="activity">Atividade dos médicos</option>
+            <option value="activity">Atividade dos usuários</option>
             <option value="exams">Exames realizados</option>
           </select>
         </div>
@@ -195,7 +195,7 @@ export function ReportsFilters({
 
         {reportType === 'activity' && (
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-theme-secondary">Médico</label>
+            <label className="text-sm font-medium text-theme-secondary">Usuário</label>
             <select
               value={selectedDoctorId}
               onChange={(event) => setSelectedDoctorId(event.target.value)}
@@ -203,7 +203,7 @@ export function ReportsFilters({
             >
               <option value="">Todos</option>
               {isLoadingDoctors && (
-                <option value="" disabled>Carregando médicos...</option>
+                <option value="" disabled>Carregando usuários...</option>
               )}
               {doctors.map((doctor) => (
                 <option key={doctor.id} value={String(doctor.id)}>
@@ -211,11 +211,11 @@ export function ReportsFilters({
                 </option>
               ))}
               {!isLoadingDoctors && doctors.length === 0 && (
-                <option value="" disabled>Nenhum médico encontrado</option>
+                <option value="" disabled>Nenhum usuário encontrado</option>
               )}
             </select>
             {!isLoadingDoctors && doctors.length === 0 && (
-              <span className="text-xs text-theme-muted">Cadastre usuários com função Médico para aparecer aqui.</span>
+              <span className="text-xs text-theme-muted">Cadastre usuários elegíveis para aparecer aqui.</span>
             )}
           </div>
         )}
