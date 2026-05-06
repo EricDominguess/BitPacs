@@ -141,7 +141,6 @@ export function useStudiesLogic(unidadeAtual: string) {
       const newWindow = window.open(objectUrl, '_blank', 'noopener,noreferrer');
 
       if (!newWindow) {
-        setUploadNotice({ message: 'Pop-up bloqueado. Permita pop-ups para abrir o laudo.', type: 'error', at: Date.now() });
         URL.revokeObjectURL(objectUrl);
         return;
       }
