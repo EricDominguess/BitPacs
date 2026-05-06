@@ -288,7 +288,7 @@ export function Studies() {
         rawModalities: s.MainDicomTags?.ModalitiesInStudy || s.ModalitiesInStudy || s.MainDicomTags?.Modality || '',
         modality: getPrimaryModality(s),
         normalizedModalities: getNormalizedModalities(s),
-        description: (s.MainDicomTags?.StudyDescription || '').trim() || 'sem descrição',
+        description: (s.MainDicomTags?.StudyDescription || '').trim() || (s.MainDicomTags?.BodyPartExamined || '').trim() || 'sem descrição',
         bodyPartExamined: (s.MainDicomTags?.BodyPartExamined || '').trim(),
         date: formatDicomDate(s.MainDicomTags?.StudyDate),
         studyTimestamp: getStudyTimestamp(s.MainDicomTags?.StudyDate, s.MainDicomTags?.StudyTime),
@@ -1082,7 +1082,7 @@ export function Studies() {
                       <button
                         type="button"
                         onClick={() => handleOpenViewerModal(study)}
-                        className="font-semibold text-theme-primary break-words text-left hover:underline"
+                        className="font-semibold text-theme-primary break-words text-left hover:underline cursor-pointer"
                         title="Abrir visualizador"
                       >
                         {study.patient}
@@ -1187,7 +1187,7 @@ export function Studies() {
                         <button
                           type="button"
                           onClick={() => handleOpenViewerModal(study)}
-                          className="font-medium text-theme-primary text-left hover:underline"
+                          className="font-medium text-theme-primary text-left hover:underline cursor-pointer"
                           title="Abrir visualizador"
                         >
                           {study.patient}
