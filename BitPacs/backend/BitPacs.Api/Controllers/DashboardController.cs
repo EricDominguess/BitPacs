@@ -272,6 +272,36 @@ namespace BitPacs.API.Controllers
             }
         }
 
+        // ✅ NOVO: Endpoint para baixar/abrir laudo
+        [HttpGet("reports/{unidade}/file/{reportId:int}")]
+        public async Task<IActionResult> GetReportFile(string unidade, int reportId)
+        {
+            try
+            {
+                var unidadeSafe = Limit(unidade.Trim().ToLowerInvariant(), 100);
+
+                var report = await _dbContext.Reports
+                    .FirstOrDefaultAsync(r => r.Id == reportId && r.Status == "Active" && r.UnidadeNome == unidadeSafe);
+
+                if (report == null)
+                {
+                    return NotFound(new { message = "Laudo não encontrado." });
+                }
+
+                if (!System.IO.File.Exists(report.FilePath))
+                {
+                    return NotFound(new { message = "Arquivo do laudo não encontrado." });
+                }
+
+                return PhysicalFile(report.FilePath, "application/pdf", report.FileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Erro ao abrir laudo: ReportId={reportId}");
+                return StatusCode(500, new { message = "Erro ao abrir laudo", error = ex.Message });
+            }
+        }
+
         // Função auxiliar para mapear o nome da unidade para o IP/URL real
         private string GetOrthancUrl(string unidade)
         {

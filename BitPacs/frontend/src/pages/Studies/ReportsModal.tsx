@@ -13,6 +13,7 @@ interface ReportsModalProps {
   onClose: () => void;
   reports: Report[];
   isLoading?: boolean;
+  onOpenReport: (reportId: number) => void;
   onDeleteReport: () => void;
 }
 
@@ -21,6 +22,7 @@ export function ReportsModal({
   onClose,
   reports,
   isLoading = false,
+  onOpenReport,
   onDeleteReport
 }: ReportsModalProps) {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -64,14 +66,19 @@ export function ReportsModal({
             {reports.map((report) => (
               <div key={report.id} className="flex items-start gap-3 p-4 bg-theme-card border border-theme-border rounded-lg hover:bg-nautico/5 transition-colors overflow-hidden">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <button
+                    type="button"
+                    onClick={() => onOpenReport(report.id)}
+                    className="flex items-center gap-2 mb-1 text-left hover:underline"
+                    title="Abrir laudo"
+                  >
                     <svg className="w-4 h-4 text-nautico shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M4 4a2 2 0 012-2h6a1 1 0 01.707.293l6 6a1 1 0 01.293.707v8a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 3a1 1 0 000 2h.01a1 1 0 000-2H6zm0 4a1 1 0 000 2h.01a1 1 0 000-2H6z" />
                     </svg>
                     <p className="font-medium text-theme-primary text-sm break-all leading-5 min-w-0">
                       {report.fileName}
                     </p>
-                  </div>
+                  </button>
                   <div className="text-xs text-theme-muted space-y-1">
                     <p>Tamanho: {(report.fileSize / 1024).toFixed(2)} KB</p>
                     <p>Anexado em: {new Date(report.uploadedAt).toLocaleString('pt-BR')}</p>

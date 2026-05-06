@@ -1358,6 +1358,7 @@ export function Studies() {
         onClose={() => logic.setShowReportsModal(false)}
         reports={logic.studyReports}
         isLoading={logic.reportLoading}
+        onOpenReport={logic.handleOpenReport}
         onDeleteReport={logic.handleDeleteReport}
       />
 

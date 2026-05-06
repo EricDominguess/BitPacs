@@ -118,6 +118,39 @@ export function useStudiesLogic(unidadeAtual: string) {
     }
   }, [unidadeAtual]);
 
+  const handleOpenReport = useCallback(async (reportId: number) => {
+    if (!reportId) return;
+
+    try {
+      const token = sessionStorage.getItem('bitpacs_token') || localStorage.getItem('bitpacs_token');
+      const response = await fetch(`/api/dashboard/reports/${unidadeAtual}/file/${reportId}`, {
+        headers: token
+          ? {
+              'Authorization': `Bearer ${token}`,
+            }
+          : undefined,
+      });
+
+      if (!response.ok) {
+        setUploadNotice({ message: 'Não foi possível abrir o laudo.', type: 'error', at: Date.now() });
+        return;
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const newWindow = window.open(objectUrl, '_blank', 'noopener,noreferrer');
+
+      if (!newWindow) {
+        window.location.href = objectUrl;
+      }
+
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+    } catch (err) {
+      console.error('Erro ao abrir laudo:', err);
+      setUploadNotice({ message: 'Erro ao abrir laudo. Verifique o console.', type: 'error', at: Date.now() });
+    }
+  }, [unidadeAtual, setUploadNotice]);
+
   // Delete report
   const handleDeleteReport = useCallback(async () => {
     if (!selectedStudyForReports) return;
@@ -259,6 +292,7 @@ export function useStudiesLogic(unidadeAtual: string) {
     handleDeleteStudy,
     handleAttachReportClick,
     handleViewReports,
+    handleOpenReport,
     handleDeleteReport,
     handleFileSelect,
   };
