@@ -916,11 +916,6 @@ export function Studies() {
 
   const getStudyActions = (study: typeof studiesFormatted[0]) => ([
     {
-      label: 'Visualizar',
-      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
-      onClick: () => handleOpenViewerModal(study)
-    },
-    {
       label: 'Baixar',
       icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>,
       onClick: () => handleOpenDownloadModal(study)
@@ -1069,7 +1064,20 @@ export function Studies() {
                       <p className="font-semibold text-theme-primary break-words">{study.patient}</p>
                       <p className="text-xs text-theme-muted">Nascimento: {study.birthDate || '-'}</p>
                     </div>
-                    <ActionDropdown actions={getStudyActions(study)} />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenViewerModal(study)}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-theme-border text-theme-primary hover:bg-nautico/10 transition-colors"
+                        title="Visualizar"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </button>
+                      <ActionDropdown actions={getStudyActions(study)} />
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -1085,10 +1093,6 @@ export function Studies() {
                     <div>
                       <p className="text-xs text-theme-muted">Data</p>
                       <p className="text-theme-secondary">{study.date || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-theme-muted">Séries</p>
-                      <p className="text-theme-secondary">{study.seriesCount}</p>
                     </div>
                     <div>
                       <p className="text-xs text-theme-muted">Imagens</p>
@@ -1128,22 +1132,21 @@ export function Studies() {
                   <th className="text-center text-sm font-semibold text-theme-secondary px-6 py-4">Modalidade</th>
                   <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Descrição</th>
                   <th className="text-left text-sm font-semibold text-theme-secondary px-6 py-4">Data</th>
-                  <th className="text-center text-sm font-semibold text-theme-secondary px-6 py-4">Séries</th>
                   <th className="text-center text-sm font-semibold text-theme-secondary px-6 py-4">Imagens</th>
                   <th className="text-center text-sm font-semibold text-theme-secondary px-6 py-4">Laudo</th>
-                  <th className="text-center text-sm font-semibold text-theme-secondary px-6 py-4">Ações</th>
+                  <th className="text-center text-sm font-semibold text-theme-secondary px-6 py-4 w-40">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme-light">
                 {isLoading || isLoadingModalityFilter ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-8 text-center text-theme-muted">
+                    <td colSpan={8} className="px-6 py-8 text-center text-theme-muted">
                       Carregando estudos do servidor...
                     </td>
                   </tr>
                 ) : studiesAfterFilters.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-8 text-center text-theme-muted">
+                    <td colSpan={8} className="px-6 py-8 text-center text-theme-muted">
                       Nenhum estudo encontrado.
                     </td>
                   </tr>
@@ -1166,9 +1169,6 @@ export function Studies() {
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-theme-muted">{study.date}</span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="text-theme-secondary">{study.seriesCount}</span>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className="text-theme-secondary">{study.imagesCount}</span>
@@ -1198,8 +1198,19 @@ export function Studies() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-center">
+                      <td className="px-6 py-4 w-40">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenViewerModal(study)}
+                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-theme-border text-theme-primary hover:bg-nautico/10 transition-colors"
+                            title="Visualizar"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </button>
                           <ActionDropdown actions={getStudyActions(study)} />
                         </div>
                       </td>
