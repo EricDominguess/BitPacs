@@ -1,4 +1,4 @@
-import { useTheme, useUnidade } from '../../contexts';
+import { useTheme, useUnidade, useViewer } from '../../contexts';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -9,6 +9,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // Pegamos as novas funções do hook
   const { theme, toggleTheme, enableAnimations, toggleAnimations } = useTheme();
   const { unidade, setUnidade, unidadesDisponiveis, isMaster, unidadeLabel, isUnidadeSelected } = useUnidade();
+  const { defaultViewer, setDefaultViewer } = useViewer();
   
   const isDark = theme === 'dark';
 
@@ -103,6 +104,24 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               </div>
             </>
           )}
+
+          <p className="text-sm font-medium text-theme-muted uppercase tracking-wide">Visualizador</p>
+
+          <div className="p-4 bg-theme-card rounded-xl border border-theme-border">
+            <div className="mb-3">
+              <p className="font-medium text-theme-primary">Visualizador padrão</p>
+              <p className="text-sm text-theme-muted">Usado ao abrir um estudo na lista</p>
+            </div>
+            <select
+              value={defaultViewer}
+              onChange={(e) => setDefaultViewer(e.target.value as 'bitpacs' | 'ohif' | 'ask')}
+              className="w-full px-4 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent transition-all duration-200"
+            >
+              <option value="ask">Perguntar sempre</option>
+              <option value="bitpacs">BitPacs Viewer</option>
+              <option value="ohif">OHIF Viewer</option>
+            </select>
+          </div>
 
           <p className="text-sm font-medium text-theme-muted uppercase tracking-wide">Aparência</p>
           

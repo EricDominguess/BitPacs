@@ -6,6 +6,7 @@ import { Card, Button, ActionDropdown, ToastNotice, ConfirmActionModal } from '.
 import { useFilteredStudies } from '../../components/dashboard';
 import { PeriodFilter, type PeriodType } from '../../components/dashboard';
 import { useOrthancData } from '../../hooks';
+import { useViewer } from '../../contexts';
 import { ModalityBadge, ViewerModal, DownloadModal, type SeriesForDownload, type StudyForDownload, type DownloadFormat } from '../../components/studies';
 import { ReportsModal, DeleteConfirmModal } from './components';
 import { useStudiesLogic } from './useStudiesLogic';
@@ -53,6 +54,7 @@ interface ModalityCacheEntry {
 export function Studies() {
   const navigate = useNavigate();
   const { estudos, isLoading, unidadeAtual, seriesByStudy, carregarSeriesDoEstudo, buscarEstudosNoServidor, buscarModalidadeNoServidorPaginado } = useOrthancData();
+  const { defaultViewer, setDefaultViewer } = useViewer();
   
   // Hooks customizados
   const logic = useStudiesLogic(unidadeAtual);
@@ -648,30 +650,46 @@ export function Studies() {
   };
 
   const handleOpenViewerModal = (study: typeof studiesFormatted[0]) => {
-    setSelectedStudyForViewer({
+    const selected = {
       id: study.id,
       studyInstanceUID: study.studyInstanceUID,
       patient: study.patient,
       modality: study.modality,
       description: study.description
-    });
+    };
+
+    if (defaultViewer === 'ohif') {
+      logic.registrarLog('VIEW', selected);
+      navigate(`/ohif-viewer/${selected.studyInstanceUID}?unidade=${unidadeAtual}`);
+      return;
+    }
+
+    if (defaultViewer === 'bitpacs') {
+      logic.registrarLog('VIEW', selected);
+      navigate(`/viewer/${selected.studyInstanceUID}?unidade=${unidadeAtual}`);
+      return;
+    }
+
+    setSelectedStudyForViewer(selected);
     setShowViewerModal(true);
   };
 
-  const handleOpenInternalViewer = () => {
-    if (selectedStudyForViewer) {
-      logic.registrarLog('VIEW', selectedStudyForViewer);
-      setShowViewerModal(false);
-      navigate(`/viewer/${selectedStudyForViewer.studyInstanceUID}?unidade=${unidadeAtual}`);
-    }
-  };
+  const handleSelectViewer = (viewer: 'bitpacs' | 'ohif', rememberDefault: boolean) => {
+    if (!selectedStudyForViewer) return;
 
-  const handleOpenOHIFViewer = () => {
-    if (selectedStudyForViewer) {
-      logic.registrarLog('VIEW', selectedStudyForViewer);
-      setShowViewerModal(false);
-      navigate(`/ohif-viewer/${selectedStudyForViewer.studyInstanceUID}?unidade=${unidadeAtual}`);
+    if (rememberDefault) {
+      setDefaultViewer(viewer);
     }
+
+    logic.registrarLog('VIEW', selectedStudyForViewer);
+    setShowViewerModal(false);
+
+    if (viewer === 'ohif') {
+      navigate(`/ohif-viewer/${selectedStudyForViewer.studyInstanceUID}?unidade=${unidadeAtual}`);
+      return;
+    }
+
+    navigate(`/viewer/${selectedStudyForViewer.studyInstanceUID}?unidade=${unidadeAtual}`);
   };
 
   const handleOpenDownloadModal = async (study: typeof studiesFormatted[0]) => {
@@ -1250,8 +1268,7 @@ export function Studies() {
         isOpen={showViewerModal}
         study={selectedStudyForViewer}
         onClose={() => setShowViewerModal(false)}
-        onOpenInternal={handleOpenInternalViewer}
-        onOpenOHIF={handleOpenOHIFViewer}
+        onSelectViewer={handleSelectViewer}
       />
 
       <DownloadModal

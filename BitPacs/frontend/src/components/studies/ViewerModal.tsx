@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { ModalityBadge } from './ModalityBadge';
 
 interface SelectedStudy {
@@ -12,11 +13,18 @@ interface ViewerModalProps {
   isOpen: boolean;
   study: SelectedStudy | null;
   onClose: () => void;
-  onOpenInternal: () => void;
-  onOpenOHIF: () => void;
+  onSelectViewer: (viewer: 'bitpacs' | 'ohif', rememberDefault: boolean) => void;
 }
 
-export function ViewerModal({ isOpen, study, onClose, onOpenInternal, onOpenOHIF }: ViewerModalProps) {
+export function ViewerModal({ isOpen, study, onClose, onSelectViewer }: ViewerModalProps) {
+  const [rememberDefault, setRememberDefault] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setRememberDefault(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen || !study) return null;
 
   return (
@@ -54,7 +62,7 @@ export function ViewerModal({ isOpen, study, onClose, onOpenInternal, onOpenOHIF
         <div className="p-4 sm:p-6 space-y-3">
           {/* Visualizador Interno */}
           <button
-            onClick={onOpenInternal}
+            onClick={() => onSelectViewer('bitpacs', rememberDefault)}
             className="w-full flex items-center gap-4 p-4 rounded-lg border border-theme-border hover:border-nautico hover:bg-nautico/5 transition-all group"
           >
             <div className="w-12 h-12 rounded-lg bg-nautico/10 flex items-center justify-center group-hover:bg-nautico/20 transition-colors">
@@ -76,7 +84,7 @@ export function ViewerModal({ isOpen, study, onClose, onOpenInternal, onOpenOHIF
 
           {/* OHIF Viewer */}
           <button
-            onClick={onOpenOHIF}
+            onClick={() => onSelectViewer('ohif', rememberDefault)}
             className="w-full flex items-center gap-4 p-4 rounded-lg border border-theme-border hover:border-purple-light hover:bg-purple-light/5 transition-all group"
           >
             <div className="w-12 h-12 rounded-lg bg-purple-light/10 flex items-center justify-center group-hover:bg-purple-light/20 transition-colors">
@@ -97,7 +105,16 @@ export function ViewerModal({ isOpen, study, onClose, onOpenInternal, onOpenOHIF
         </div>
 
         {/* Footer */}
-        <div className="px-4 sm:px-6 py-4 border-t border-theme-border bg-theme-secondary/30">
+        <div className="px-4 sm:px-6 py-4 border-t border-theme-border bg-theme-secondary/30 space-y-3">
+          <label className="flex items-center gap-3 text-sm text-theme-muted">
+            <input
+              type="checkbox"
+              checked={rememberDefault}
+              onChange={(e) => setRememberDefault(e.target.checked)}
+              className="h-4 w-4 rounded border-theme-border text-nautico focus:ring-nautico"
+            />
+            Manter este visualizador como padrão
+          </label>
           <button
             onClick={onClose}
             className="w-full py-2 text-sm text-theme-muted hover:text-theme-primary transition-colors"
