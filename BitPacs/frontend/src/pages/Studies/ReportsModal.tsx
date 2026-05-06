@@ -69,7 +69,7 @@ export function ReportsModal({
                   <button
                     type="button"
                     onClick={() => onOpenReport(report.id)}
-                    className="flex items-center gap-2 mb-1 text-left hover:underline"
+                    className="flex items-center gap-2 mb-1 text-left hover:underline cursor-pointer"
                     title="Abrir laudo"
                   >
                     <svg className="w-4 h-4 text-nautico shrink-0" fill="currentColor" viewBox="0 0 20 20">
