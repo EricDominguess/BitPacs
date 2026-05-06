@@ -133,7 +133,23 @@ export function UnidadeProvider({ children }: UnidadeProviderProps) {
       if (!stored || stored === 'localhost') {
         localStorage.setItem('bitpacs-unidade-master', DEFAULT_MASTER_UNIDADE);
         setUnidadeState(DEFAULT_MASTER_UNIDADE);
+      } else if (stored in UNIDADES_CONFIG) {
+        // Lê a unidade salva corretamente
+        setUnidadeState(stored as UnidadeKey);
       }
+    }
+  }, [isMaster]);
+
+  // ✅ NOVO: Sincroniza com localStorage quando muda
+  useEffect(() => {
+    if (isMaster) {
+      const handleStorageChangeUnidade = (e: StorageEvent) => {
+        if (e.key === 'bitpacs-unidade-master' && e.newValue) {
+          setUnidadeState(e.newValue as UnidadeKey);
+        }
+      };
+      window.addEventListener('storage', handleStorageChangeUnidade);
+      return () => window.removeEventListener('storage', handleStorageChangeUnidade);
     }
   }, [isMaster]);
 
