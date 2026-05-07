@@ -374,11 +374,10 @@ namespace BitPacs.Api.Controllers
                         .ToListAsync();
 
                     var logTotals = await query
-                        .Where(l => l.UserId != null)
                         .GroupBy(l => l.UserId)
                         .Select(g => new
                         {
-                            UserId = g.Key!.Value,
+                            UserId = g.Key,
                             totalActions = g.Count(),
                             totalViews = g.Count(x => x.ActionType == "VIEW"),
                             totalDownloads = g.Count(x => x.ActionType == "DOWNLOAD")
