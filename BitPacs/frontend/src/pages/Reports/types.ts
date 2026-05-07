@@ -25,6 +25,7 @@ export interface ReportResponse {
   summaries?: {
     byDoctor?: Array<{ doctorId: number; doctorName: string; totalActions: number; totalViews: number; totalDownloads: number }>;
     byUnit?: Array<{ unidade: string; totalActions: number; totalViews: number; totalDownloads: number }>;
+    byModality?: Array<{ modality: string; totalStudies: number }>;
   };
 }
 

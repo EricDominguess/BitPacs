@@ -61,7 +61,7 @@ export function ReportsResults({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
                 <p className="text-xs text-theme-muted">Total de estudos</p>
                 <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalStudies ?? 0}</p>
@@ -69,14 +69,6 @@ export function ReportsResults({
               <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
                 <p className="text-xs text-theme-muted">Pacientes únicos</p>
                 <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalPatients ?? 0}</p>
-              </div>
-              <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
-                <p className="text-xs text-theme-muted">Views</p>
-                <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalViews ?? 0}</p>
-              </div>
-              <div className="rounded-lg border border-theme-border bg-theme-primary p-4">
-                <p className="text-xs text-theme-muted">Downloads</p>
-                <p className="text-xl font-semibold text-theme-primary">{results?.totals.totalDownloads ?? 0}</p>
               </div>
             </div>
           )}
@@ -87,9 +79,9 @@ export function ReportsResults({
             </div>
           )}
 
-          {(results?.summaries?.byDoctor?.length || (reportType !== 'activity' && results?.summaries?.byUnit?.length)) && (
+          {(results?.summaries?.byDoctor?.length || (reportType === 'exams' && (results?.summaries?.byUnit?.length || results?.summaries?.byModality?.length))) && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {!!results?.summaries?.byDoctor?.length && (
+              {reportType === 'activity' && !!results?.summaries?.byDoctor?.length && (
                 <div className="rounded-lg border border-theme-border">
                   <div className="px-4 py-3 bg-theme-secondary text-sm text-theme-muted">Resumo por médico</div>
                   <div className="overflow-x-auto">
@@ -117,7 +109,7 @@ export function ReportsResults({
                 </div>
               )}
 
-              {reportType !== 'activity' && !!results?.summaries?.byUnit?.length && (
+              {reportType === 'exams' && !!results?.summaries?.byUnit?.length && (
                 <div className="rounded-lg border border-theme-border">
                   <div className="px-4 py-3 bg-theme-secondary text-sm text-theme-muted">Resumo por unidade</div>
                   <div className="overflow-x-auto">
@@ -125,9 +117,7 @@ export function ReportsResults({
                       <thead className="bg-theme-card text-theme-muted">
                         <tr>
                           <th className="px-4 py-2 text-left font-medium">Unidade</th>
-                          <th className="px-4 py-2 text-left font-medium">Ações</th>
-                          <th className="px-4 py-2 text-left font-medium">Views</th>
-                          <th className="px-4 py-2 text-left font-medium">Downloads</th>
+                          <th className="px-4 py-2 text-left font-medium">Estudos</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -135,8 +125,30 @@ export function ReportsResults({
                           <tr key={item.unidade} className="border-t border-theme-border">
                             <td className="px-4 py-2">{getUnidadeLabel(item.unidade)}</td>
                             <td className="px-4 py-2">{item.totalActions}</td>
-                            <td className="px-4 py-2">{item.totalViews}</td>
-                            <td className="px-4 py-2">{item.totalDownloads}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {reportType === 'exams' && !!results?.summaries?.byModality?.length && (
+                <div className="rounded-lg border border-theme-border">
+                  <div className="px-4 py-3 bg-theme-secondary text-sm text-theme-muted">Resumo por modalidade</div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm text-theme-primary">
+                      <thead className="bg-theme-card text-theme-muted">
+                        <tr>
+                          <th className="px-4 py-2 text-left font-medium">Modalidade</th>
+                          <th className="px-4 py-2 text-left font-medium">Estudos</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {results.summaries?.byModality?.map((item) => (
+                          <tr key={item.modality} className="border-t border-theme-border">
+                            <td className="px-4 py-2">{item.modality}</td>
+                            <td className="px-4 py-2">{item.totalStudies}</td>
                           </tr>
                         ))}
                       </tbody>

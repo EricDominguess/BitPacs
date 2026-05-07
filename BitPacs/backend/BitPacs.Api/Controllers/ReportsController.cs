@@ -264,6 +264,19 @@ namespace BitPacs.Api.Controllers
                         .OrderByDescending(x => x.totalActions)
                         .ToList();
 
+                    var examByModality = examRecords
+                        .SelectMany(r => (r.Modality ?? string.Empty)
+                            .Split('\\', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                            .DefaultIfEmpty("Não informado"))
+                        .GroupBy(m => m)
+                        .Select(g => new
+                        {
+                            modality = g.Key,
+                            totalStudies = g.Count()
+                        })
+                        .OrderByDescending(x => x.totalStudies)
+                        .ToList();
+
                     return Ok(new
                     {
                         totals = new
@@ -278,7 +291,8 @@ namespace BitPacs.Api.Controllers
                         summaries = new
                         {
                             byDoctor = new List<object>(),
-                            byUnit = examByUnit
+                            byUnit = examByUnit,
+                            byModality = examByModality
                         }
                     });
                 }

@@ -263,6 +263,18 @@ export function Reports() {
       });
     }
 
+    if (results.summaries?.byModality?.length) {
+      contentLines.push('');
+      contentLines.push(escapeValue('Resumo por modalidade'));
+      contentLines.push(['Modalidade', 'Estudos'].map(escapeValue).join(','));
+      results.summaries.byModality.forEach((item) => {
+        contentLines.push([
+          String(item.modality),
+          String(item.totalStudies),
+        ].map(escapeValue).join(','));
+      });
+    }
+
     const csvContent = contentLines.join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -413,6 +425,29 @@ export function Reports() {
         }
         const label = getUnidadeLabel(item.unidade);
         const line = `${label} | Ações: ${item.totalActions} | Views: ${item.totalViews} | Downloads: ${item.totalDownloads}`;
+        pdf.text(line, marginX, cursorY);
+        cursorY += lineHeight;
+      });
+    }
+
+    if (results.summaries?.byModality?.length) {
+      if (cursorY + 16 > pageHeight - marginTop) {
+        pdf.addPage();
+        cursorY = marginTop;
+      }
+
+      cursorY += 6;
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Resumo por modalidade', marginX, cursorY);
+      cursorY += 6;
+      pdf.setFont('helvetica', 'normal');
+
+      results.summaries.byModality.forEach((item) => {
+        if (cursorY + lineHeight > pageHeight - marginTop) {
+          pdf.addPage();
+          cursorY = marginTop;
+        }
+        const line = `${item.modality} | Estudos: ${item.totalStudies}`;
         pdf.text(line, marginX, cursorY);
         cursorY += lineHeight;
       });
