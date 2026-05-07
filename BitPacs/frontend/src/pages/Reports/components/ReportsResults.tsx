@@ -87,7 +87,7 @@ export function ReportsResults({
             </div>
           )}
 
-          {(results?.summaries?.byDoctor?.length || results?.summaries?.byUnit?.length) && (
+          {(results?.summaries?.byDoctor?.length || (reportType !== 'activity' && results?.summaries?.byUnit?.length)) && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {!!results?.summaries?.byDoctor?.length && (
                 <div className="rounded-lg border border-theme-border">
@@ -117,7 +117,7 @@ export function ReportsResults({
                 </div>
               )}
 
-              {!!results?.summaries?.byUnit?.length && (
+              {reportType !== 'activity' && !!results?.summaries?.byUnit?.length && (
                 <div className="rounded-lg border border-theme-border">
                   <div className="px-4 py-3 bg-theme-secondary text-sm text-theme-muted">Resumo por unidade</div>
                   <div className="overflow-x-auto">

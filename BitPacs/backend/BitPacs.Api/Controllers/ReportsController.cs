@@ -343,32 +343,99 @@ namespace BitPacs.Api.Controllers
                 var totalViews = await query.CountAsync(l => l.ActionType == "VIEW");
                 var totalDownloads = await query.CountAsync(l => l.ActionType == "DOWNLOAD");
 
-                var byDoctor = await query
-                    .Where(l => l.User != null)
-                    .GroupBy(l => new { l.UserId, l.User!.Nome })
-                    .Select(g => new
-                    {
-                        doctorId = g.Key.UserId,
-                        doctorName = g.Key.Nome,
-                        totalActions = g.Count(),
-                        totalViews = g.Count(x => x.ActionType == "VIEW"),
-                        totalDownloads = g.Count(x => x.ActionType == "DOWNLOAD")
-                    })
-                    .OrderByDescending(x => x.totalActions)
-                    .ToListAsync();
+                List<object> byDoctor;
+                if (resolvedReportType == "activity")
+                {
+                    var allowedActivityRoles = role == "AdminLocal"
+                        ? new[] { "Medico", "Médico", "Enfermeiro", "AdminLocal", "Admin" }
+                        : new[] { "Medico", "Médico", "Enfermeiro", "AdminLocal", "AdminGlobal", "Admin" };
 
-                var byUnit = await query
-                    .Where(l => l.UnidadeNome != null)
-                    .GroupBy(l => l.UnidadeNome!)
-                    .Select(g => new
+                    var unitFilters = unidadesSelecionadas.Count > 0
+                        ? ExpandUnitFilters(unidadesSelecionadas)
+                        : new List<string>();
+
+                    var usersQuery = _context.Users
+                        .AsNoTracking()
+                        .Where(u => allowedActivityRoles.Contains(u.Role));
+
+                    if (unitFilters.Count > 0)
                     {
-                        unidade = g.Key,
-                        totalActions = g.Count(),
-                        totalViews = g.Count(x => x.ActionType == "VIEW"),
-                        totalDownloads = g.Count(x => x.ActionType == "DOWNLOAD")
-                    })
-                    .OrderByDescending(x => x.totalActions)
-                    .ToListAsync();
+                        usersQuery = usersQuery.Where(u => u.UnidadeId != null && unitFilters.Any(f => u.UnidadeId.ToLower().Contains(f)));
+                    }
+
+                    if (medicoId.HasValue)
+                    {
+                        usersQuery = usersQuery.Where(u => u.Id == medicoId.Value);
+                    }
+
+                    var users = await usersQuery
+                        .Select(u => new { u.Id, u.Nome })
+                        .OrderBy(u => u.Nome)
+                        .ToListAsync();
+
+                    var logTotals = await query
+                        .Where(l => l.UserId != null)
+                        .GroupBy(l => l.UserId)
+                        .Select(g => new
+                        {
+                            UserId = g.Key!.Value,
+                            totalActions = g.Count(),
+                            totalViews = g.Count(x => x.ActionType == "VIEW"),
+                            totalDownloads = g.Count(x => x.ActionType == "DOWNLOAD")
+                        })
+                        .ToListAsync();
+
+                    var logTotalsMap = logTotals.ToDictionary(x => x.UserId, x => x);
+
+                    byDoctor = users
+                        .Select(u =>
+                        {
+                            logTotalsMap.TryGetValue(u.Id, out var totals);
+                            return new
+                            {
+                                doctorId = u.Id,
+                                doctorName = u.Nome,
+                                totalActions = totals?.totalActions ?? 0,
+                                totalViews = totals?.totalViews ?? 0,
+                                totalDownloads = totals?.totalDownloads ?? 0
+                            };
+                        })
+                        .OrderByDescending(x => x.totalActions)
+                        .ThenBy(x => x.doctorName)
+                        .Cast<object>()
+                        .ToList();
+                }
+                else
+                {
+                    byDoctor = await query
+                        .Where(l => l.User != null)
+                        .GroupBy(l => new { l.UserId, l.User!.Nome })
+                        .Select(g => new
+                        {
+                            doctorId = g.Key.UserId,
+                            doctorName = g.Key.Nome,
+                            totalActions = g.Count(),
+                            totalViews = g.Count(x => x.ActionType == "VIEW"),
+                            totalDownloads = g.Count(x => x.ActionType == "DOWNLOAD")
+                        })
+                        .OrderByDescending(x => x.totalActions)
+                        .ToListAsync<object>();
+                }
+
+                var byUnit = resolvedReportType == "activity"
+                    ? new List<object>()
+                    : await query
+                        .Where(l => l.UnidadeNome != null)
+                        .GroupBy(l => l.UnidadeNome!)
+                        .Select(g => new
+                        {
+                            unidade = g.Key,
+                            totalActions = g.Count(),
+                            totalViews = g.Count(x => x.ActionType == "VIEW"),
+                            totalDownloads = g.Count(x => x.ActionType == "DOWNLOAD")
+                        })
+                        .OrderByDescending(x => x.totalActions)
+                        .ToListAsync<object>();
 
                 var safePage = page < 1 ? 1 : page;
                 var safePageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 200);
