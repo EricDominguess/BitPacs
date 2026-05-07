@@ -163,7 +163,13 @@ export function Reports() {
       if (reportType === 'activity') {
         const unitValue = isMaster ? activityUnit : unidade;
         if (unitValue) {
-          params.set('unidades', unitValue);
+          const unitLabel = getUnidadeLabel(String(unitValue));
+          const unidadesParam = [unitValue, unitLabel]
+            .filter(Boolean)
+            .map((item) => String(item).trim())
+            .filter((item, index, arr) => item && arr.indexOf(item) === index)
+            .join(',');
+          params.set('unidades', unidadesParam);
         }
         if (selectedDoctorId) {
           params.set('medicoId', selectedDoctorId);
