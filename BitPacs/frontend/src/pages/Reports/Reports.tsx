@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { MainLayout } from '../../components/layout';
 import { Card } from '../../components/common';
 import { useUnidade } from '../../contexts';
@@ -273,7 +274,6 @@ export function Reports() {
     if (!results) return;
 
     const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const marginX = 10;
     const marginTop = 12;
@@ -300,34 +300,9 @@ export function Reports() {
     const columns = reportType === 'activity'
       ? ['Data', 'Médico', 'Modalidade', 'Unidade', 'Ação', 'Paciente']
       : ['Data', 'Paciente', 'Modalidade', 'Unidade', 'Ação', 'Usuário'];
-    const columnWidths = reportType === 'activity'
-      ? [32, 50, 25, 40, 22, 50]
-      : [32, 55, 25, 42, 22, 42];
 
-    const drawHeader = () => {
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFillColor(230, 230, 230);
-      pdf.rect(marginX, cursorY - 4.5, pageWidth - marginX * 2, 7.5, 'F');
-      let x = marginX + 1;
-      columns.forEach((text, index) => {
-        pdf.text(text, x, cursorY);
-        x += columnWidths[index];
-      });
-      cursorY += 6.5;
-      pdf.setFont('helvetica', 'normal');
-    };
-
-    drawHeader();
-
-    results.records.forEach((record) => {
-      if (cursorY + lineHeight > pageHeight - marginTop) {
-        pdf.addPage();
-        cursorY = marginTop;
-        drawHeader();
-      }
-
-      let x = marginX + 1;
-      const values = reportType === 'activity'
+    const rows = results.records.map((record) => (
+      reportType === 'activity'
         ? [
           record.timestamp ? new Date(record.timestamp).toLocaleString('pt-BR') : '—',
           record.userName || '—',
@@ -343,16 +318,48 @@ export function Reports() {
           record.unidadeNome || '—',
           record.actionType || '—',
           record.userName || '—',
-        ];
+        ]
+    ));
 
-      values.forEach((value, index) => {
-        const trimmed = value.length > 42 ? `${value.slice(0, 39)}...` : value;
-        pdf.text(trimmed, x, cursorY);
-        x += columnWidths[index];
-      });
-
-      cursorY += lineHeight;
+    autoTable(pdf, {
+      startY: cursorY,
+      head: [columns],
+      body: rows,
+      margin: { left: marginX, right: marginX },
+      theme: 'grid',
+      styles: {
+        font: 'helvetica',
+        fontSize: 8,
+        cellPadding: 2,
+        overflow: 'linebreak',
+        valign: 'middle',
+      },
+      headStyles: {
+        fillColor: [230, 230, 230],
+        textColor: 30,
+        fontStyle: 'bold',
+      },
+      columnStyles: reportType === 'activity'
+        ? {
+          0: { cellWidth: 32 },
+          1: { cellWidth: 50 },
+          2: { cellWidth: 25 },
+          3: { cellWidth: 40 },
+          4: { cellWidth: 22 },
+          5: { cellWidth: 50 },
+        }
+        : {
+          0: { cellWidth: 32 },
+          1: { cellWidth: 55 },
+          2: { cellWidth: 25 },
+          3: { cellWidth: 42 },
+          4: { cellWidth: 22 },
+          5: { cellWidth: 42 },
+        },
     });
+
+    const lastTable = (pdf as any).lastAutoTable;
+    cursorY = lastTable?.finalY ? lastTable.finalY + 8 : cursorY + 8;
 
     if (results.summaries?.byDoctor?.length) {
       if (cursorY + 16 > pageHeight - marginTop) {
