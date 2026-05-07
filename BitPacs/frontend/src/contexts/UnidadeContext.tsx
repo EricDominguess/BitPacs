@@ -157,7 +157,7 @@ export function UnidadeProvider({ children }: UnidadeProviderProps) {
     if (isMaster) {
       setUnidadeState(novaUnidade);
       localStorage.setItem('bitpacs-unidade-master', novaUnidade);
-      window.dispatchEvent(new CustomEvent('bitpacs-unidade-change', { detail: novaUnidade }));
+      window.location.reload();
     }
   };
 

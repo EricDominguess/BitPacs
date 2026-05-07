@@ -325,23 +325,15 @@ export function useOrthancData(): UseOrthancDataReturn {
         const novaUnidade = getUnidadeAtual();
         if (novaUnidade !== unidadeAtual) {
           setUnidadeAtual(novaUnidade);
+          window.location.reload();
         }
       }
     };
 
-    const handleUnidadeChange = (e: Event) => {
-      const novaUnidade = (e as CustomEvent<string>).detail;
-      if (novaUnidade && novaUnidade !== unidadeAtual) {
-        setUnidadeAtual(novaUnidade);
-      }
-    };
-
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('bitpacs-unidade-change', handleUnidadeChange as EventListener);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('bitpacs-unidade-change', handleUnidadeChange as EventListener);
     };
   }, [getUnidadeAtual, unidadeAtual]);
 

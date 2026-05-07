@@ -298,8 +298,8 @@ export function Reports() {
     cursorY += 8;
 
     const columns = reportType === 'activity'
-      ? ['Data', 'Médico', 'Modalidade', 'Unidade', 'Ação', 'Paciente']
-      : ['Data', 'Paciente', 'Modalidade', 'Unidade', 'Ação', 'Usuário'];
+      ? ['Data', 'Médico', 'Modalidade', 'Estudos', 'Unidade', 'Ação', 'Paciente']
+      : ['Data', 'Paciente', 'Modalidade', 'Estudos', 'Unidade', 'Ação', 'Usuário'];
 
     const rows = results.records.map((record) => (
       reportType === 'activity'
@@ -307,6 +307,7 @@ export function Reports() {
           record.timestamp ? new Date(record.timestamp).toLocaleString('pt-BR') : '—',
           record.userName || '—',
           record.modality || '—',
+          record.studyDescription || '—',
           record.unidadeNome || '—',
           record.actionType || '—',
           record.patientName || '—',
@@ -315,6 +316,7 @@ export function Reports() {
           record.timestamp ? new Date(record.timestamp).toLocaleString('pt-BR') : '—',
           record.patientName || '—',
           record.modality || '—',
+          record.studyDescription || '—',
           record.unidadeNome || '—',
           record.actionType || '—',
           record.userName || '—',
@@ -341,20 +343,22 @@ export function Reports() {
       },
       columnStyles: reportType === 'activity'
         ? {
-          0: { cellWidth: 32 },
-          1: { cellWidth: 50 },
-          2: { cellWidth: 25 },
-          3: { cellWidth: 40 },
-          4: { cellWidth: 22 },
-          5: { cellWidth: 50 },
+          0: { cellWidth: 30 },
+          1: { cellWidth: 45 },
+          2: { cellWidth: 20 },
+          3: { cellWidth: 50 },
+          4: { cellWidth: 35 },
+          5: { cellWidth: 20 },
+          6: { cellWidth: 45 },
         }
         : {
-          0: { cellWidth: 32 },
-          1: { cellWidth: 55 },
-          2: { cellWidth: 25 },
-          3: { cellWidth: 42 },
-          4: { cellWidth: 22 },
-          5: { cellWidth: 42 },
+          0: { cellWidth: 30 },
+          1: { cellWidth: 45 },
+          2: { cellWidth: 20 },
+          3: { cellWidth: 55 },
+          4: { cellWidth: 35 },
+          5: { cellWidth: 20 },
+          6: { cellWidth: 35 },
         },
     });
 
