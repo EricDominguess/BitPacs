@@ -213,8 +213,8 @@ namespace BitPacs.Api.Controllers
 
                     if (units.Count > 0)
                     {
-                        var unitsLower = units.Select(u => u.ToLowerInvariant()).ToList();
-                        logsQuery = logsQuery.Where(l => l.UnidadeNome != null && unitsLower.Contains(l.UnidadeNome.ToLower()));
+                        var unitFilters = ExpandUnitFilters(units);
+                        logsQuery = logsQuery.Where(l => l.UnidadeNome != null && unitFilters.Any(f => l.UnidadeNome.ToLower().Contains(f)));
                     }
 
                     if (!string.IsNullOrWhiteSpace(modality))
@@ -300,8 +300,8 @@ namespace BitPacs.Api.Controllers
 
                 if (unidadesSelecionadas.Count > 0)
                 {
-                    var unidadesLower = unidadesSelecionadas.Select(u => u.ToLowerInvariant()).ToList();
-                    query = query.Where(l => l.UnidadeNome != null && unidadesLower.Contains(l.UnidadeNome.ToLower()));
+                    var unitFilters = ExpandUnitFilters(unidadesSelecionadas);
+                    query = query.Where(l => l.UnidadeNome != null && unitFilters.Any(f => l.UnidadeNome.ToLower().Contains(f)));
                 }
 
                 if (!string.IsNullOrWhiteSpace(modality))
@@ -465,6 +465,33 @@ namespace BitPacs.Api.Controllers
         {
             if (string.IsNullOrWhiteSpace(role)) return string.Empty;
             return role == "Admin" ? "AdminLocal" : role;
+        }
+
+        private static List<string> ExpandUnitFilters(IEnumerable<string> unidades)
+        {
+            var results = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var raw in unidades)
+            {
+                if (string.IsNullOrWhiteSpace(raw)) continue;
+                var normalized = raw.Trim().ToLowerInvariant();
+                results.Add(normalized);
+
+                var withoutPrefix = normalized
+                    .Replace("cis - unidade de ", string.Empty)
+                    .Replace("cis - ", string.Empty)
+                    .Replace("unidade de ", string.Empty)
+                    .Replace("unidade ", string.Empty)
+                    .Replace("cis ", string.Empty)
+                    .Trim();
+
+                if (!string.IsNullOrWhiteSpace(withoutPrefix))
+                {
+                    results.Add(withoutPrefix);
+                }
+            }
+
+            return results.ToList();
         }
     }
 }
