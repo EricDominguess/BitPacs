@@ -325,29 +325,28 @@ export function useOrthancData(): UseOrthancDataReturn {
         const novaUnidade = getUnidadeAtual();
         if (novaUnidade !== unidadeAtual) {
           setUnidadeAtual(novaUnidade);
-          window.location.reload();
         }
       }
     };
 
-    const checkUnidade = () => {
-      const novaUnidade = getUnidadeAtual();
-      if (novaUnidade !== unidadeAtual) {
+    const handleUnidadeChange = (e: Event) => {
+      const novaUnidade = (e as CustomEvent<string>).detail;
+      if (novaUnidade && novaUnidade !== unidadeAtual) {
         setUnidadeAtual(novaUnidade);
-        window.location.reload();
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
-    const unidadeCheckInterval = setInterval(checkUnidade, 1000);
+    window.addEventListener('bitpacs-unidade-change', handleUnidadeChange as EventListener);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      clearInterval(unidadeCheckInterval);
+      window.removeEventListener('bitpacs-unidade-change', handleUnidadeChange as EventListener);
     };
   }, [getUnidadeAtual, unidadeAtual]);
 
   useEffect(() => {
+    lastSequenceRef.current = 0;
     carregarTudo();
     checkChanges();
     const intervalId = setInterval(checkChanges, INTERVALO_ATUALIZACAO);
