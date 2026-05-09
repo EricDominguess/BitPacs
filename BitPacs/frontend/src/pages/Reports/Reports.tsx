@@ -63,14 +63,7 @@ export function Reports() {
     return unidadeLabel;
   };
 
-  useEffect(() => {
-    if (!isMaster) return;
-    if (selectedUnits.length > 0) return;
-    const fallback = unidadesOptions[0]?.value;
-    if (fallback) {
-      setSelectedUnits([fallback as UnidadeKey]);
-    }
-  }, [isMaster, selectedUnits.length, unidadesOptions]);
+  // useEffect removido - unidades não são mais obrigatoriamente marcadas
 
   useEffect(() => {
     if (!isMaster) {
@@ -149,7 +142,12 @@ export function Reports() {
 
   const handleGenerateReport = async () => {
     if (!isMaster && !isAdmin) return;
-    if (isMaster && selectedUnits.length === 0) return;
+
+    if (isMaster && selectedUnits.length === 0) {
+      setError('Nenhuma unidade selecionada. Por favor, selecione pelo menos uma unidade para gerar o relatório.');
+      setHasGenerated(true);
+      return;
+    }
 
     setIsLoading(true);
     setHasGenerated(false);
@@ -210,7 +208,7 @@ export function Reports() {
   };
 
   const canGenerateActivity = (isMaster || isAdmin) && (!!activityUnit || !isMaster);
-  const canGenerateExams = (isMaster || isAdmin) && (!isMaster || selectedUnits.length > 0);
+  const canGenerateExams = (isMaster || isAdmin);
   const canGenerate = reportType === 'activity' ? canGenerateActivity : canGenerateExams;
   const hasValidDates = !!startDate && !!endDate && new Date(startDate) <= new Date(endDate);
   const isFormValid = canGenerate && hasValidDates;
