@@ -149,6 +149,18 @@ export function Reports() {
       return;
     }
 
+    if (!startDate || !endDate) {
+      setError('Preencha uma data inicial e final válidas para gerar o relatório.');
+      setHasGenerated(true);
+      return;
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+      setError('A data inicial não pode ser maior que a data final.');
+      setHasGenerated(true);
+      return;
+    }
+
     setIsLoading(true);
     setHasGenerated(false);
     setError(null);
@@ -211,7 +223,7 @@ export function Reports() {
   const canGenerateExams = (isMaster || isAdmin);
   const canGenerate = reportType === 'activity' ? canGenerateActivity : canGenerateExams;
   const hasValidDates = !!startDate && !!endDate && new Date(startDate) <= new Date(endDate);
-  const isFormValid = canGenerate && hasValidDates;
+  const isFormValid = canGenerate;
   const hasResults = !!results?.records?.length;
 
   const handleExportCsv = () => {
