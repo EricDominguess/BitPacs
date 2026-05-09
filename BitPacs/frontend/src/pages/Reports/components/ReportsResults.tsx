@@ -34,7 +34,7 @@ export function ReportsResults({
       )}
 
       {!isLoading && error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
+        <div className="rounded-lg border border-red-400 bg-red-100 p-4 text-base font-semibold !text-red-900 dark:border-red-500 dark:bg-red-950/30 dark:!text-red-200">
           {error}
         </div>
       )}
