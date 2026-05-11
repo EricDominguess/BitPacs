@@ -13,10 +13,3 @@ export const MODALIDADES = [
   { value: 'SC', label: 'Cintilografia (SC)' },
   { value: 'OT', label: 'Outros (OT)' },
 ];
-
-export const STATUS_OPTIONS = [
-  { value: '', label: 'Todos' },
-  { value: 'pending', label: 'Pendente' },
-  { value: 'in-progress', label: 'Em andamento' },
-  { value: 'done', label: 'Finalizado' },
-];
