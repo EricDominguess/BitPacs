@@ -41,6 +41,18 @@ const allowedRolesToCreate: Record<string, UserRole[]> = {
 
 const ITEMS_PER_PAGE = 8;
 
+// ✅ value agora é o slug — bate 1:1 com o appsettings.json e o banco
+const unidades = [
+  { value: 'riobranco',    label: import.meta.env.VITE_UNIDADE_RIOBRANCO    || 'CIS - Unidade de Rio Branco'    },
+  { value: 'foziguacu',    label: import.meta.env.VITE_UNIDADE_FOZIGUACU    || 'CIS - Unidade de Foz do Iguaçu' },
+  { value: 'fazenda',      label: import.meta.env.VITE_UNIDADE_FAZENDA      || 'CIS - Unidade de Fazenda'       },
+  { value: 'faxinal',      label: import.meta.env.VITE_UNIDADE_FAXINAL      || 'CIS - Unidade de Faxinal'       },
+  { value: 'santamariana', label: import.meta.env.VITE_UNIDADE_SANTAMARIANA || 'CIS - Unidade de Santa Mariana' },
+  { value: 'guarapuava',   label: import.meta.env.VITE_UNIDADE_GUARAPUAVA   || 'CIS - Unidade de Guarapuava'    },
+  { value: 'carlopolis',   label: import.meta.env.VITE_UNIDADE_CARLOPOLIS   || 'CIS - Unidade de Carlópolis'    },
+  { value: 'arapoti',      label: import.meta.env.VITE_UNIDADE_ARAPOTI      || 'CIS - Unidade de Arapoti'       },
+];
+
 const ROLE_FILTER_OPTIONS = [
   { value: 'all', label: 'Todos os tipos' },
   { value: 'Master', label: roleColors.Master.label },
@@ -53,18 +65,6 @@ const ROLE_FILTER_OPTIONS = [
 const UNIT_FILTER_OPTIONS = [
   { value: 'all', label: 'Todas as unidades' },
   ...unidades,
-];
-
-// ✅ value agora é o slug — bate 1:1 com o appsettings.json e o banco
-const unidades = [
-  { value: 'riobranco',    label: import.meta.env.VITE_UNIDADE_RIOBRANCO    || 'CIS - Unidade de Rio Branco'    },
-  { value: 'foziguacu',    label: import.meta.env.VITE_UNIDADE_FOZIGUACU    || 'CIS - Unidade de Foz do Iguaçu' },
-  { value: 'fazenda',      label: import.meta.env.VITE_UNIDADE_FAZENDA      || 'CIS - Unidade de Fazenda'       },
-  { value: 'faxinal',      label: import.meta.env.VITE_UNIDADE_FAXINAL      || 'CIS - Unidade de Faxinal'       },
-  { value: 'santamariana', label: import.meta.env.VITE_UNIDADE_SANTAMARIANA || 'CIS - Unidade de Santa Mariana' },
-  { value: 'guarapuava',   label: import.meta.env.VITE_UNIDADE_GUARAPUAVA   || 'CIS - Unidade de Guarapuava'    },
-  { value: 'carlopolis',   label: import.meta.env.VITE_UNIDADE_CARLOPOLIS   || 'CIS - Unidade de Carlópolis'    },
-  { value: 'arapoti',      label: import.meta.env.VITE_UNIDADE_ARAPOTI      || 'CIS - Unidade de Arapoti'       },
 ];
 
 export function Users() {
