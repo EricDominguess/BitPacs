@@ -13,6 +13,40 @@ interface ReportsResultsProps {
   getUnidadeLabel: (value: string) => string;
 }
 
+const MODALITY_COLOR_MAP: Record<string, string> = {
+  CT: '#0ea5e9',
+  MR: '#a855f7',
+  CR: '#0ea5e9',
+  US: '#22c55e',
+  DR: '#f97316',
+  DX: '#0284c7',
+  OT: '#94a3b8',
+  'NÃO INFORMADO': '#94a3b8',
+};
+
+const FALLBACK_MODALITY_COLORS = ['#ec4899', '#14b8a6', '#f59e0b', '#6366f1', '#84cc16'];
+
+const getModalityColor = (modality: string, index: number) => {
+  const mapped = MODALITY_COLOR_MAP[modality.trim().toUpperCase()];
+  if (mapped) return mapped;
+  return FALLBACK_MODALITY_COLORS[index % FALLBACK_MODALITY_COLORS.length];
+};
+
+const polarToCartesian = (cx: number, cy: number, radius: number, angleInDegrees: number) => {
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180;
+  return {
+    x: cx + radius * Math.cos(angleInRadians),
+    y: cy + radius * Math.sin(angleInRadians),
+  };
+};
+
+const createArcPath = (cx: number, cy: number, radius: number, startAngle: number, endAngle: number) => {
+  const start = polarToCartesian(cx, cy, radius, startAngle);
+  const end = polarToCartesian(cx, cy, radius, endAngle);
+  const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
+  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`;
+};
+
 export function ReportsResults({
   isLoading,
   error,
@@ -24,6 +58,27 @@ export function ReportsResults({
   onExportPdf,
   getUnidadeLabel,
 }: ReportsResultsProps) {
+  const modalitySummary = results?.summaries?.byModality ?? [];
+  const totalByModality = modalitySummary.reduce((acc, item) => acc + item.totalStudies, 0);
+
+  let currentAngle = 0;
+  const modalityChartSegments = modalitySummary.map((item, index) => {
+    const value = item.totalStudies;
+    const sweep = totalByModality > 0 ? (value / totalByModality) * 360 : 0;
+    const startAngle = currentAngle;
+    const endAngle = currentAngle + sweep;
+    currentAngle = endAngle;
+
+    return {
+      ...item,
+      color: getModalityColor(item.modality, index),
+      percentage: totalByModality > 0 ? (value / totalByModality) * 100 : 0,
+      sweep,
+      startAngle,
+      endAngle,
+    };
+  });
+
   return (
     <Card title="Resultados">
       {isLoading && (
@@ -136,23 +191,60 @@ export function ReportsResults({
               {reportType === 'exams' && !!results?.summaries?.byModality?.length && (
                 <div className="rounded-lg border border-theme-border">
                   <div className="px-4 py-3 bg-theme-secondary text-sm text-theme-muted">Resumo por modalidade</div>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm text-theme-primary">
-                      <thead className="bg-theme-card text-theme-muted">
-                        <tr>
-                          <th className="px-4 py-2 text-left font-medium">Modalidade</th>
-                          <th className="px-4 py-2 text-left font-medium">Estudos</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {results.summaries?.byModality?.map((item) => (
-                          <tr key={item.modality} className="border-t border-theme-border">
-                            <td className="px-4 py-2">{item.modality}</td>
-                            <td className="px-4 py-2">{item.totalStudies}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="p-4 space-y-4">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <svg viewBox="0 0 180 180" className="w-52 h-52" role="img" aria-label="Distribuição de estudos por modalidade">
+                        <circle cx="90" cy="90" r="58" fill="none" stroke="#e2e8f0" strokeWidth="22" />
+                        {modalityChartSegments.map((segment) => {
+                          if (segment.sweep >= 359.9) {
+                            return (
+                              <circle
+                                key={segment.modality}
+                                cx="90"
+                                cy="90"
+                                r="58"
+                                fill="none"
+                                stroke={segment.color}
+                                strokeWidth="22"
+                              />
+                            );
+                          }
+
+                          return (
+                            <path
+                              key={segment.modality}
+                              d={createArcPath(90, 90, 58, segment.startAngle, segment.endAngle)}
+                              fill="none"
+                              stroke={segment.color}
+                              strokeWidth="22"
+                            />
+                          );
+                        })}
+                        <circle cx="90" cy="90" r="38" fill="currentColor" className="text-theme-primary" />
+                        <text x="90" y="82" textAnchor="middle" className="fill-theme-muted text-[10px]">
+                          Total
+                        </text>
+                        <text x="90" y="100" textAnchor="middle" className="fill-theme-secondary text-[14px] font-semibold">
+                          {totalByModality}
+                        </text>
+                      </svg>
+                      <p className="text-xs text-theme-muted">Distribuição percentual por modalidade</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      {modalityChartSegments.map((item) => (
+                        <div key={item.modality} className="flex items-center justify-between gap-3 text-sm border border-theme-border rounded-md px-3 py-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                            <span className="text-theme-primary truncate">{item.modality}</span>
+                          </div>
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            <span className="text-theme-muted">{item.percentage.toFixed(1)}%</span>
+                            <span className="font-semibold text-theme-primary">{item.totalStudies}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}

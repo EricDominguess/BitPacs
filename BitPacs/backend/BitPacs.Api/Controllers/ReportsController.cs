@@ -168,12 +168,17 @@ namespace BitPacs.Api.Controllers
                             if (start.HasValue && (!studyDate.HasValue || studyDate.Value < start.Value)) continue;
                             if (end.HasValue && (!studyDate.HasValue || studyDate.Value > end.Value)) continue;
 
-                            var modalityRaw = GetString(tags, "ModalitiesInStudy") ?? GetString(tags, "Modality");
+                            var modalityRaw =
+                                GetString(tags, "ModalitiesInStudy")
+                                ?? GetString(tags, "Modality")
+                                ?? GetString(item, "ModalitiesInStudy")
+                                ?? GetString(item, "Modality")
+                                ?? (item.TryGetProperty("RequestedTags", out var requestedTags) ? GetString(requestedTags, "Modality") : null);
                             if (!string.IsNullOrWhiteSpace(modality))
                             {
                                 var modalityValue = modality.Trim();
-                                var modalities = (modalityRaw ?? string.Empty).Split('\\', StringSplitOptions.RemoveEmptyEntries);
-                                if (!modalities.Contains(modalityValue))
+                                var modalities = ExpandNormalizedModalities(modalityRaw);
+                                if (!modalities.Contains(NormalizeModalityToken(modalityValue), StringComparer.OrdinalIgnoreCase))
                                 {
                                     continue;
                                 }
@@ -265,9 +270,7 @@ namespace BitPacs.Api.Controllers
                         .ToList();
 
                     var examByModality = examRecords
-                        .SelectMany(r => (r.Modality ?? string.Empty)
-                            .Split('\\', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                            .DefaultIfEmpty("Não informado"))
+                        .SelectMany(r => ExpandNormalizedModalities(r.Modality))
                         .GroupBy(m => m)
                         .Select(g => new
                         {
@@ -523,6 +526,45 @@ namespace BitPacs.Api.Controllers
         {
             if (string.IsNullOrWhiteSpace(name)) return name;
             return name.Replace("^", " ").Trim();
+        }
+
+        private static IEnumerable<string> ExpandNormalizedModalities(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return new[] { "Não informado" };
+            }
+
+            var tokens = raw
+                .Split(new[] { '\\', ',', '+' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(NormalizeModalityToken)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            return tokens.Count > 0 ? tokens : new[] { "Não informado" };
+        }
+
+        private static string NormalizeModalityToken(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return "Não informado";
+            }
+
+            var normalized = value.Trim().ToUpperInvariant();
+            return normalized switch
+            {
+                "DIGITAL RADIOGRAPHY" => "DX",
+                "XRAY" => "DX",
+                "X-RAY" => "DX",
+                "RADIOGRAPHY" => "DX",
+                "COMPUTED RADIOGRAPHY" => "CR",
+                "ULTRASOUND" => "US",
+                "MAGNETIC RESONANCE" => "MR",
+                "COMPUTED TOMOGRAPHY" => "CT",
+                _ => normalized
+            };
         }
 
         private string GetOrthancUrl(string unidade)
