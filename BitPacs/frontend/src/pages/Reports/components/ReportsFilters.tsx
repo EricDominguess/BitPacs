@@ -236,7 +236,7 @@ export function ReportsFilters({
       </div>
 
       {!hasValidDates && (
-        <p className="mt-2 text-xs text-red-200">
+        <p className="mt-2 text-xs text-red-500">
           Preencha uma data inicial e final válidas (data inicial menor ou igual à final).
         </p>
       )}

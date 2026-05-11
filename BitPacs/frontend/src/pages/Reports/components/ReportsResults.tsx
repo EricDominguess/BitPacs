@@ -89,7 +89,7 @@ export function ReportsResults({
       )}
 
       {!isLoading && error && (
-        <div className="rounded-lg border border-[#fca5a5] bg-[#fef2f2] p-4 text-base font-medium leading-relaxed !text-[#7f1d1d] opacity-100 dark:border-red-500/40 dark:bg-red-500/10 dark:!text-red-200">
+        <div className="rounded-lg border border-[#fca5a5] bg-[#fef2f2] p-4 text-base font-medium leading-relaxed !text-[#7f1d1d] opacity-100 dark:border-red-500/40 dark:bg-red-500/10 dark:!text-red-500">
           {error}
         </div>
       )}
