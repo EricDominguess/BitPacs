@@ -50,6 +50,11 @@ const ROLE_FILTER_OPTIONS = [
   { value: 'Enfermeiro', label: roleColors.Enfermeiro.label },
 ];
 
+const UNIT_FILTER_OPTIONS = [
+  { value: 'all', label: 'Todas as unidades' },
+  ...unidades,
+];
+
 // ✅ value agora é o slug — bate 1:1 com o appsettings.json e o banco
 const unidades = [
   { value: 'riobranco',    label: import.meta.env.VITE_UNIDADE_RIOBRANCO    || 'CIS - Unidade de Rio Branco'    },
@@ -79,8 +84,10 @@ export function Users() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
+  const [selectedUnit, setSelectedUnit] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+  const [isUnitDropdownOpen, setIsUnitDropdownOpen] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
@@ -98,6 +105,7 @@ export function Users() {
   const [logsUserId, setLogsUserId] = useState<number>(0);
   const [logsUserName, setLogsUserName] = useState<string>('');
   const roleDropdownRef = useRef<HTMLDivElement | null>(null);
+  const unitDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -127,10 +135,14 @@ export function Users() {
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
-      if (!roleDropdownRef.current) return;
-      if (!roleDropdownRef.current.contains(event.target as Node)) {
-        setIsRoleDropdownOpen(false);
+      if (roleDropdownRef.current && roleDropdownRef.current.contains(event.target as Node)) {
+        return;
       }
+      if (unitDropdownRef.current && unitDropdownRef.current.contains(event.target as Node)) {
+        return;
+      }
+      setIsRoleDropdownOpen(false);
+      setIsUnitDropdownOpen(false);
     };
 
     document.addEventListener('mousedown', handleOutsideClick);
@@ -144,17 +156,19 @@ export function Users() {
         user.email.toLowerCase().includes(searchTerm.toLowerCase());
       const normalizedRole = user.role === 'Admin' ? 'AdminLocal' : user.role;
       const matchesRole = selectedRole === 'all' || normalizedRole === selectedRole;
-      return matchesSearch && matchesRole;
+      const matchesUnit = selectedUnit === 'all' || user.unidadeId === selectedUnit;
+      return matchesSearch && matchesRole && matchesUnit;
     });
-  }, [users, searchTerm, selectedRole]);
+  }, [users, searchTerm, selectedRole, selectedUnit]);
 
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedRole]);
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedRole, selectedUnit]);
 
   const indexOfLastItem  = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
   const currentItems     = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages       = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
   const selectedRoleOption = ROLE_FILTER_OPTIONS.find((r) => r.value === selectedRole) || ROLE_FILTER_OPTIONS[0];
+  const selectedUnitOption = UNIT_FILTER_OPTIONS.find((u) => u.value === selectedUnit) || UNIT_FILTER_OPTIONS[0];
 
   const getUserInitials = (name: string) =>
     name
@@ -379,6 +393,54 @@ export function Users() {
                           }`}
                         >
                           <span>{role.label}</span>
+                          {isSelected && (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="relative z-[80] w-full sm:w-auto" ref={unitDropdownRef}>
+              <button
+                onClick={() => setIsUnitDropdownOpen((prev) => !prev)}
+                className={`w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 px-4 py-2 rounded-lg border transition-all duration-200 bg-theme-secondary border-theme-border hover:border-nautico/50 text-theme-primary text-sm font-medium ${
+                  isUnitDropdownOpen ? 'ring-2 ring-nautico border-transparent' : 'hover:bg-theme-tertiary/70 hover:shadow-sm'
+                }`}
+              >
+                <svg className="w-4 h-4 text-nautico" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
+                </svg>
+                <span>{selectedUnitOption.label}</span>
+                <svg className={`w-4 h-4 text-theme-muted transition-transform duration-200 ${isUnitDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {isUnitDropdownOpen && (
+                <div className="absolute top-full mt-2 w-full sm:w-72 z-[70] bg-theme-secondary border border-theme-border rounded-lg shadow-lg animate-in fade-in-0 zoom-in-95 duration-150">
+                  <div className="p-2">
+                    {UNIT_FILTER_OPTIONS.map((unit) => {
+                      const isSelected = selectedUnit === unit.value;
+                      return (
+                        <button
+                          key={unit.value}
+                          onClick={() => {
+                            setSelectedUnit(unit.value);
+                            setIsUnitDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors duration-150 ${
+                            isSelected
+                              ? 'bg-nautico/10 text-nautico'
+                              : 'text-theme-primary hover:bg-nautico/15 hover:text-nautico'
+                          }`}
+                        >
+                          <span>{unit.label}</span>
                           {isSelected && (
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

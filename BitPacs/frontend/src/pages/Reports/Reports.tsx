@@ -139,10 +139,18 @@ export function Reports() {
   const handleGenerateReport = async () => {
     if (!isMaster && !isAdmin) return;
 
-    if (isMaster && selectedUnits.length === 0) {
-      setError('Nenhuma unidade selecionada. Por favor, selecione pelo menos uma unidade para gerar o relatório.');
-      setHasGenerated(true);
-      return;
+    if (reportType === 'activity') {
+      if (isMaster && !activityUnit) {
+        setError('Nenhuma unidade selecionada. Por favor, selecione uma unidade para gerar o relatório.');
+        setHasGenerated(true);
+        return;
+      }
+    } else {
+      if (isMaster && selectedUnits.length === 0) {
+        setError('Nenhuma unidade selecionada. Por favor, selecione pelo menos uma unidade para gerar o relatório.');
+        setHasGenerated(true);
+        return;
+      }
     }
 
     if (!startDate || !endDate) {

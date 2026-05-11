@@ -1,5 +1,6 @@
 import { Button, Card } from '../../../components/common';
 import type { ReportResponse, ReportType } from '../types';
+import { useEffect, useState } from 'react';
 
 interface ReportsResultsProps {
   isLoading: boolean;
@@ -58,6 +59,21 @@ export function ReportsResults({
   onExportPdf,
   getUnidadeLabel,
 }: ReportsResultsProps) {
+  const [loadingMessage, setLoadingMessage] = useState('Gerando relatório...');
+
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingMessage('Gerando relatório...');
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setLoadingMessage('Quase pronto...');
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
   const modalitySummary = results?.summaries?.byModality ?? [];
   const totalByModality = modalitySummary.reduce((acc, item) => acc + item.totalStudies, 0);
 
@@ -84,7 +100,7 @@ export function ReportsResults({
       {isLoading && (
         <div className="flex items-center gap-3 text-theme-muted">
           <div className="w-5 h-5 border-2 border-nautico border-t-transparent rounded-full animate-spin" />
-          Gerando relatório...
+          {loadingMessage}
         </div>
       )}
 
