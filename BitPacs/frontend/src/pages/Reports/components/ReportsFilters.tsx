@@ -1,7 +1,7 @@
 import { Button, Card, Input } from '../../../components/common';
 import type { UnidadeKey } from '../../../contexts/UnidadeContext';
 import type { DoctorOption, ReportType } from '../types';
-import { MODALIDADES, STATUS_OPTIONS } from '../options';
+import { STATUS_OPTIONS } from '../options';
 
 interface ReportsFiltersProps {
   isMaster: boolean;
@@ -25,8 +25,6 @@ interface ReportsFiltersProps {
   selectedDoctorId: string;
   setSelectedDoctorId: (value: string) => void;
   isLoadingDoctors: boolean;
-  modality: string;
-  setModality: (value: string) => void;
   status: string;
   setStatus: (value: string) => void;
   onClearFilters: () => void;
@@ -58,8 +56,6 @@ export function ReportsFilters({
   selectedDoctorId,
   setSelectedDoctorId,
   isLoadingDoctors,
-  modality,
-  setModality,
   status,
   setStatus,
   onClearFilters,
@@ -219,21 +215,6 @@ export function ReportsFilters({
             )}
           </div>
         )}
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-theme-secondary">Modalidade</label>
-          <select
-            value={modality}
-            onChange={(event) => setModality(event.target.value)}
-            className="w-full px-3 py-2.5 bg-theme-primary border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-nautico focus:border-transparent"
-          >
-            {MODALIDADES.map((item) => (
-              <option key={item.value} value={item.value} className="text-theme-primary">
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </div>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-theme-secondary">Status</label>

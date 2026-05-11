@@ -42,7 +42,6 @@ export function Reports() {
   const [doctors, setDoctors] = useState<DoctorOption[]>([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
-  const [modality, setModality] = useState('');
   const [status, setStatus] = useState('');
   const [hasGenerated, setHasGenerated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -118,7 +117,6 @@ export function Reports() {
     setSelectedUnits(isMaster ? [] : [unidade]);
     setActivityUnit(isMaster ? '' : unidade);
     setSelectedDoctorId('');
-    setModality('');
     setStatus('');
     setHasGenerated(false);
     setResults(null);
@@ -191,7 +189,6 @@ export function Reports() {
           params.set('unidades', unidade);
         }
       }
-      if (modality) params.set('modality', modality);
       if (status) params.set('status', status);
       params.set('page', '1');
       params.set('pageSize', '50');
@@ -506,8 +503,6 @@ export function Reports() {
           selectedDoctorId={selectedDoctorId}
           setSelectedDoctorId={setSelectedDoctorId}
           isLoadingDoctors={isLoadingDoctors}
-          modality={modality}
-          setModality={setModality}
           status={status}
           setStatus={setStatus}
           onClearFilters={handleClearFilters}
