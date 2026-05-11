@@ -146,8 +146,11 @@ namespace BitPacs.Api.Controllers
                     foreach (var unit in units)
                     {
                         var orthancUrl = GetOrthancUrl(unit);
-                        var cacheKey = $"reports_studies_{unit.ToLowerInvariant()}";
-                        var data = await _orthancService.GetDataWithCacheAsync(orthancUrl, "/studies?expand", cacheKey);
+                        var studiesCacheKey = $"reports_studies_{unit.ToLowerInvariant()}";
+                        var data = await _orthancService.GetDataWithCacheAsync(orthancUrl, "/studies?expand", studiesCacheKey);
+                        var seriesCacheKey = $"reports_series_{unit.ToLowerInvariant()}";
+                        var seriesData = await _orthancService.GetDataWithCacheAsync(orthancUrl, "/series?expand", seriesCacheKey);
+                        var seriesModalitiesByStudy = BuildSeriesModalitiesIndex(seriesData);
 
                         using var doc = JsonDocument.Parse(data);
                         if (doc.RootElement.ValueKind != JsonValueKind.Array) continue;
@@ -174,6 +177,12 @@ namespace BitPacs.Api.Controllers
                                 ?? GetString(item, "ModalitiesInStudy")
                                 ?? GetString(item, "Modality")
                                 ?? (item.TryGetProperty("RequestedTags", out var requestedTags) ? GetString(requestedTags, "Modality") : null);
+
+                            if (string.IsNullOrWhiteSpace(modalityRaw) && seriesModalitiesByStudy.TryGetValue(studyId, out var seriesModalities))
+                            {
+                                modalityRaw = string.Join("\\", seriesModalities);
+                            }
+
                             if (!string.IsNullOrWhiteSpace(modality))
                             {
                                 var modalityValue = modality.Trim();
@@ -526,6 +535,68 @@ namespace BitPacs.Api.Controllers
         {
             if (string.IsNullOrWhiteSpace(name)) return name;
             return name.Replace("^", " ").Trim();
+        }
+
+        private static Dictionary<string, List<string>> BuildSeriesModalitiesIndex(string? seriesData)
+        {
+            var map = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(seriesData))
+            {
+                return new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            try
+            {
+                using var doc = JsonDocument.Parse(seriesData);
+                if (doc.RootElement.ValueKind != JsonValueKind.Array)
+                {
+                    return new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+                }
+
+                foreach (var item in doc.RootElement.EnumerateArray())
+                {
+                    var studyId = GetString(item, "ParentStudy");
+                    if (string.IsNullOrWhiteSpace(studyId))
+                    {
+                        continue;
+                    }
+
+                    if (!item.TryGetProperty("MainDicomTags", out var tags))
+                    {
+                        continue;
+                    }
+
+                    var modality = GetString(tags, "Modality") ?? GetString(item, "Modality");
+                    if (string.IsNullOrWhiteSpace(modality))
+                    {
+                        continue;
+                    }
+
+                    var tokens = ExpandNormalizedModalities(modality)
+                        .Where(value => !string.Equals(value, "Não informado", StringComparison.OrdinalIgnoreCase));
+
+                    if (!map.TryGetValue(studyId, out var set))
+                    {
+                        set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        map[studyId] = set;
+                    }
+
+                    foreach (var token in tokens)
+                    {
+                        set.Add(token);
+                    }
+                }
+            }
+            catch
+            {
+                return new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            return map.ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value.OrderBy(value => value).ToList(),
+                StringComparer.OrdinalIgnoreCase
+            );
         }
 
         private static IEnumerable<string> ExpandNormalizedModalities(string? raw)
