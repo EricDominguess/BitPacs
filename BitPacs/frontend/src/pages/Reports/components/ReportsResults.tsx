@@ -220,11 +220,11 @@ export function ReportsResults({
                             />
                           );
                         })}
-                        <circle cx="90" cy="90" r="38" fill="currentColor" className="text-theme-primary" />
-                        <text x="90" y="82" textAnchor="middle" className="fill-theme-muted text-[10px]">
+                        <circle cx="90" cy="90" r="38" className="fill-slate-900 dark:fill-slate-950" />
+                        <text x="90" y="82" textAnchor="middle" className="fill-white text-[10px]">
                           Total
                         </text>
-                        <text x="90" y="100" textAnchor="middle" className="fill-theme-secondary text-[14px] font-semibold">
+                        <text x="90" y="100" textAnchor="middle" className="fill-white text-[14px] font-semibold">
                           {totalByModality}
                         </text>
                       </svg>
