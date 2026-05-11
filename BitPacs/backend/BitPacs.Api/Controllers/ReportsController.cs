@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using BitPacs.Api.Data;
 using BitPacs.API.Services;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
 
@@ -151,13 +152,14 @@ namespace BitPacs.Api.Controllers
                         var seriesCacheKey = $"reports_series_{unit.ToLowerInvariant()}";
                         var seriesData = await _orthancService.GetDataWithCacheAsync(orthancUrl, "/series?expand", seriesCacheKey);
                         var seriesModalitiesByStudy = BuildSeriesModalitiesIndex(seriesData);
+                        var pendingStudyModalityLookup = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                         using var doc = JsonDocument.Parse(data);
                         if (doc.RootElement.ValueKind != JsonValueKind.Array) continue;
 
                         foreach (var item in doc.RootElement.EnumerateArray())
                         {
-                            var studyId = GetString(item, "ID") ?? string.Empty;
+                            var studyId = NormalizeOrthancResourceId(GetString(item, "ID")) ?? string.Empty;
                             if (string.IsNullOrWhiteSpace(studyId)) continue;
 
                             if (!item.TryGetProperty("MainDicomTags", out var tags)) continue;
@@ -172,15 +174,20 @@ namespace BitPacs.Api.Controllers
                             if (end.HasValue && (!studyDate.HasValue || studyDate.Value > end.Value)) continue;
 
                             var modalityRaw =
-                                GetString(tags, "ModalitiesInStudy")
-                                ?? GetString(tags, "Modality")
-                                ?? GetString(item, "ModalitiesInStudy")
-                                ?? GetString(item, "Modality")
-                                ?? (item.TryGetProperty("RequestedTags", out var requestedTags) ? GetString(requestedTags, "Modality") : null);
+                                GetStringOrJoined(tags, "ModalitiesInStudy")
+                                ?? GetStringOrJoined(tags, "Modality")
+                                ?? GetStringOrJoined(item, "ModalitiesInStudy")
+                                ?? GetStringOrJoined(item, "Modality")
+                                ?? (item.TryGetProperty("RequestedTags", out var requestedTags) ? GetStringOrJoined(requestedTags, "Modality") : null);
 
                             if (string.IsNullOrWhiteSpace(modalityRaw) && seriesModalitiesByStudy.TryGetValue(studyId, out var seriesModalities))
                             {
                                 modalityRaw = string.Join("\\", seriesModalities);
+                            }
+
+                            if (string.IsNullOrWhiteSpace(modalityRaw))
+                            {
+                                pendingStudyModalityLookup.Add(studyId);
                             }
 
                             if (!string.IsNullOrWhiteSpace(modality))
@@ -200,6 +207,42 @@ namespace BitPacs.Api.Controllers
                             var studyDescription = GetString(tags, "StudyDescription");
 
                             examRecords.Add((studyId, studyDate, NormalizePatientName(patientName), patientId, studyDescription, modalityRaw, unit));
+                        }
+
+                        if (pendingStudyModalityLookup.Count > 0)
+                        {
+                            var hydrated = await HydrateStudyModalitiesFromSeriesEndpointAsync(
+                                orthancUrl,
+                                pendingStudyModalityLookup,
+                                maxConcurrency: 12);
+
+                            for (var i = 0; i < examRecords.Count; i++)
+                            {
+                                var row = examRecords[i];
+                                if (!string.Equals(row.Unidade, unit, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    continue;
+                                }
+
+                                if (!string.IsNullOrWhiteSpace(row.Modality))
+                                {
+                                    continue;
+                                }
+
+                                if (!hydrated.TryGetValue(row.StudyId, out var resolved) || string.IsNullOrWhiteSpace(resolved))
+                                {
+                                    continue;
+                                }
+
+                                examRecords[i] = (
+                                    row.StudyId,
+                                    row.StudyDate,
+                                    row.PatientName,
+                                    row.PatientId,
+                                    row.StudyDescription,
+                                    resolved,
+                                    row.Unidade);
+                            }
                         }
                     }
 
@@ -531,6 +574,147 @@ namespace BitPacs.Api.Controllers
             return null;
         }
 
+        private static string? GetStringOrJoined(JsonElement element, string propertyName)
+        {
+            if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(propertyName, out var prop))
+            {
+                return null;
+            }
+
+            if (prop.ValueKind == JsonValueKind.String)
+            {
+                return prop.GetString();
+            }
+
+            if (prop.ValueKind == JsonValueKind.Array)
+            {
+                var values = prop
+                    .EnumerateArray()
+                    .Where(item => item.ValueKind == JsonValueKind.String)
+                    .Select(item => item.GetString())
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .ToList();
+
+                return values.Count > 0 ? string.Join("\\", values) : null;
+            }
+
+            return null;
+        }
+
+        private static string? NormalizeOrthancResourceId(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return null;
+            }
+
+            var value = raw.Trim();
+            if (value.StartsWith("studies/", StringComparison.OrdinalIgnoreCase))
+            {
+                value = value["studies/".Length..];
+            }
+
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+
+        private static string? ResolveParentStudyId(JsonElement seriesItem)
+        {
+            if (!seriesItem.TryGetProperty("ParentStudy", out var parent))
+            {
+                return null;
+            }
+
+            if (parent.ValueKind == JsonValueKind.String)
+            {
+                return NormalizeOrthancResourceId(parent.GetString());
+            }
+
+            if (parent.ValueKind == JsonValueKind.Object && parent.TryGetProperty("ID", out var id) && id.ValueKind == JsonValueKind.String)
+            {
+                return NormalizeOrthancResourceId(id.GetString());
+            }
+
+            return null;
+        }
+
+        private async Task<Dictionary<string, string>> HydrateStudyModalitiesFromSeriesEndpointAsync(
+            string orthancUrl,
+            HashSet<string> studyIds,
+            int maxConcurrency)
+        {
+            var result = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (studyIds.Count == 0)
+            {
+                return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            var options = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = Math.Clamp(maxConcurrency, 1, 24),
+            };
+
+            await Parallel.ForEachAsync(studyIds, options, async (studyId, ct) =>
+            {
+                var safeId = Uri.EscapeDataString(studyId);
+                var json = await _orthancService.GetDataNoCacheAsync(orthancUrl, $"/studies/{safeId}/series?expand", 25);
+                var modalities = ExtractModalitiesFromStudySeriesJson(json);
+                if (modalities.Count == 0)
+                {
+                    return;
+                }
+
+                result[studyId] = string.Join("\\", modalities);
+            });
+
+            return new Dictionary<string, string>(result, StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static List<string> ExtractModalitiesFromStudySeriesJson(string json)
+        {
+            var collected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return collected.ToList();
+            }
+
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.ValueKind != JsonValueKind.Array)
+                {
+                    return collected.ToList();
+                }
+
+                foreach (var item in doc.RootElement.EnumerateArray())
+                {
+                    if (!item.TryGetProperty("MainDicomTags", out var tags))
+                    {
+                        continue;
+                    }
+
+                    var modality = GetStringOrJoined(tags, "Modality") ?? GetStringOrJoined(item, "Modality");
+                    if (string.IsNullOrWhiteSpace(modality))
+                    {
+                        continue;
+                    }
+
+                    foreach (var token in ExpandNormalizedModalities(modality))
+                    {
+                        if (!string.Equals(token, "Não informado", StringComparison.OrdinalIgnoreCase))
+                        {
+                            collected.Add(token);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                return collected.ToList();
+            }
+
+            return collected.OrderBy(value => value).ToList();
+        }
+
         private static string? NormalizePatientName(string? name)
         {
             if (string.IsNullOrWhiteSpace(name)) return name;
@@ -553,9 +737,18 @@ namespace BitPacs.Api.Controllers
                     return new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
                 }
 
+                if (doc.RootElement.GetArrayLength() > 0)
+                {
+                    var first = doc.RootElement[0];
+                    if (string.Equals(GetString(first, "ParentStudy"), "ERRO_ORTHANC", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+                    }
+                }
+
                 foreach (var item in doc.RootElement.EnumerateArray())
                 {
-                    var studyId = GetString(item, "ParentStudy");
+                    var studyId = ResolveParentStudyId(item);
                     if (string.IsNullOrWhiteSpace(studyId))
                     {
                         continue;
@@ -566,7 +759,7 @@ namespace BitPacs.Api.Controllers
                         continue;
                     }
 
-                    var modality = GetString(tags, "Modality") ?? GetString(item, "Modality");
+                    var modality = GetStringOrJoined(tags, "Modality") ?? GetStringOrJoined(item, "Modality");
                     if (string.IsNullOrWhiteSpace(modality))
                     {
                         continue;

@@ -56,5 +56,32 @@ namespace BitPacs.API.Services
 
             return cachedData;
         }
+
+        /// <summary>
+        /// GET direto ao Orthanc sem cache (para chamadas pontuais, ex.: séries de um estudo).
+        /// </summary>
+        public async Task<string> GetDataNoCacheAsync(string orthancUrl, string endpoint, int timeoutSeconds = 25)
+        {
+            try
+            {
+                var client = _httpClientFactory.CreateClient();
+                client.Timeout = TimeSpan.FromSeconds(Math.Clamp(timeoutSeconds, 5, 120));
+
+                var authString = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes("admin:@BitFix123"));
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authString);
+
+                var response = await client.GetAsync($"{orthancUrl}{endpoint}");
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadAsStringAsync();
+                }
+
+                return "[]";
+            }
+            catch
+            {
+                return "[]";
+            }
+        }
     }
 }
