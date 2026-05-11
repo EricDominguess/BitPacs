@@ -358,7 +358,7 @@ export function Users() {
               />
             </div>
 
-            <div className="relative z-[80] w-full sm:w-auto" ref={roleDropdownRef}>
+            <div className="flex flex-col sm:flex-row gap-4">            <div className="relative z-[80] w-full sm:w-auto" ref={roleDropdownRef}>
               <button
                 onClick={() => setIsRoleDropdownOpen((prev) => !prev)}
                 className={`w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 px-4 py-2 rounded-lg border transition-all duration-200 bg-theme-secondary border-theme-border hover:border-nautico/50 text-theme-primary text-sm font-medium ${
@@ -454,6 +454,7 @@ export function Users() {
               )}
             </div>
 
+            </div>
           </div>
         </Card>
 
