@@ -224,23 +224,13 @@ export function ReportsResults({
                           cx="90"
                           cy="90"
                           r="38"
-                          className="fill-slate-200 stroke-slate-300/80 stroke dark:fill-slate-950 dark:stroke-slate-800"
+                          className="fill-tangaroa stroke-white/15 stroke dark:fill-slate-950 dark:stroke-slate-700"
                           strokeWidth="1"
                         />
-                        <text
-                          x="90"
-                          y="82"
-                          textAnchor="middle"
-                          className="fill-slate-600 text-[10px] dark:fill-white"
-                        >
+                        <text x="90" y="82" textAnchor="middle" className="fill-white text-[10px] opacity-90">
                           Total
                         </text>
-                        <text
-                          x="90"
-                          y="100"
-                          textAnchor="middle"
-                          className="fill-slate-900 text-[14px] font-semibold dark:fill-white"
-                        >
+                        <text x="90" y="100" textAnchor="middle" className="fill-white text-[14px] font-semibold">
                           {totalByModality}
                         </text>
                       </svg>
