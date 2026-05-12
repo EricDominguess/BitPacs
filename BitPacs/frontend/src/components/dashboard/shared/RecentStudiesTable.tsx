@@ -11,6 +11,7 @@ interface Study {
     StudyDate?: string;
     StudyTime?: string;
     StudyDescription?: string;
+    BodyPartExamined?: string;
   };
   PatientMainDicomTags?: {
     PatientName?: string;
@@ -31,6 +32,7 @@ export function RecentStudiesTable({
 
   // 2. Cofre de memória para as modalidades
   const [modalidadesCache, setModalidadesCache] = useState<Record<string, string>>({});
+  const [bodyPartCache, setBodyPartCache] = useState<Record<string, string>>({});
   const fetchingRef = useRef<Set<string>>(new Set());
 
   // Processamento dos dados para pegar os 5 estudos mais recentes
@@ -49,21 +51,29 @@ export function RecentStudiesTable({
     estudosProcessados.forEach(estudo => {
       if (!carregarSeriesDoEstudo) return;
 
-      if (estudo.ID && !modalidadesCache[estudo.ID] && !fetchingRef.current.has(estudo.ID)) {
+      if (estudo.ID && (!modalidadesCache[estudo.ID] || !bodyPartCache[estudo.ID]) && !fetchingRef.current.has(estudo.ID)) {
         fetchingRef.current.add(estudo.ID);
 
         carregarSeriesDoEstudo(estudo.ID).then((seriesData: any[]) => {
           let realModality = 'OT';
+          let bodyPartExamined = '';
           // Se achar a série, puxa a modalidade verdadeira dela
           if (seriesData && seriesData.length > 0 && seriesData[0].MainDicomTags?.Modality) {
             realModality = seriesData[0].MainDicomTags.Modality;
           }
+          if (seriesData && seriesData.length > 0) {
+            const seriesWithBodyPart = seriesData.find((s: any) => (s.MainDicomTags?.BodyPartExamined || '').trim());
+            bodyPartExamined = (seriesWithBodyPart?.MainDicomTags?.BodyPartExamined || '').trim();
+          }
           // Salva no cofre e atualiza a linha da tabela na mesma hora!
           setModalidadesCache(prev => ({ ...prev, [estudo.ID]: realModality }));
+          if (bodyPartExamined) {
+            setBodyPartCache(prev => ({ ...prev, [estudo.ID]: bodyPartExamined }));
+          }
         });
       }
     });
-  }, [estudosProcessados, carregarSeriesDoEstudo]);
+  }, [estudosProcessados, carregarSeriesDoEstudo, modalidadesCache, bodyPartCache]);
 
   const formatarData = (dataString: string | undefined) => {
     if (!dataString || dataString.length !== 8) return dataString || '';
@@ -71,6 +81,15 @@ export function RecentStudiesTable({
   }
 
   const formatarNome = (nome: string | undefined) => (nome || 'Desconhecido').replace(/\^/g, ' ').trim();
+
+  const getDescricaoEstudo = (estudo: Study) => {
+    const studyDescription = (estudo.MainDicomTags?.StudyDescription || '').trim();
+    if (studyDescription) return studyDescription;
+    const bodyPartFromStudy = (estudo.MainDicomTags?.BodyPartExamined || '').trim();
+    if (bodyPartFromStudy) return bodyPartFromStudy;
+    const bodyPartFromCache = (bodyPartCache[estudo.ID] || '').trim();
+    return bodyPartFromCache || '-';
+  };
   
   return (
     <Card title="Estudos Recentes" className={className}>
@@ -87,7 +106,7 @@ export function RecentStudiesTable({
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <p className="text-xs text-theme-muted">Descrição</p>
-                  <p className="text-theme-secondary break-words">{estudo.MainDicomTags?.StudyDescription || '-'}</p>
+                  <p className="text-theme-secondary break-words">{getDescricaoEstudo(estudo)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-theme-muted">Data</p>
@@ -126,7 +145,7 @@ export function RecentStudiesTable({
                     </span>
                   </td>
                   <td className="py-3 text-theme-secondary">
-                    {estudo.MainDicomTags?.StudyDescription || '-'}
+                    {getDescricaoEstudo(estudo)}
                   </td>
                   <td className="py-3">
                     {/* Exibe a modalidade se já baixou, senão mostra '...' */}
