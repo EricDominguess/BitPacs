@@ -2,6 +2,46 @@ import { useState, useEffect } from 'react';
 import { Button } from './Button';
 import type { StudyLog, StudyLogsResponse } from '../../types';
 
+const UNIT_LABELS: Record<string, string> = {
+  '1': 'Rio Branco',
+  '2': 'Foz do Iguaçu',
+  '3': 'Fazenda',
+  '4': 'Faxinal',
+  '5': 'Santa Mariana',
+  '6': 'Guarapuava',
+  '7': 'Carlópolis',
+  '8': 'Arapoti',
+  riobranco: 'Rio Branco',
+  'rio branco': 'Rio Branco',
+  foziguacu: 'Foz do Iguaçu',
+  'foz do iguaçu': 'Foz do Iguaçu',
+  'foz do iguacu': 'Foz do Iguaçu',
+  fazenda: 'Fazenda',
+  faxinal: 'Faxinal',
+  santamariana: 'Santa Mariana',
+  'santa mariana': 'Santa Mariana',
+  guarapuava: 'Guarapuava',
+  carlopolis: 'Carlópolis',
+  'carlópolis': 'Carlópolis',
+  arapoti: 'Arapoti',
+};
+
+const formatUnitLabel = (raw?: string | null) => {
+  if (!raw) return 'Não identificado';
+  const trimmed = raw.trim();
+  const normalized = trimmed.toLowerCase();
+  if (UNIT_LABELS[normalized]) return UNIT_LABELS[normalized];
+  const withoutPrefix = normalized
+    .replace('cis - unidade de ', '')
+    .replace('cis - ', '')
+    .replace('unidade de ', '')
+    .replace('unidade ', '')
+    .replace('cis ', '')
+    .trim();
+  if (UNIT_LABELS[withoutPrefix]) return UNIT_LABELS[withoutPrefix];
+  return trimmed;
+};
+
 interface UserLogsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -269,7 +309,7 @@ export function UserLogsModal({ isOpen, onClose, userId, userName }: UserLogsMod
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-theme-secondary bg-theme-secondary/20 px-2 py-0.5 rounded border border-theme-border whitespace-nowrap">
-                          {isAdminAction ? '-' : ((log as any).unidadeNome || (log as any).UnidadeNome || (log as any).unidade || 'Não identificado')}
+                          {formatUnitLabel((log as any).unidadeNome || (log as any).UnidadeNome || (log as any).unidade)}
                         </span>
                       </td>
                       <td className="px-4 py-3">

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using BitPacs.Api.Services;
 using BitPacs.Api.Models;
 using BitPacs.Api.Data;
+using System.Collections.Generic;
 using System.Security.Claims;
 
 namespace BitPacs.Api.Controllers
@@ -138,6 +139,7 @@ namespace BitPacs.Api.Controllers
                     TargetUserId = user.Id,
                     TargetUserName = user.Nome,
                     Details = $"Criou usuário {user.Nome} ({user.Email}) com função {user.Role}",
+                    UnidadeNome = ResolveUnitLabel(user.UnidadeId),
                     Timestamp = DateTime.UtcNow.AddHours(-3),
                     IpAddress = ipAddress
                 };
@@ -205,6 +207,7 @@ namespace BitPacs.Api.Controllers
                     Details = isSelfChange 
                         ? "Alterou sua própria senha" 
                         : $"Alterou a senha do usuário {user.Nome} ({user.Email})",
+                    UnidadeNome = ResolveUnitLabel(user.UnidadeId),
                     Timestamp = DateTime.UtcNow.AddHours(-3),
                     IpAddress = ipAddress
                 };
@@ -237,6 +240,7 @@ namespace BitPacs.Api.Controllers
             var deletedUserName = user.Nome;
             var deletedUserEmail = user.Email;
             var deletedUserRole = NormalizeRole(user.Role);
+            var deletedUserUnitId = user.UnidadeId;
 
             _context.Users.Remove(user);
             _context.SaveChanges();
@@ -253,6 +257,7 @@ namespace BitPacs.Api.Controllers
                     TargetUserId = id,
                     TargetUserName = deletedUserName,
                     Details = $"Excluiu usuário {deletedUserName} ({deletedUserEmail}) com função {deletedUserRole}",
+                    UnidadeNome = ResolveUnitLabel(deletedUserUnitId),
                     Timestamp = DateTime.UtcNow.AddHours(-3),
                     IpAddress = ipAddress
                 };
@@ -289,6 +294,50 @@ namespace BitPacs.Api.Controllers
         {
             if (string.IsNullOrWhiteSpace(role)) return string.Empty;
             return role == "Admin" ? "AdminLocal" : role;
+        }
+
+        private static readonly Dictionary<string, string> UnitLabels = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "1", "Rio Branco" },
+            { "2", "Foz do Iguaçu" },
+            { "3", "Fazenda" },
+            { "4", "Faxinal" },
+            { "5", "Santa Mariana" },
+            { "6", "Guarapuava" },
+            { "7", "Carlópolis" },
+            { "8", "Arapoti" },
+            { "riobranco", "Rio Branco" },
+            { "rio branco", "Rio Branco" },
+            { "foziguacu", "Foz do Iguaçu" },
+            { "foz do iguaçu", "Foz do Iguaçu" },
+            { "foz do iguacu", "Foz do Iguaçu" },
+            { "fazenda", "Fazenda" },
+            { "faxinal", "Faxinal" },
+            { "santamariana", "Santa Mariana" },
+            { "santa mariana", "Santa Mariana" },
+            { "guarapuava", "Guarapuava" },
+            { "carlopolis", "Carlópolis" },
+            { "carlópolis", "Carlópolis" },
+            { "arapoti", "Arapoti" }
+        };
+
+        private static string ResolveUnitLabel(string? unidadeId)
+        {
+            if (string.IsNullOrWhiteSpace(unidadeId)) return "Unidade Geral";
+            var trimmed = unidadeId.Trim();
+            if (UnitLabels.TryGetValue(trimmed, out var label)) return label;
+
+            var normalized = trimmed.ToLowerInvariant();
+            var withoutPrefix = normalized
+                .Replace("cis - unidade de ", string.Empty)
+                .Replace("cis - ", string.Empty)
+                .Replace("unidade de ", string.Empty)
+                .Replace("unidade ", string.Empty)
+                .Replace("cis ", string.Empty)
+                .Trim();
+
+            if (UnitLabels.TryGetValue(withoutPrefix, out label)) return label;
+            return trimmed;
         }
 
         [HttpPost("avatar")]

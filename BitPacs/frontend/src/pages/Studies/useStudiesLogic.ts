@@ -1,10 +1,22 @@
 import { useState, useRef, useCallback } from 'react';
 
 const UNIT_NAMES: Record<string, string> = {
-  '1': 'Rio Branco', '2': 'Foz do Iguaçu', '3': 'Fazenda', 
-  '4': 'Faxinal', '5': 'Santa Mariana', '6': 'Guarapuava', 
-  '7': 'Carlópolis', '8': 'Arapoti', 'riobranco': 'Rio Branco',
-  'foziguacu': 'Foz do Iguaçu', 'fazenda': 'Fazenda', 'faxinal': 'Faxinal'
+  '1': 'Rio Branco',
+  '2': 'Foz do Iguaçu',
+  '3': 'Fazenda',
+  '4': 'Faxinal',
+  '5': 'Santa Mariana',
+  '6': 'Guarapuava',
+  '7': 'Carlópolis',
+  '8': 'Arapoti',
+  riobranco: 'Rio Branco',
+  foziguacu: 'Foz do Iguaçu',
+  fazenda: 'Fazenda',
+  faxinal: 'Faxinal',
+  santamariana: 'Santa Mariana',
+  guarapuava: 'Guarapuava',
+  carlopolis: 'Carlópolis',
+  arapoti: 'Arapoti',
 };
 
 export function useStudiesLogic(unidadeAtual: string) {
