@@ -46,7 +46,10 @@ function getDefaultDashboard(): string {
   if (role === 'Master' || role === 'AdminGlobal' || role === 'AdminLocal') {
     return '/dashboard';
   }
-  return '/user-dashboard';
+  if (role === 'Medico' || role === 'Enfermeiro') {
+    return '/studies';
+  }
+  return '/dashboard';
 }
 
 export function ProtectedRoute({ 

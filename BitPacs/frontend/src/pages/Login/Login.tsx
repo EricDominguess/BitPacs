@@ -107,7 +107,7 @@ export function Login() {
         // Redireciona baseado no role do usuário
         const role = data.user.role === 'Admin' ? 'AdminLocal' : data.user.role;
         const isAdminOrMaster = role === 'Master' || role === 'AdminGlobal' || role === 'AdminLocal';
-        window.location.href = isAdminOrMaster ? '/dashboard' : '/user-dashboard';
+        window.location.href = isAdminOrMaster ? '/dashboard' : '/studies';
       } else {
         setError('E-mail ou senha incorretos.');
       }
