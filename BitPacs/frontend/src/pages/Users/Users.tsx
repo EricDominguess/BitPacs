@@ -500,7 +500,7 @@ export function Users() {
 
                   <div className="flex items-center justify-end gap-2 pt-1">
                     <Button variant="ghost" size="sm" title="Histórico de atividades" onClick={() => handleShowLogs(user)}>
-                      <svg className="w-4 h-4 text-emerald-600 dark:text-green-aqua" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-nautico dark:text-green-aqua" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </Button>
@@ -585,7 +585,7 @@ export function Users() {
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
                           <Button variant="ghost" size="sm" title="Histórico de atividades" onClick={() => handleShowLogs(user)}>
-                            <svg className="w-4 h-4 text-emerald-600 dark:text-green-aqua" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 text-nautico dark:text-green-aqua" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                           </Button>
