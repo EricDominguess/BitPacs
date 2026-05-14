@@ -231,8 +231,8 @@ namespace BitPacs.Api.Controllers
                 baseDate = parsedDate.Date;
             }
 
-            var start = baseDate;
-            var end = baseDate.AddDays(1);
+            var start = ToUtcFromBrazilDate(baseDate);
+            var end = ToUtcFromBrazilDate(baseDate.AddDays(1));
 
             var logsQuery = _context.StudyLogs
                 .AsNoTracking()
@@ -298,6 +298,12 @@ namespace BitPacs.Api.Controllers
         private static DateTime GetBrazilTime()
         {
             return DateTime.UtcNow.AddHours(-3);
+        }
+
+        private static DateTime ToUtcFromBrazilDate(DateTime localDate)
+        {
+            var offset = new DateTimeOffset(localDate, TimeSpan.FromHours(-3));
+            return offset.UtcDateTime;
         }
 
         private static List<string> ExpandUnitCandidates(string? unidade)
