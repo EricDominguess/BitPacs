@@ -58,6 +58,7 @@
   --theme-text-muted: rgba(255, 255, 255, 0.6);
   --theme-border: rgba(60, 8, 149, 0.3);
   --theme-border-light: rgba(60, 8, 149, 0.2);
+  --color-history-icon: var(--color-green-aqua);
 }
 
 /* Light Theme */
@@ -70,6 +71,7 @@
   --theme-text-muted: rgba(10, 7, 72, 0.6);
   --theme-border: rgba(0, 66, 255, 0.2);
   --theme-border-light: rgba(0, 66, 255, 0.1);
+  --color-history-icon: var(--color-nautico);
 }
 
 @keyframes fade-in {
