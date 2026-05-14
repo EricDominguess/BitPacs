@@ -11,8 +11,8 @@ export function Dashboard() {
   // Hook de estatísticas derivadas
   const { estudosHoje, pacientesUnicosHoje, dataHoje } = useOrthancStats(estudos, pacientes);
 
-  const [viewsHoje, setViewsHoje] = useState(0);
-  const [downloadsHoje, setDownloadsHoje] = useState(0);
+  const [viewsHoje, setViewsHoje] = useState<number | null>(null);
+  const [downloadsHoje, setDownloadsHoje] = useState<number | null>(null);
 
   const dataHojeIso = useMemo(() => {
     if (!dataHoje || dataHoje.length !== 8) return '';
@@ -23,6 +23,9 @@ export function Dashboard() {
     if (!unidadeAtual || !dataHojeIso) return;
 
     const controller = new AbortController();
+
+    setViewsHoje(null);
+    setDownloadsHoje(null);
 
     const carregarResumo = async () => {
       try {
@@ -47,10 +50,10 @@ export function Dashboard() {
   }, [unidadeAtual, dataHojeIso]);
 
   const stats = [
-    { label: 'Estudos', value: estudosHoje.toString() },
-    { label: 'Pacientes Unicos', value: pacientesUnicosHoje.toString() },
-    { label: 'Visualizações', value: viewsHoje.toString() },
-    { label: 'Downloads', value: downloadsHoje.toString() },
+    { label: 'Estudos', value: isLoading ? '—' : estudosHoje.toString() },
+    { label: 'Pacientes Unicos', value: isLoading ? '—' : pacientesUnicosHoje.toString() },
+    { label: 'Visualizações', value: isLoading || viewsHoje === null ? '—' : viewsHoje.toString() },
+    { label: 'Downloads', value: isLoading || downloadsHoje === null ? '—' : downloadsHoje.toString() },
   ];
 
   console.log(`📊 Dashboard Admin: ${isLoading ? 'Carregando...' : 'Dados prontos'} | Monitorando: ${isMonitoring}`);
