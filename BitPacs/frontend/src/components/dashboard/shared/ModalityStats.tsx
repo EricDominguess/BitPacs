@@ -12,6 +12,16 @@ const CORES_POR_MODALIDADE: Record<string, string> = {
   OT: 'bg-gray-400/20 text-gray-500 border-gray-400/30',
 };
 
+const CORES_GRAFICO_MODALIDADE: Record<string, string> = {
+  DX: '#0284c7',
+  CT: '#0ea5e9',
+  MR: '#a855f7',
+  CR: '#0ea5e9',
+  US: '#22c55e',
+  DR: '#f97316',
+  OT: '#94a3b8',
+};
+
 interface ModalityStatsProps {
   estudos: any[];
   carregarSeriesDoEstudo?: (studyId: string) => Promise<any[]>;
@@ -21,21 +31,20 @@ export function ModalityStats({ estudos = [], carregarSeriesDoEstudo }: Modality
   const [modalidadesCache, setModalidadesCache] = useState<Record<string, string>>({});
   const fetchingRef = useRef<Set<string>>(new Set());
 
-  // 1. Calcula a data exata de 7 dias atrás (formato Orthanc: YYYYMMDD)
-  const dataLimite = useMemo(() => {
+  // 1. Calcula a data de hoje (formato Orthanc: YYYYMMDD)
+  const dataHoje = useMemo(() => {
     const d = new Date();
-    d.setDate(d.getDate() - 7);
     return `${d.getFullYear()}${(d.getMonth() + 1).toString().padStart(2, '0')}${d.getDate().toString().padStart(2, '0')}`;
   }, []);
 
-  // 2. Filtra os estudos para manter APENAS os da última semana
-  const estudosDaSemana = useMemo(() => {
-    return estudos.filter(e => (e.MainDicomTags?.StudyDate || '') >= dataLimite);
-  }, [estudos, dataLimite]);
+  // 2. Filtra os estudos para manter APENAS os de hoje
+  const estudosDoDia = useMemo(() => {
+    return estudos.filter(e => (e.MainDicomTags?.StudyDate || '') === dataHoje);
+  }, [estudos, dataHoje]);
 
   // 3. MOTOR LAZY LOAD: Pede as modalidades silenciosamente
   useEffect(() => {
-    estudosDaSemana.forEach(estudo => {
+    estudosDoDia.forEach(estudo => {
       const id = estudo.ID;
       const temNoOrthanc = estudo.MainDicomTags?.ModalitiesInStudy;
 
@@ -55,13 +64,13 @@ export function ModalityStats({ estudos = [], carregarSeriesDoEstudo }: Modality
         });
       }
     });
-  }, [estudosDaSemana, carregarSeriesDoEstudo, modalidadesCache]);
+  }, [estudosDoDia, carregarSeriesDoEstudo, modalidadesCache]);
 
   // 4. Conta os exames e formata para desenhar o gráfico
   const dadosProcessados = useMemo(() => {
     const contagem: Record<string, number> = {};
 
-    estudosDaSemana.forEach(estudo => {
+    estudosDoDia.forEach(estudo => {
       let mod = 'OT';
       // Tenta pegar direto do estudo, senão usa o que chegou do nosso Lazy Load
       if (estudo.MainDicomTags?.ModalitiesInStudy) {
@@ -80,21 +89,37 @@ export function ModalityStats({ estudos = [], carregarSeriesDoEstudo }: Modality
         color: CORES_POR_MODALIDADE[name] || CORES_POR_MODALIDADE['OT']
       }))
       .sort((a, b) => b.count - a.count); // Ordena do maior pro menor
-  }, [estudosDaSemana, modalidadesCache]);
+  }, [estudosDoDia, modalidadesCache]);
+
+  const maxCount = useMemo(() => {
+    return dadosProcessados.reduce((acc, item) => Math.max(acc, item.count), 0);
+  }, [dadosProcessados]);
 
   return (
-    <Card title={`Modalidades (Últimos 7 dias)`}>
-      <div className="space-y-3">
+    <Card title={`Modalidades (Hoje)`}>
+      <div className="space-y-4">
         {dadosProcessados.length === 0 ? (
-           <p className="text-sm text-gray-500">Buscando exames recentes...</p>
+          <p className="text-sm text-gray-500">Buscando exames de hoje...</p>
         ) : (
-          dadosProcessados.map((mod) => (
-            <div key={mod.name} className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded flex-shrink-0 ${mod.color}`} />
-              <span className="flex-1 min-w-0 text-sm text-theme-secondary truncate">{mod.name}</span>
-              <span className="text-sm font-medium text-theme-primary flex-shrink-0">{mod.count}</span>
-            </div>
-          ))
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-end">
+            {dadosProcessados.map((mod) => {
+              const altura = maxCount > 0 ? Math.round((mod.count / maxCount) * 100) : 0;
+              return (
+                <div key={mod.name} className="flex flex-col items-center gap-2">
+                  <div className="w-full h-32 flex items-end justify-center">
+                    <div
+                      className="w-10 rounded-md"
+                      style={{ height: `${altura}%`, backgroundColor: CORES_GRAFICO_MODALIDADE[mod.name] || CORES_GRAFICO_MODALIDADE.OT }}
+                      aria-label={`${mod.name}: ${mod.count} estudos`}
+                      role="img"
+                    />
+                  </div>
+                  <span className="text-xs text-theme-muted truncate max-w-[80px]">{mod.name}</span>
+                  <span className="text-sm font-medium text-theme-primary">{mod.count}</span>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </Card>

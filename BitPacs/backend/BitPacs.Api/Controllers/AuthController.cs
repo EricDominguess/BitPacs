@@ -4,6 +4,7 @@ using BitPacs.Api.Services;
 using BitPacs.Api.Models;
 using BitPacs.Api.Data;
 using System.Collections.Generic;
+using System.Net.Mail;
 using System.Security.Claims;
 
 namespace BitPacs.Api.Controllers
@@ -110,6 +111,9 @@ namespace BitPacs.Api.Controllers
             if (requestedRole != "Master" && requestedRole != "AdminGlobal" && string.IsNullOrWhiteSpace(request.UnidadeId))
                 return BadRequest(new { message = "Unidade é obrigatória para este tipo de usuário." });
 
+            if (!IsValidEmail(request.Email))
+                return BadRequest(new { message = "E-mail inválido." });
+
             if (_context.Users.Any(u => u.Email == request.Email))
                 return BadRequest(new { message = "Este e-mail já está cadastrado." });
 
@@ -175,6 +179,9 @@ namespace BitPacs.Api.Controllers
 
             if (!string.IsNullOrEmpty(request.Email))
             {
+                if (!IsValidEmail(request.Email))
+                    return BadRequest(new { message = "E-mail inválido." });
+
                 if (_context.Users.Any(u => u.Email == request.Email && u.Id != id))
                     return BadRequest(new { message = "Este e-mail já está em uso." });
                 user.Email = request.Email;
@@ -338,6 +345,12 @@ namespace BitPacs.Api.Controllers
 
             if (UnitLabels.TryGetValue(withoutPrefix, out label)) return label;
             return trimmed;
+        }
+
+        private static bool IsValidEmail(string? email)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return false;
+            return MailAddress.TryCreate(email, out _);
         }
 
         [HttpPost("avatar")]
