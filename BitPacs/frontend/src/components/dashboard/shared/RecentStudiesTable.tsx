@@ -35,7 +35,7 @@ export function RecentStudiesTable({
   const [bodyPartCache, setBodyPartCache] = useState<Record<string, string>>({});
   const fetchingRef = useRef<Set<string>>(new Set());
 
-  // Processamento dos dados para pegar os 5 estudos mais recentes
+  // Processamento dos dados para pegar os 8 estudos mais recentes
   const estudosProcessados = [...dados]
     .sort((a, b) => {
       const dataA = a.MainDicomTags?.StudyDate || '';
@@ -44,9 +44,9 @@ export function RecentStudiesTable({
       const timeB = (b.MainDicomTags?.StudyTime || '').split('.')[0];
       return (dataB + timeB).localeCompare(dataA + timeA);
     })
-    .slice(0, 5);
+    .slice(0, 8);
 
-  // 3. O MOTOR: Busca a modalidade silenciosamente só desses 5 caras!
+  // 3. O MOTOR: Busca a modalidade silenciosamente só desses 8 caras!
   useEffect(() => {
     estudosProcessados.forEach(estudo => {
       if (!carregarSeriesDoEstudo) return;

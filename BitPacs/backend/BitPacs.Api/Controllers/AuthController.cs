@@ -190,12 +190,21 @@ namespace BitPacs.Api.Controllers
             if (passwordChanged)
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
+            var roleChanged = false;
             if (!string.IsNullOrEmpty(request.Role))
+            {
+                roleChanged = !string.Equals(NormalizeRole(user.Role), requestedRole, StringComparison.OrdinalIgnoreCase);
                 user.Role = requestedRole!;
+            }
 
             // ✅ UnidadeId agora é string — sem parseInt, sem conversão
             if (request.UnidadeId != null)
                 user.UnidadeId = user.Role == "Master" || user.Role == "AdminGlobal" ? null : request.UnidadeId;
+
+            if (roleChanged)
+            {
+                user.LastLoginTokenId = Guid.NewGuid().ToString();
+            }
 
             _context.SaveChanges();
 
