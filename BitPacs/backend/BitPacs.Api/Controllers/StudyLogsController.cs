@@ -6,6 +6,8 @@ using BitPacs.Api.Data;
 using System.Security.Claims;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
+using System.Text;
 
 namespace BitPacs.Api.Controllers
 {
@@ -234,13 +236,17 @@ namespace BitPacs.Api.Controllers
 
             IQueryable<StudyLog> logsQuery = _context.StudyLogs
                 .AsNoTracking()
+                .Include(l => l.User)
                 .Where(l => l.Timestamp >= start && l.Timestamp < end)
                 .Where(l => l.ActionType == "VIEW" || l.ActionType == "DOWNLOAD");
 
             var unitCandidates = ExpandUnitCandidates(unidadeFiltro);
             if (unitCandidates.Count > 0)
             {
-                logsQuery = logsQuery.Where(l => l.UnidadeNome != null && unitCandidates.Any(c => l.UnidadeNome!.ToLower().Contains(c)));
+                logsQuery = logsQuery.Where(l =>
+                    (l.UnidadeNome != null && unitCandidates.Any(c => l.UnidadeNome!.ToLower().Contains(c))) ||
+                    (l.UnidadeNome == null && l.User != null && l.User.UnidadeId != null && unitCandidates.Contains(l.User.UnidadeId.ToLower()))
+                );
             }
 
             var totalViews = logsQuery.Count(l => l.ActionType == "VIEW");
@@ -301,6 +307,12 @@ namespace BitPacs.Api.Controllers
             var normalized = unidade.Trim().ToLowerInvariant();
             candidates.Add(normalized);
 
+            var noAccent = RemoveDiacritics(normalized);
+            if (!string.IsNullOrWhiteSpace(noAccent))
+            {
+                candidates.Add(noAccent);
+            }
+
             var unitMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 { "riobranco", "Rio Branco" },
@@ -315,10 +327,34 @@ namespace BitPacs.Api.Controllers
 
             if (unitMap.TryGetValue(normalized, out var label))
             {
-                candidates.Add(label.ToLowerInvariant());
+                var labelLower = label.ToLowerInvariant();
+                candidates.Add(labelLower);
+                var labelNoAccent = RemoveDiacritics(labelLower);
+                if (!string.IsNullOrWhiteSpace(labelNoAccent))
+                {
+                    candidates.Add(labelNoAccent);
+                }
             }
 
+            var prefixCandidates = new List<string>();
+            foreach (var item in candidates)
+            {
+                prefixCandidates.Add($"cis - unidade de {item}");
+                prefixCandidates.Add($"cis - {item}");
+                prefixCandidates.Add($"unidade de {item}");
+                prefixCandidates.Add($"unidade {item}");
+            }
+            candidates.AddRange(prefixCandidates);
+
             return candidates.Distinct().ToList();
+        }
+
+        private static string RemoveDiacritics(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+            var normalized = text.Normalize(System.Text.NormalizationForm.FormD);
+            var chars = normalized.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray();
+            return new string(chars).Normalize(System.Text.NormalizationForm.FormC);
         }
 
         private static string NormalizeRole(string? role)
