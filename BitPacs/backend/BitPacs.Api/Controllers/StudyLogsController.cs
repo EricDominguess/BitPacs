@@ -234,23 +234,24 @@ namespace BitPacs.Api.Controllers
             var start = baseDate;
             var end = baseDate.AddDays(1);
 
-            IQueryable<StudyLog> logsQuery = _context.StudyLogs
+            var logsQuery = _context.StudyLogs
                 .AsNoTracking()
                 .Include(l => l.User)
                 .Where(l => l.Timestamp >= start && l.Timestamp < end)
                 .Where(l => l.ActionType == "VIEW" || l.ActionType == "DOWNLOAD");
 
             var unitCandidates = ExpandUnitCandidates(unidadeFiltro);
+            var logs = logsQuery.ToList();
+
             if (unitCandidates.Count > 0)
             {
-                logsQuery = logsQuery.Where(l =>
-                    (l.UnidadeNome != null && unitCandidates.Any(c => l.UnidadeNome!.ToLower().Contains(c))) ||
-                    (l.UnidadeNome == null && l.User != null && l.User.UnidadeId != null && unitCandidates.Contains(l.User.UnidadeId.ToLower()))
-                );
+                logs = logs
+                    .Where(l => MatchesUnit(l.UnidadeNome, l.User?.UnidadeId, unitCandidates))
+                    .ToList();
             }
 
-            var totalViews = logsQuery.Count(l => l.ActionType == "VIEW");
-            var totalDownloads = logsQuery.Count(l => l.ActionType == "DOWNLOAD");
+            var totalViews = logs.Count(l => l.ActionType == "VIEW");
+            var totalDownloads = logs.Count(l => l.ActionType == "DOWNLOAD");
 
             return Ok(new
             {
@@ -347,6 +348,25 @@ namespace BitPacs.Api.Controllers
             candidates.AddRange(prefixCandidates);
 
             return candidates.Distinct().ToList();
+        }
+
+        private static bool MatchesUnit(string? unidadeNome, string? unidadeId, List<string> candidates)
+        {
+            var normalizedUnidadeNome = NormalizeUnit(unidadeNome);
+            var normalizedUnidadeId = NormalizeUnit(unidadeId);
+
+            return candidates.Any(c =>
+                (!string.IsNullOrWhiteSpace(normalizedUnidadeNome) && normalizedUnidadeNome.Contains(c)) ||
+                (!string.IsNullOrWhiteSpace(normalizedUnidadeId) && normalizedUnidadeId == c)
+            );
+        }
+
+        private static string NormalizeUnit(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+            var trimmed = value.Trim().ToLowerInvariant();
+            var noAccent = RemoveDiacritics(trimmed);
+            return noAccent;
         }
 
         private static string RemoveDiacritics(string text)
