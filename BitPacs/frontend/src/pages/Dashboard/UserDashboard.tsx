@@ -10,8 +10,8 @@ export function UserDashboard() {
   const { estudosHoje, pacientesUnicosHoje } = useOrthancStats(estudos, pacientes);
 
   const stats = [
-    { label: 'Estudos Hoje', value: estudosHoje.toString() },
-    { label: 'Pacientes Únicos Hoje', value: pacientesUnicosHoje.toString() },
+    { label: 'Estudos (Hoje)', value: estudosHoje.toString() },
+    { label: 'Pacientes Únicos (Hoje)', value: pacientesUnicosHoje.toString() },
   ];
 
   console.log(`📊 UserDashboard: ${isLoading ? 'Carregando...' : 'Dados prontos'} | Monitorando: ${isMonitoring}`);

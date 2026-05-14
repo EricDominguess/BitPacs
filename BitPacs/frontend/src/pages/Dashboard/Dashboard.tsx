@@ -50,10 +50,10 @@ export function Dashboard() {
   }, [unidadeAtual, dataHojeIso]);
 
   const stats = [
-    { label: 'Estudos', value: isLoading ? '—' : estudosHoje.toString() },
-    { label: 'Pacientes Unicos', value: isLoading ? '—' : pacientesUnicosHoje.toString() },
-    { label: 'Visualizações', value: isLoading || viewsHoje === null ? '—' : viewsHoje.toString() },
-    { label: 'Downloads', value: isLoading || downloadsHoje === null ? '—' : downloadsHoje.toString() },
+    { label: 'Estudos (Hoje)', value: isLoading ? '—' : estudosHoje.toString() },
+    { label: 'Pacientes Unicos (Hoje)', value: isLoading ? '—' : pacientesUnicosHoje.toString() },
+    { label: 'Visualizações (Hoje)', value: isLoading || viewsHoje === null ? '—' : viewsHoje.toString() },
+    { label: 'Downloads (Hoje)', value: isLoading || downloadsHoje === null ? '—' : downloadsHoje.toString() },
   ];
 
   console.log(`📊 Dashboard Admin: ${isLoading ? 'Carregando...' : 'Dados prontos'} | Monitorando: ${isMonitoring}`);
