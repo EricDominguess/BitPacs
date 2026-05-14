@@ -7,11 +7,11 @@ export function UserDashboard() {
   const { pacientes, estudos, isLoading, isMonitoring, carregarSeriesDoEstudo } = useOrthancData();
   
   // Hook de estatísticas derivadas
-  const { estudosHoje, totalPacientes } = useOrthancStats(estudos, pacientes);
+  const { estudosHoje, pacientesUnicosHoje } = useOrthancStats(estudos, pacientes);
 
   const stats = [
     { label: 'Estudos Hoje', value: estudosHoje.toString() },
-    { label: 'Pacientes Ativos', value: totalPacientes.toString() },
+    { label: 'Pacientes Únicos Hoje', value: pacientesUnicosHoje.toString() },
   ];
 
   console.log(`📊 UserDashboard: ${isLoading ? 'Carregando...' : 'Dados prontos'} | Monitorando: ${isMonitoring}`);
@@ -23,7 +23,7 @@ export function UserDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-theme-primary">Dashboard</h1>
-            <p className="text-theme-muted mt-1">Visão geral do sistema PACS</p>
+            <p className="text-theme-muted mt-1">Visão geral de hoje</p>
           </div>
         </div>
 

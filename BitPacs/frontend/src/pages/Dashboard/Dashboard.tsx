@@ -1,19 +1,56 @@
+import { useEffect, useMemo, useState } from 'react';
 import { MainLayout } from '../../components/layout';
 import { StatCard, RecentStudiesTable, StorageCard, ModalityStats } from '../../components/dashboard';
 import { useOrthancData, useOrthancStats } from '../../hooks';
+import { fetchWithAuth } from '../../utils/fetchWithAuth';
 
 export function Dashboard() {
   // Super hook: fetch + monitoramento em tempo real
-  const { pacientes, estudos, isLoading, isMonitoring, status, carregarSeriesDoEstudo } = useOrthancData();
+  const { pacientes, estudos, isLoading, isMonitoring, status, carregarSeriesDoEstudo, unidadeAtual } = useOrthancData();
   
   // Hook de estatísticas derivadas
-  const { estudosHoje, totalPacientes } = useOrthancStats(estudos, pacientes);
+  const { estudosHoje, pacientesUnicosHoje, dataHoje } = useOrthancStats(estudos, pacientes);
+
+  const [viewsHoje, setViewsHoje] = useState(0);
+  const [downloadsHoje, setDownloadsHoje] = useState(0);
+
+  const dataHojeIso = useMemo(() => {
+    if (!dataHoje || dataHoje.length !== 8) return '';
+    return `${dataHoje.slice(0, 4)}-${dataHoje.slice(4, 6)}-${dataHoje.slice(6, 8)}`;
+  }, [dataHoje]);
+
+  useEffect(() => {
+    if (!unidadeAtual || !dataHojeIso) return;
+
+    const controller = new AbortController();
+
+    const carregarResumo = async () => {
+      try {
+        const response = await fetchWithAuth(
+          `/api/studylogs/summary?unidade=${encodeURIComponent(unidadeAtual)}&date=${encodeURIComponent(dataHojeIso)}`,
+          { signal: controller.signal }
+        );
+        if (!response.ok) return;
+        const data = await response.json();
+        setViewsHoje(Number(data.totalViews || 0));
+        setDownloadsHoje(Number(data.totalDownloads || 0));
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Erro ao carregar resumo de logs do dia:', error);
+        }
+      }
+    };
+
+    void carregarResumo();
+
+    return () => controller.abort();
+  }, [unidadeAtual, dataHojeIso]);
 
   const stats = [
-    { label: 'Estudos Hoje', value: estudosHoje.toString() },
-    { label: 'Pacientes Ativos', value: totalPacientes.toString() },
-    { label: 'Total de Estudos', value: estudos.length.toString() },
-    { label: 'Total de Séries', value: status?.CountSeries?.toString() || '0' },
+    { label: 'Estudos', value: estudosHoje.toString() },
+    { label: 'Pacientes Unicos', value: pacientesUnicosHoje.toString() },
+    { label: 'Visualizações', value: viewsHoje.toString() },
+    { label: 'Downloads', value: downloadsHoje.toString() },
   ];
 
   console.log(`📊 Dashboard Admin: ${isLoading ? 'Carregando...' : 'Dados prontos'} | Monitorando: ${isMonitoring}`);
@@ -25,7 +62,7 @@ export function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-theme-primary">Dashboard</h1>
-            <p className="text-theme-muted mt-1">Visão geral do sistema PACS</p>
+            <p className="text-theme-muted mt-1">Visão geral de hoje</p>
           </div>
         </div>
 

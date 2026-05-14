@@ -372,13 +372,28 @@ export function useOrthancStats(estudos: any[], pacientes: any[]) {
     return `${data.getFullYear()}${(data.getMonth() + 1).toString().padStart(2, '0')}${data.getDate().toString().padStart(2, '0')}`;
   })();
 
-  const estudosHoje = estudos.filter(
+  const estudosDoDia = estudos.filter(
     (estudo) => estudo.MainDicomTags?.StudyDate === dataHoje
-  ).length;
+  );
+
+  const estudosHoje = estudosDoDia.length;
+
+  const pacientesUnicosHoje = (() => {
+    const unique = new Set<string>();
+    estudosDoDia.forEach((estudo) => {
+      const patientTags = estudo.PatientMainDicomTags || {};
+      const patientKey = (patientTags.PatientID || patientTags.PatientId || patientTags.PatientName || '').toString().trim();
+      if (patientKey) {
+        unique.add(patientKey);
+      }
+    });
+    return unique.size;
+  })();
 
   return {
     estudosHoje,
     totalPacientes: pacientes.length,
+    pacientesUnicosHoje,
     dataHoje
   };
 }

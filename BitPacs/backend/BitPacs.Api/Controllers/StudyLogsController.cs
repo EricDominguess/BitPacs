@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using BitPacs.Api.Models;
 using BitPacs.Api.Data;
 using System.Security.Claims;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace BitPacs.Api.Controllers
 {
@@ -204,6 +206,53 @@ namespace BitPacs.Api.Controllers
             });
         }
 
+        // GET: Resumo diário de visualizações/downloads por unidade
+        [HttpGet("summary")]
+        [Authorize]
+        public IActionResult GetSummary([FromQuery] string? unidade, [FromQuery] string? date)
+        {
+            var currentUserRole = NormalizeRole(User.FindFirst(ClaimTypes.Role)?.Value);
+            if (currentUserRole != "Master" && currentUserRole != "AdminGlobal" && currentUserRole != "AdminLocal")
+                return Forbid("Apenas administradores podem ver o resumo.");
+
+            var unidadeFiltro = unidade;
+            if (currentUserRole == "AdminLocal")
+            {
+                unidadeFiltro = User.FindFirst("UnidadeId")?.Value;
+            }
+
+            var baseDate = GetBrazilTime().Date;
+            if (!string.IsNullOrWhiteSpace(date))
+            {
+                if (!DateTime.TryParseExact(date, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsedDate))
+                    return BadRequest(new { message = "Formato de data inválido. Use yyyy-MM-dd." });
+                baseDate = parsedDate.Date;
+            }
+
+            var start = baseDate;
+            var end = baseDate.AddDays(1);
+
+            IQueryable<StudyLog> logsQuery = _context.StudyLogs
+                .AsNoTracking()
+                .Where(l => l.Timestamp >= start && l.Timestamp < end)
+                .Where(l => l.ActionType == "VIEW" || l.ActionType == "DOWNLOAD");
+
+            var unitCandidates = ExpandUnitCandidates(unidadeFiltro);
+            if (unitCandidates.Count > 0)
+            {
+                logsQuery = logsQuery.Where(l => l.UnidadeNome != null && unitCandidates.Any(c => l.UnidadeNome!.ToLower().Contains(c)));
+            }
+
+            var totalViews = logsQuery.Count(l => l.ActionType == "VIEW");
+            var totalDownloads = logsQuery.Count(l => l.ActionType == "DOWNLOAD");
+
+            return Ok(new
+            {
+                totalViews,
+                totalDownloads
+            });
+        }
+
         // POST: Registrar log administrativo (criar usuário, deletar, mudar senha)
         [HttpPost("admin")]
         [Authorize]
@@ -242,6 +291,34 @@ namespace BitPacs.Api.Controllers
         private static DateTime GetBrazilTime()
         {
             return DateTime.UtcNow.AddHours(-3);
+        }
+
+        private static List<string> ExpandUnitCandidates(string? unidade)
+        {
+            var candidates = new List<string>();
+            if (string.IsNullOrWhiteSpace(unidade)) return candidates;
+
+            var normalized = unidade.Trim().ToLowerInvariant();
+            candidates.Add(normalized);
+
+            var unitMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "riobranco", "Rio Branco" },
+                { "foziguacu", "Foz do Iguaçu" },
+                { "fazenda", "Fazenda" },
+                { "faxinal", "Faxinal" },
+                { "santamariana", "Santa Mariana" },
+                { "guarapuava", "Guarapuava" },
+                { "carlopolis", "Carlópolis" },
+                { "arapoti", "Arapoti" }
+            };
+
+            if (unitMap.TryGetValue(normalized, out var label))
+            {
+                candidates.Add(label.ToLowerInvariant());
+            }
+
+            return candidates.Distinct().ToList();
         }
 
         private static string NormalizeRole(string? role)
