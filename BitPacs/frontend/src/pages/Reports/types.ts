@@ -13,6 +13,7 @@ export interface ReportRecord {
   timestamp: string;
   patientName: string | null;
   studyDescription: string | null;
+  bodyPartExamined: string | null;
   modality: string | null;
   unidadeNome: string | null;
   actionType: string;
