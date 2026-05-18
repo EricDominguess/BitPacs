@@ -293,7 +293,7 @@ namespace BitPacs.Api.Controllers
                     var examPageSize = pageSize < 1 ? 50 : pageSize;
                     var useExamPaging = pageSize > 0;
 
-                    var examRecordsQuery = examRecords
+                    IEnumerable<(string StudyId, DateTime? StudyDate, string? PatientName, string? PatientId, string? StudyDescription, string? Modality, string Unidade)> examRecordsQuery = examRecords
                         .OrderByDescending(r => r.StudyDate ?? DateTime.MinValue);
 
                     if (useExamPaging)
@@ -517,7 +517,7 @@ namespace BitPacs.Api.Controllers
                 var safePageSize = pageSize < 1 ? 50 : pageSize;
                 var usePaging = pageSize > 0;
 
-                var recordsQuery = query
+                IQueryable<Models.StudyLog> recordsQuery = query
                     .OrderByDescending(l => l.Timestamp);
 
                 if (usePaging)
