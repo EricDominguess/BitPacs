@@ -152,6 +152,7 @@ namespace BitPacs.Api.Controllers
                         var seriesCacheKey = $"reports_series_{unit.ToLowerInvariant()}";
                         var seriesData = await _orthancService.GetDataWithCacheAsync(orthancUrl, "/series?expand", seriesCacheKey);
                         var seriesModalitiesByStudy = BuildSeriesModalitiesIndex(seriesData);
+                        var seriesBodyPartByStudy = BuildSeriesBodyPartIndex(seriesData);
                         var pendingStudyModalityLookup = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                         using var doc = JsonDocument.Parse(data);
@@ -205,7 +206,8 @@ namespace BitPacs.Api.Controllers
                             var patientId = GetString(tags, "PatientID")
                                 ?? (hasPatientTags ? GetString(patientTags, "PatientID") : null);
                             var studyDescription = GetString(tags, "StudyDescription");
-                            var bodyPartExamined = GetString(tags, "BodyPartExamined");
+                            var bodyPartExamined = GetString(tags, "BodyPartExamined")
+                                ?? (seriesBodyPartByStudy.TryGetValue(studyId, out var seriesBp) ? seriesBp : null);
 
                             examRecords.Add((studyId, studyDate, NormalizePatientName(patientName), patientId, studyDescription, modalityRaw, unit, bodyPartExamined));
                         }
@@ -732,6 +734,30 @@ namespace BitPacs.Api.Controllers
             }
 
             return collected.OrderBy(value => value).ToList();
+        }
+
+        private static Dictionary<string, string> BuildSeriesBodyPartIndex(string? seriesData)
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(seriesData)) return map;
+            try
+            {
+                using var doc = JsonDocument.Parse(seriesData);
+                if (doc.RootElement.ValueKind != JsonValueKind.Array) return map;
+                foreach (var item in doc.RootElement.EnumerateArray())
+                {
+                    var studyId = ResolveParentStudyId(item);
+                    if (string.IsNullOrWhiteSpace(studyId) || map.ContainsKey(studyId)) continue;
+                    if (!item.TryGetProperty("MainDicomTags", out var tags)) continue;
+                    var value = GetString(tags, "BodyPartExamined")
+                        ?? GetString(tags, "SeriesDescription")
+                        ?? GetString(tags, "ProtocolName");
+                    if (!string.IsNullOrWhiteSpace(value))
+                        map[studyId] = value;
+                }
+            }
+            catch { }
+            return map;
         }
 
         private static string? NormalizePatientName(string? name)
