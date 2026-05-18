@@ -249,55 +249,80 @@ export function Reports() {
     workbook.creator = 'BitPacs';
     workbook.created = new Date();
 
+    const NAVY       = 'FF1E3A5F';
+    const NAVY_LIGHT = 'FF2E4F7A';
+    const WHITE      = 'FFFFFFFF';
+    const GRAY_BG    = 'FFF1F5F9';
+    const STRIPE     = 'FFEEF2F8';
+    const BORDER_CLR = 'FFD1D5DB';
+    const TOTALS_BG  = 'FFE2EAF4';
+
+    const TOTAL_COLS = 8; // # + 7 data columns
+    const lastCol = String.fromCharCode(64 + TOTAL_COLS); // 'H'
+
     const reportTitle = reportType === 'activity' ? 'Relatório de Atividade' : 'Relatório de Exames';
-    const recordsSheet = workbook.addWorksheet('Registros', { views: [{ state: 'frozen', ySplit: 4 }] });
+    const recordsSheet = workbook.addWorksheet('Registros', { views: [{ state: 'frozen', ySplit: 5 }] });
+
+    // ── Rows 1-4: metadata ──────────────────────────────────────────────────
     recordsSheet.addRow([reportTitle]);
     recordsSheet.addRow([`Gerado em: ${new Date().toLocaleString('pt-BR')}`]);
     recordsSheet.addRow([`Unidades: ${getSelectedUnidadesLabel()}`]);
     recordsSheet.addRow([`Período: ${startDate || '—'} até ${endDate || '—'}`]);
 
-    recordsSheet.mergeCells('A1:G1');
-    recordsSheet.mergeCells('A2:G2');
-    recordsSheet.mergeCells('A3:G3');
-    recordsSheet.mergeCells('A4:G4');
+    for (let r = 1; r <= 4; r++) {
+      recordsSheet.mergeCells(`A${r}:${lastCol}${r}`);
+    }
 
     const titleRow = recordsSheet.getRow(1);
-    titleRow.font = { bold: true, size: 14 };
-    titleRow.alignment = { vertical: 'middle', horizontal: 'left' };
+    titleRow.height = 32;
+    titleRow.font = { bold: true, size: 16, color: { argb: WHITE }, name: 'Calibri' };
+    titleRow.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+    titleRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
 
     [2, 3, 4].forEach((rowIndex) => {
       const row = recordsSheet.getRow(rowIndex);
-      row.font = { size: 10, color: { argb: 'FF4B5563' } };
-      row.alignment = { vertical: 'middle', horizontal: 'left' };
+      row.height = 18;
+      row.font = { size: 10, color: { argb: 'FF374151' }, name: 'Calibri' };
+      row.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+      row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAY_BG } };
     });
 
+    // ── Column definitions ──────────────────────────────────────────────────
     recordsSheet.columns = [
-      { header: 'Data', key: 'timestamp', width: 22, style: { numFmt: 'dd/mm/yyyy hh:mm' } },
-      { header: reportType === 'activity' ? 'Médico' : 'Paciente', key: 'primaryName', width: 30 },
-      { header: 'Modalidade', key: 'modality', width: 18 },
-      { header: 'Estudos', key: 'studyDescription', width: 40 },
-      { header: 'Unidade', key: 'unidadeNome', width: 28 },
-      { header: 'Ação', key: 'actionType', width: 16 },
-      { header: reportType === 'activity' ? 'Paciente' : 'Usuário', key: 'secondaryName', width: 30 },
+      { key: 'seq',             width: 6  },
+      { key: 'timestamp',       width: 22, style: { numFmt: 'dd/mm/yyyy hh:mm' } },
+      { key: 'primaryName',     width: 32 },
+      { key: 'modality',        width: 16 },
+      { key: 'studyDescription',width: 42 },
+      { key: 'unidadeNome',     width: 28 },
+      { key: 'actionType',      width: 14 },
+      { key: 'secondaryName',   width: 30 },
     ];
 
-    recordsSheet.addRow(recordsSheet.columns.map((col) => col.header));
-    const headerRowIndex = 5;
-    const headerRow = recordsSheet.getRow(headerRowIndex);
-    headerRow.font = { bold: true };
+    // ── Row 5: column headers ───────────────────────────────────────────────
+    const headerLabels = [
+      '#',
+      'Data',
+      reportType === 'activity' ? 'Médico' : 'Paciente',
+      'Modalidade',
+      'Estudos',
+      'Unidade',
+      'Ação',
+      reportType === 'activity' ? 'Paciente' : 'Usuário',
+    ];
+    recordsSheet.addRow(headerLabels);
+    const HEADER_ROW_INDEX = 5;
+    const headerRow = recordsSheet.getRow(HEADER_ROW_INDEX);
+    headerRow.height = 24;
+    headerRow.font = { bold: true, size: 11, color: { argb: WHITE }, name: 'Calibri' };
     headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-    headerRow.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFE5E7EB' },
-    };
-    recordsSheet.autoFilter = {
-      from: 'A5',
-      to: 'G5',
-    };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY_LIGHT } };
+    recordsSheet.autoFilter = { from: `A${HEADER_ROW_INDEX}`, to: `${lastCol}${HEADER_ROW_INDEX}` };
 
-    results.records.forEach((record) => {
-      recordsSheet.addRow({
+    // ── Data rows ──────────────────────────────────────────────────────────
+    results.records.forEach((record, index) => {
+      const row = recordsSheet.addRow({
+        seq: index + 1,
         timestamp: record.timestamp ? new Date(record.timestamp) : null,
         primaryName: reportType === 'activity' ? record.userName ?? '' : record.patientName ?? '',
         modality: record.modality ?? '',
@@ -306,55 +331,93 @@ export function Reports() {
         actionType: record.actionType ?? '',
         secondaryName: reportType === 'activity' ? record.patientName ?? '' : record.userName ?? '',
       });
+      row.height = 20;
+      row.alignment = { vertical: 'middle', wrapText: false };
+      if (index % 2 !== 0) {
+        row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: STRIPE } };
+      }
+      // # column: centered, bold, muted
+      const seqCell = row.getCell(1);
+      seqCell.font = { bold: true, color: { argb: 'FF6B7280' }, size: 10 };
+      seqCell.alignment = { vertical: 'middle', horizontal: 'center' };
     });
 
+    // ── Totals row ──────────────────────────────────────────────────────────
     const totalsRow = recordsSheet.addRow([
-      'Totais',
+      '',
+      'TOTAIS',
       '',
       '',
       reportType === 'activity'
         ? `Ações: ${results.totals.totalLogs ?? 0}`
         : `Estudos: ${results.totals.totalStudies ?? 0}`,
+      `Pacientes: ${results.totals.totalPatients ?? 0}`,
       '',
-      reportType === 'activity'
-        ? `Pacientes: ${results.totals.totalPatients ?? 0}`
-        : `Pacientes: ${results.totals.totalPatients ?? 0}`,
-      reportType === 'activity'
-        ? `Views: ${results.totals.totalViews ?? 0} | Downloads: ${results.totals.totalDownloads ?? 0}`
-        : `Views: ${results.totals.totalViews ?? 0} | Downloads: ${results.totals.totalDownloads ?? 0}`,
+      `Views: ${results.totals.totalViews ?? 0}  |  Downloads: ${results.totals.totalDownloads ?? 0}`,
     ]);
-    totalsRow.font = { bold: true };
+    totalsRow.height = 22;
+    totalsRow.font = { bold: true, size: 10, color: { argb: NAVY }, name: 'Calibri' };
     totalsRow.alignment = { vertical: 'middle', horizontal: 'left' };
-    totalsRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
+    totalsRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTALS_BG } };
 
+    // ── Borders on header + data + totals ───────────────────────────────────
     recordsSheet.eachRow((row, rowNumber) => {
-      if (rowNumber <= headerRowIndex) return;
-      row.alignment = { vertical: 'middle', wrapText: true };
-      if (rowNumber % 2 === 0) {
-        row.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFFAFAFB' },
-        };
-      }
-    });
-
-    recordsSheet.eachRow((row, rowNumber) => {
-      if (rowNumber < headerRowIndex) return;
-      row.eachCell((cell) => {
+      if (rowNumber < HEADER_ROW_INDEX) return;
+      row.eachCell({ includeEmpty: true }, (cell) => {
         cell.border = {
-          top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-          left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-          bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-          right: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          top:    { style: 'thin', color: { argb: BORDER_CLR } },
+          left:   { style: 'thin', color: { argb: BORDER_CLR } },
+          bottom: { style: 'thin', color: { argb: BORDER_CLR } },
+          right:  { style: 'thin', color: { argb: BORDER_CLR } },
         };
       });
     });
 
+    const styleSheetHeader = (sheet: ExcelJS.Worksheet, lastColLetter: string, numCols: number) => {
+      const h = sheet.getRow(1);
+      h.height = 24;
+      h.font = { bold: true, size: 11, color: { argb: WHITE }, name: 'Calibri' };
+      h.alignment = { vertical: 'middle', horizontal: 'center' };
+      h.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY_LIGHT } };
+      sheet.autoFilter = { from: 'A1', to: `${lastColLetter}1` };
+      sheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
+        row.height = 20;
+        row.alignment = { vertical: 'middle' };
+        if (rowNumber % 2 === 0) {
+          row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: STRIPE } };
+        }
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          cell.border = {
+            top:    { style: 'thin', color: { argb: BORDER_CLR } },
+            left:   { style: 'thin', color: { argb: BORDER_CLR } },
+            bottom: { style: 'thin', color: { argb: BORDER_CLR } },
+            right:  { style: 'thin', color: { argb: BORDER_CLR } },
+          };
+        });
+      });
+      // border on header row too
+      sheet.getRow(1).eachCell({ includeEmpty: true }, (cell) => {
+        cell.border = {
+          top:    { style: 'thin', color: { argb: BORDER_CLR } },
+          left:   { style: 'thin', color: { argb: BORDER_CLR } },
+          bottom: { style: 'medium', color: { argb: NAVY } },
+          right:  { style: 'thin', color: { argb: BORDER_CLR } },
+        };
+      });
+      // number columns right-aligned
+      sheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
+        for (let c = 2; c <= numCols; c++) {
+          row.getCell(c).alignment = { vertical: 'middle', horizontal: 'right' };
+        }
+      });
+    };
+
     if (results.summaries?.byDoctor?.length) {
       const doctorSheet = workbook.addWorksheet('Resumo por médico', { views: [{ state: 'frozen', ySplit: 1 }] });
       doctorSheet.columns = [
-        { header: 'Médico', key: 'doctorName', width: 32 },
+        { header: 'Médico', key: 'doctorName', width: 36 },
         { header: 'Ações', key: 'totalActions', width: 14 },
         { header: 'Views', key: 'totalViews', width: 14 },
         { header: 'Downloads', key: 'totalDownloads', width: 16 },
@@ -367,23 +430,13 @@ export function Reports() {
           totalDownloads: item.totalDownloads,
         });
       });
-      const doctorHeader = doctorSheet.getRow(1);
-      doctorHeader.font = { bold: true };
-      doctorHeader.alignment = { vertical: 'middle', horizontal: 'center' };
-      doctorHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
-      doctorSheet.autoFilter = { from: 'A1', to: 'D1' };
-      doctorSheet.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) return;
-        if (rowNumber % 2 === 0) {
-          row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFAFAFB' } };
-        }
-      });
+      styleSheetHeader(doctorSheet, 'D', 4);
     }
 
     if (results.summaries?.byUnit?.length) {
       const unitSheet = workbook.addWorksheet('Resumo por unidade', { views: [{ state: 'frozen', ySplit: 1 }] });
       unitSheet.columns = [
-        { header: 'Unidade', key: 'unidade', width: 30 },
+        { header: 'Unidade', key: 'unidade', width: 34 },
         { header: 'Ações', key: 'totalActions', width: 14 },
         { header: 'Views', key: 'totalViews', width: 14 },
         { header: 'Downloads', key: 'totalDownloads', width: 16 },
@@ -396,41 +449,23 @@ export function Reports() {
           totalDownloads: item.totalDownloads,
         });
       });
-      const unitHeader = unitSheet.getRow(1);
-      unitHeader.font = { bold: true };
-      unitHeader.alignment = { vertical: 'middle', horizontal: 'center' };
-      unitHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
-      unitSheet.autoFilter = { from: 'A1', to: 'D1' };
-      unitSheet.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) return;
-        if (rowNumber % 2 === 0) {
-          row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFAFAFB' } };
-        }
-      });
+      styleSheetHeader(unitSheet, 'D', 4);
     }
 
     if (results.summaries?.byModality?.length) {
       const modalitySheet = workbook.addWorksheet('Resumo por modalidade', { views: [{ state: 'frozen', ySplit: 1 }] });
       modalitySheet.columns = [
-        { header: 'Modalidade', key: 'modality', width: 18 },
+        { header: 'Modalidade', key: 'modality', width: 20 },
         { header: 'Estudos', key: 'totalStudies', width: 14 },
       ];
-      const modalityHeader = modalitySheet.getRow(1);
-      modalityHeader.font = { bold: true };
-      modalityHeader.alignment = { vertical: 'middle', horizontal: 'center' };
-      modalityHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
-      modalitySheet.autoFilter = { from: 'A1', to: 'B1' };
-
       results.summaries.byModality.forEach((item, index) => {
-        const row = modalitySheet.addRow({
-          modality: item.modality,
-          totalStudies: item.totalStudies,
-        });
+        const row = modalitySheet.addRow({ modality: item.modality, totalStudies: item.totalStudies });
         const swatch = MODALITY_COLOR_MAP[item.modality.trim().toUpperCase()] ?? FALLBACK_MODALITY_COLORS[index % FALLBACK_MODALITY_COLORS.length];
         row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${swatch.replace('#', '').toUpperCase()}` } };
-        row.getCell(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+        row.getCell(1).font = { color: { argb: WHITE }, bold: true };
         row.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
       });
+      styleSheetHeader(modalitySheet, 'B', 2);
     }
 
     const buffer = await workbook.xlsx.writeBuffer();
