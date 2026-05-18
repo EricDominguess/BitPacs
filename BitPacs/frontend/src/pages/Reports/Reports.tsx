@@ -356,17 +356,13 @@ export function Reports() {
     totalsRow.alignment = { vertical: 'middle', horizontal: 'left' };
     totalsRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTALS_BG } };
 
-    // ── Borders on header + data + totals ───────────────────────────────────
+    // ── Borders on header + data + totals (explicit loop prevents phantom columns) ──
+    const thinBorder: ExcelJS.Border = { style: 'thin', color: { argb: BORDER_CLR } };
     recordsSheet.eachRow((row, rowNumber) => {
       if (rowNumber < HEADER_ROW_INDEX) return;
-      row.eachCell({ includeEmpty: true }, (cell) => {
-        cell.border = {
-          top:    { style: 'thin', color: { argb: BORDER_CLR } },
-          left:   { style: 'thin', color: { argb: BORDER_CLR } },
-          bottom: { style: 'thin', color: { argb: BORDER_CLR } },
-          right:  { style: 'thin', color: { argb: BORDER_CLR } },
-        };
-      });
+      for (let c = 1; c <= TOTAL_COLS; c++) {
+        row.getCell(c).border = { top: thinBorder, left: thinBorder, bottom: thinBorder, right: thinBorder };
+      }
     });
 
     const styleSheetHeader = (sheet: ExcelJS.Worksheet, lastColLetter: string, numCols: number) => {
@@ -376,30 +372,21 @@ export function Reports() {
       h.alignment = { vertical: 'middle', horizontal: 'center' };
       h.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY_LIGHT } };
       sheet.autoFilter = { from: 'A1', to: `${lastColLetter}1` };
+      const thin: ExcelJS.Border = { style: 'thin', color: { argb: BORDER_CLR } };
       sheet.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) return;
-        row.height = 20;
-        row.alignment = { vertical: 'middle' };
-        if (rowNumber % 2 === 0) {
-          row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: STRIPE } };
+        row.height = rowNumber === 1 ? 24 : 20;
+        if (rowNumber > 1) {
+          row.alignment = { vertical: 'middle' };
+          if (rowNumber % 2 === 0) {
+            row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: STRIPE } };
+          }
         }
-        row.eachCell({ includeEmpty: true }, (cell) => {
-          cell.border = {
-            top:    { style: 'thin', color: { argb: BORDER_CLR } },
-            left:   { style: 'thin', color: { argb: BORDER_CLR } },
-            bottom: { style: 'thin', color: { argb: BORDER_CLR } },
-            right:  { style: 'thin', color: { argb: BORDER_CLR } },
-          };
-        });
-      });
-      // border on header row too
-      sheet.getRow(1).eachCell({ includeEmpty: true }, (cell) => {
-        cell.border = {
-          top:    { style: 'thin', color: { argb: BORDER_CLR } },
-          left:   { style: 'thin', color: { argb: BORDER_CLR } },
-          bottom: { style: 'medium', color: { argb: NAVY } },
-          right:  { style: 'thin', color: { argb: BORDER_CLR } },
-        };
+        const bottomBorder: ExcelJS.Border = rowNumber === 1
+          ? { style: 'medium', color: { argb: NAVY } }
+          : thin;
+        for (let c = 1; c <= numCols; c++) {
+          row.getCell(c).border = { top: thin, left: thin, bottom: bottomBorder, right: thin };
+        }
       });
       // number columns right-aligned
       sheet.eachRow((row, rowNumber) => {
