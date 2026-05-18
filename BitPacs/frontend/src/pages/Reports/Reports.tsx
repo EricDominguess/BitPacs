@@ -343,13 +343,13 @@ export function Reports() {
     const totalsRow = recordsSheet.addRow([
       '',
       'TOTAIS',
-      '',
+      `Pacientes: ${results.totals.totalPatients ?? 0}`,
       '',
       reportType === 'activity'
         ? `Ações: ${results.totals.totalLogs ?? 0}`
         : `Estudos: ${results.totals.totalStudies ?? 0}`,
-      `Pacientes: ${results.totals.totalPatients ?? 0}`,
-      `Views: ${results.totals.totalViews ?? 0}  |  Downloads: ${results.totals.totalDownloads ?? 0}`,
+      '',
+      '',
     ]);
     totalsRow.height = 22;
     totalsRow.font = { bold: true, size: 10, color: { argb: NAVY }, name: 'Calibri' };
