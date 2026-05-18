@@ -9,7 +9,7 @@ interface ReportsResultsProps {
   reportType: ReportType;
   results: ReportResponse | null;
   hasResults: boolean;
-  onExportCsv: () => void;
+  onExportExcel: () => void;
   onExportPdf: () => void;
   getUnidadeLabel: (value: string) => string;
 }
@@ -55,7 +55,7 @@ export function ReportsResults({
   reportType,
   results,
   hasResults,
-  onExportCsv,
+  onExportExcel,
   onExportPdf,
   getUnidadeLabel,
 }: ReportsResultsProps) {
@@ -274,8 +274,8 @@ export function ReportsResults({
           )}
 
           <div className="flex flex-wrap gap-3">
-            <Button variant="secondary" onClick={onExportCsv} disabled={!hasResults}>
-              Exportar CSV
+            <Button variant="secondary" onClick={onExportExcel} disabled={!hasResults}>
+              Exportar Excel
             </Button>
             <Button variant="secondary" onClick={onExportPdf} disabled={!hasResults}>
               Exportar PDF

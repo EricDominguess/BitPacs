@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { MainLayout } from '../../components/layout';
 import { Card } from '../../components/common';
 import { useUnidade } from '../../contexts';
@@ -15,6 +17,19 @@ interface StoredUser {
 }
 
 const normalizeRole = (role?: string) => (role === 'Admin' ? 'AdminLocal' : role);
+
+const MODALITY_COLOR_MAP: Record<string, string> = {
+  CT: '#0ea5e9',
+  MR: '#a855f7',
+  CR: '#0ea5e9',
+  US: '#22c55e',
+  DR: '#f97316',
+  DX: '#0284c7',
+  OT: '#94a3b8',
+  'NÃO INFORMADO': '#94a3b8',
+};
+
+const FALLBACK_MODALITY_COLORS = ['#ec4899', '#14b8a6', '#f59e0b', '#6366f1', '#84cc16'];
 
 export function Reports() {
   const { unidadesDisponiveis, unidade, unidadeLabel } = useUnidade();
@@ -195,8 +210,7 @@ export function Reports() {
           params.set('unidades', unidade);
         }
       }
-      params.set('page', '1');
-      params.set('pageSize', '50');
+      params.set('pageSize', '0');
 
       const response = await fetchWithAuth(`/api/reports?${params.toString()}`);
       if (!response.ok) {
@@ -228,76 +242,200 @@ export function Reports() {
   const isFormValid = canGenerate;
   const hasResults = !!results?.records?.length;
 
-  const handleExportCsv = () => {
+  const handleExportExcel = async () => {
     if (!results) return;
 
-    const headers = ['Data', 'Paciente', 'Modalidade', 'Unidade', 'Ação', 'Usuário'];
-    const rows = results.records.map((record) => [
-      record.timestamp ? new Date(record.timestamp).toLocaleString('pt-BR') : '',
-      record.patientName ?? '',
-      record.modality ?? '',
-      record.unidadeNome ?? '',
-      record.actionType ?? '',
-      record.userName ?? '',
-    ]);
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'BitPacs';
+    workbook.created = new Date();
 
-    const escapeValue = (value: string) => `"${value.replace(/"/g, '""')}"`;
-    const contentLines = [
-      headers.map(escapeValue).join(','),
-      ...rows.map((row) => row.map((value) => escapeValue(String(value))).join(',')),
+    const reportTitle = reportType === 'activity' ? 'Relatório de Atividade' : 'Relatório de Exames';
+    const recordsSheet = workbook.addWorksheet('Registros', { views: [{ state: 'frozen', ySplit: 4 }] });
+    recordsSheet.addRow([reportTitle]);
+    recordsSheet.addRow([`Gerado em: ${new Date().toLocaleString('pt-BR')}`]);
+    recordsSheet.addRow([`Unidades: ${getSelectedUnidadesLabel()}`]);
+    recordsSheet.addRow([`Período: ${startDate || '—'} até ${endDate || '—'}`]);
+
+    recordsSheet.mergeCells('A1:G1');
+    recordsSheet.mergeCells('A2:G2');
+    recordsSheet.mergeCells('A3:G3');
+    recordsSheet.mergeCells('A4:G4');
+
+    const titleRow = recordsSheet.getRow(1);
+    titleRow.font = { bold: true, size: 14 };
+    titleRow.alignment = { vertical: 'middle', horizontal: 'left' };
+
+    [2, 3, 4].forEach((rowIndex) => {
+      const row = recordsSheet.getRow(rowIndex);
+      row.font = { size: 10, color: { argb: 'FF4B5563' } };
+      row.alignment = { vertical: 'middle', horizontal: 'left' };
+    });
+
+    recordsSheet.columns = [
+      { header: 'Data', key: 'timestamp', width: 22, style: { numFmt: 'dd/mm/yyyy hh:mm' } },
+      { header: reportType === 'activity' ? 'Médico' : 'Paciente', key: 'primaryName', width: 30 },
+      { header: 'Modalidade', key: 'modality', width: 18 },
+      { header: 'Estudos', key: 'studyDescription', width: 40 },
+      { header: 'Unidade', key: 'unidadeNome', width: 28 },
+      { header: 'Ação', key: 'actionType', width: 16 },
+      { header: reportType === 'activity' ? 'Paciente' : 'Usuário', key: 'secondaryName', width: 30 },
     ];
 
+    recordsSheet.addRow(recordsSheet.columns.map((col) => col.header));
+    const headerRowIndex = 5;
+    const headerRow = recordsSheet.getRow(headerRowIndex);
+    headerRow.font = { bold: true };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE5E7EB' },
+    };
+    recordsSheet.autoFilter = {
+      from: 'A5',
+      to: 'G5',
+    };
+
+    results.records.forEach((record) => {
+      recordsSheet.addRow({
+        timestamp: record.timestamp ? new Date(record.timestamp) : null,
+        primaryName: reportType === 'activity' ? record.userName ?? '' : record.patientName ?? '',
+        modality: record.modality ?? '',
+        studyDescription: record.studyDescription ?? '',
+        unidadeNome: record.unidadeNome ?? '',
+        actionType: record.actionType ?? '',
+        secondaryName: reportType === 'activity' ? record.patientName ?? '' : record.userName ?? '',
+      });
+    });
+
+    const totalsRow = recordsSheet.addRow([
+      'Totais',
+      '',
+      '',
+      reportType === 'activity'
+        ? `Ações: ${results.totals.totalLogs ?? 0}`
+        : `Estudos: ${results.totals.totalStudies ?? 0}`,
+      '',
+      reportType === 'activity'
+        ? `Pacientes: ${results.totals.totalPatients ?? 0}`
+        : `Pacientes: ${results.totals.totalPatients ?? 0}`,
+      reportType === 'activity'
+        ? `Views: ${results.totals.totalViews ?? 0} | Downloads: ${results.totals.totalDownloads ?? 0}`
+        : `Views: ${results.totals.totalViews ?? 0} | Downloads: ${results.totals.totalDownloads ?? 0}`,
+    ]);
+    totalsRow.font = { bold: true };
+    totalsRow.alignment = { vertical: 'middle', horizontal: 'left' };
+    totalsRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
+
+    recordsSheet.eachRow((row, rowNumber) => {
+      if (rowNumber <= headerRowIndex) return;
+      row.alignment = { vertical: 'middle', wrapText: true };
+      if (rowNumber % 2 === 0) {
+        row.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFAFAFB' },
+        };
+      }
+    });
+
+    recordsSheet.eachRow((row, rowNumber) => {
+      if (rowNumber < headerRowIndex) return;
+      row.eachCell((cell) => {
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          right: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        };
+      });
+    });
+
     if (results.summaries?.byDoctor?.length) {
-      contentLines.push('');
-      contentLines.push(escapeValue('Resumo por médico'));
-      contentLines.push(['Médico', 'Ações', 'Views', 'Downloads'].map(escapeValue).join(','));
+      const doctorSheet = workbook.addWorksheet('Resumo por médico', { views: [{ state: 'frozen', ySplit: 1 }] });
+      doctorSheet.columns = [
+        { header: 'Médico', key: 'doctorName', width: 32 },
+        { header: 'Ações', key: 'totalActions', width: 14 },
+        { header: 'Views', key: 'totalViews', width: 14 },
+        { header: 'Downloads', key: 'totalDownloads', width: 16 },
+      ];
       results.summaries.byDoctor.forEach((item) => {
-        contentLines.push([
-          item.doctorName,
-          String(item.totalActions),
-          String(item.totalViews),
-          String(item.totalDownloads),
-        ].map(escapeValue).join(','));
+        doctorSheet.addRow({
+          doctorName: item.doctorName,
+          totalActions: item.totalActions,
+          totalViews: item.totalViews,
+          totalDownloads: item.totalDownloads,
+        });
+      });
+      const doctorHeader = doctorSheet.getRow(1);
+      doctorHeader.font = { bold: true };
+      doctorHeader.alignment = { vertical: 'middle', horizontal: 'center' };
+      doctorHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+      doctorSheet.autoFilter = { from: 'A1', to: 'D1' };
+      doctorSheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
+        if (rowNumber % 2 === 0) {
+          row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFAFAFB' } };
+        }
       });
     }
 
     if (results.summaries?.byUnit?.length) {
-      contentLines.push('');
-      contentLines.push(escapeValue('Resumo por unidade'));
-      contentLines.push(['Unidade', 'Ações', 'Views', 'Downloads'].map(escapeValue).join(','));
+      const unitSheet = workbook.addWorksheet('Resumo por unidade', { views: [{ state: 'frozen', ySplit: 1 }] });
+      unitSheet.columns = [
+        { header: 'Unidade', key: 'unidade', width: 30 },
+        { header: 'Ações', key: 'totalActions', width: 14 },
+        { header: 'Views', key: 'totalViews', width: 14 },
+        { header: 'Downloads', key: 'totalDownloads', width: 16 },
+      ];
       results.summaries.byUnit.forEach((item) => {
-        contentLines.push([
-          getUnidadeLabel(item.unidade),
-          String(item.totalActions),
-          String(item.totalViews),
-          String(item.totalDownloads),
-        ].map(escapeValue).join(','));
+        unitSheet.addRow({
+          unidade: getUnidadeLabel(item.unidade),
+          totalActions: item.totalActions,
+          totalViews: item.totalViews,
+          totalDownloads: item.totalDownloads,
+        });
+      });
+      const unitHeader = unitSheet.getRow(1);
+      unitHeader.font = { bold: true };
+      unitHeader.alignment = { vertical: 'middle', horizontal: 'center' };
+      unitHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+      unitSheet.autoFilter = { from: 'A1', to: 'D1' };
+      unitSheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
+        if (rowNumber % 2 === 0) {
+          row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFAFAFB' } };
+        }
       });
     }
 
     if (results.summaries?.byModality?.length) {
-      contentLines.push('');
-      contentLines.push(escapeValue('Resumo por modalidade'));
-      contentLines.push(['Modalidade', 'Estudos'].map(escapeValue).join(','));
-      results.summaries.byModality.forEach((item) => {
-        contentLines.push([
-          String(item.modality),
-          String(item.totalStudies),
-        ].map(escapeValue).join(','));
+      const modalitySheet = workbook.addWorksheet('Resumo por modalidade', { views: [{ state: 'frozen', ySplit: 1 }] });
+      modalitySheet.columns = [
+        { header: 'Modalidade', key: 'modality', width: 18 },
+        { header: 'Estudos', key: 'totalStudies', width: 14 },
+      ];
+      const modalityHeader = modalitySheet.getRow(1);
+      modalityHeader.font = { bold: true };
+      modalityHeader.alignment = { vertical: 'middle', horizontal: 'center' };
+      modalityHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+      modalitySheet.autoFilter = { from: 'A1', to: 'B1' };
+
+      results.summaries.byModality.forEach((item, index) => {
+        const row = modalitySheet.addRow({
+          modality: item.modality,
+          totalStudies: item.totalStudies,
+        });
+        const swatch = MODALITY_COLOR_MAP[item.modality.trim().toUpperCase()] ?? FALLBACK_MODALITY_COLORS[index % FALLBACK_MODALITY_COLORS.length];
+        row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${swatch.replace('#', '').toUpperCase()}` } };
+        row.getCell(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+        row.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
       });
     }
 
-    const csvContent = contentLines.join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `relatorio_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `relatorio_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   const handleExportPdf = () => {
@@ -523,7 +661,7 @@ export function Reports() {
             reportType={reportType}
             results={results}
             hasResults={hasResults}
-            onExportCsv={handleExportCsv}
+            onExportExcel={handleExportExcel}
             onExportPdf={handleExportPdf}
             getUnidadeLabel={getUnidadeLabel}
           />

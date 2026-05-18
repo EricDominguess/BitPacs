@@ -290,15 +290,23 @@ namespace BitPacs.Api.Controllers
                     var examTotalLogs = examTotalViews + examTotalDownloads;
 
                     var examPage = page < 1 ? 1 : page;
-                    var examPageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 200);
+                    var examPageSize = pageSize < 1 ? 50 : pageSize;
+                    var useExamPaging = pageSize > 0;
 
-                    var examRecordsPaged = examRecords
-                        .OrderByDescending(r => r.StudyDate ?? DateTime.MinValue)
-                        .Skip((examPage - 1) * examPageSize)
-                        .Take(examPageSize)
+                    var examRecordsQuery = examRecords
+                        .OrderByDescending(r => r.StudyDate ?? DateTime.MinValue);
+
+                    if (useExamPaging)
+                    {
+                        examRecordsQuery = examRecordsQuery
+                            .Skip((examPage - 1) * examPageSize)
+                            .Take(examPageSize);
+                    }
+
+                    var examRecordsPaged = examRecordsQuery
                         .Select((r, index) => new
                         {
-                            Id = index + 1 + ((examPage - 1) * examPageSize),
+                            Id = index + 1 + (useExamPaging ? (examPage - 1) * examPageSize : 0),
                             Timestamp = r.StudyDate ?? DateTime.UtcNow,
                             PatientName = r.PatientName ?? r.PatientId,
                             r.StudyDescription,
@@ -506,12 +514,20 @@ namespace BitPacs.Api.Controllers
                         .ToListAsync<object>();
 
                 var safePage = page < 1 ? 1 : page;
-                var safePageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 200);
+                var safePageSize = pageSize < 1 ? 50 : pageSize;
+                var usePaging = pageSize > 0;
 
-                var records = await query
-                    .OrderByDescending(l => l.Timestamp)
-                    .Skip((safePage - 1) * safePageSize)
-                    .Take(safePageSize)
+                var recordsQuery = query
+                    .OrderByDescending(l => l.Timestamp);
+
+                if (usePaging)
+                {
+                    recordsQuery = recordsQuery
+                        .Skip((safePage - 1) * safePageSize)
+                        .Take(safePageSize);
+                }
+
+                var records = await recordsQuery
                     .Select(l => new
                     {
                         l.Id,
