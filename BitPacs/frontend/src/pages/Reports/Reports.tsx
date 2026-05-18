@@ -257,8 +257,8 @@ export function Reports() {
     const BORDER_CLR = 'FFD1D5DB';
     const TOTALS_BG  = 'FFE2EAF4';
 
-    const TOTAL_COLS = 8; // # + 7 data columns
-    const lastCol = String.fromCharCode(64 + TOTAL_COLS); // 'H'
+    const TOTAL_COLS = 7; // # + 6 data columns
+    const lastCol = String.fromCharCode(64 + TOTAL_COLS); // 'G'
 
     const reportTitle = reportType === 'activity' ? 'Relatório de Atividade' : 'Relatório de Exames';
     const recordsSheet = workbook.addWorksheet('Registros', { views: [{ state: 'frozen', ySplit: 5 }] });
@@ -293,10 +293,9 @@ export function Reports() {
       { key: 'timestamp',       width: 22, style: { numFmt: 'dd/mm/yyyy hh:mm' } },
       { key: 'primaryName',     width: 32 },
       { key: 'modality',        width: 16 },
-      { key: 'studyDescription',width: 42 },
+      { key: 'studyDescription',width: 44 },
       { key: 'unidadeNome',     width: 28 },
       { key: 'actionType',      width: 14 },
-      { key: 'secondaryName',   width: 30 },
     ];
 
     // ── Row 5: column headers ───────────────────────────────────────────────
@@ -308,7 +307,6 @@ export function Reports() {
       'Estudos',
       'Unidade',
       'Ação',
-      reportType === 'activity' ? 'Paciente' : 'Usuário',
     ];
     recordsSheet.addRow(headerLabels);
     const HEADER_ROW_INDEX = 5;
@@ -326,10 +324,9 @@ export function Reports() {
         timestamp: record.timestamp ? new Date(record.timestamp) : null,
         primaryName: reportType === 'activity' ? record.userName ?? '' : record.patientName ?? '',
         modality: record.modality ?? '',
-        studyDescription: record.studyDescription ?? '',
+        studyDescription: record.studyDescription || record.bodyPartExamined || '',
         unidadeNome: record.unidadeNome ?? '',
         actionType: record.actionType ?? '',
-        secondaryName: reportType === 'activity' ? record.patientName ?? '' : record.userName ?? '',
       });
       row.height = 20;
       row.alignment = { vertical: 'middle', wrapText: false };
@@ -352,7 +349,6 @@ export function Reports() {
         ? `Ações: ${results.totals.totalLogs ?? 0}`
         : `Estudos: ${results.totals.totalStudies ?? 0}`,
       `Pacientes: ${results.totals.totalPatients ?? 0}`,
-      '',
       `Views: ${results.totals.totalViews ?? 0}  |  Downloads: ${results.totals.totalDownloads ?? 0}`,
     ]);
     totalsRow.height = 22;

@@ -142,7 +142,7 @@ namespace BitPacs.Api.Controllers
                         return BadRequest(new { message = "Selecione ao menos uma unidade." });
                     }
 
-                    var examRecords = new List<(string StudyId, DateTime? StudyDate, string? PatientName, string? PatientId, string? StudyDescription, string? Modality, string Unidade)>();
+                    var examRecords = new List<(string StudyId, DateTime? StudyDate, string? PatientName, string? PatientId, string? StudyDescription, string? Modality, string Unidade, string? BodyPartExamined)>();
 
                     foreach (var unit in units)
                     {
@@ -205,8 +205,9 @@ namespace BitPacs.Api.Controllers
                             var patientId = GetString(tags, "PatientID")
                                 ?? (hasPatientTags ? GetString(patientTags, "PatientID") : null);
                             var studyDescription = GetString(tags, "StudyDescription");
+                            var bodyPartExamined = GetString(tags, "BodyPartExamined");
 
-                            examRecords.Add((studyId, studyDate, NormalizePatientName(patientName), patientId, studyDescription, modalityRaw, unit));
+                            examRecords.Add((studyId, studyDate, NormalizePatientName(patientName), patientId, studyDescription, modalityRaw, unit, bodyPartExamined));
                         }
 
                         if (pendingStudyModalityLookup.Count > 0)
@@ -241,7 +242,8 @@ namespace BitPacs.Api.Controllers
                                     row.PatientId,
                                     row.StudyDescription,
                                     resolved,
-                                    row.Unidade);
+                                    row.Unidade,
+                                    row.BodyPartExamined);
                             }
                         }
                     }
@@ -293,7 +295,7 @@ namespace BitPacs.Api.Controllers
                     var examPageSize = pageSize < 1 ? 50 : pageSize;
                     var useExamPaging = pageSize > 0;
 
-                    IEnumerable<(string StudyId, DateTime? StudyDate, string? PatientName, string? PatientId, string? StudyDescription, string? Modality, string Unidade)> examRecordsQuery = examRecords
+                    IEnumerable<(string StudyId, DateTime? StudyDate, string? PatientName, string? PatientId, string? StudyDescription, string? Modality, string Unidade, string? BodyPartExamined)> examRecordsQuery = examRecords
                         .OrderByDescending(r => r.StudyDate ?? DateTime.MinValue);
 
                     if (useExamPaging)
@@ -310,6 +312,7 @@ namespace BitPacs.Api.Controllers
                             Timestamp = r.StudyDate ?? DateTime.UtcNow,
                             PatientName = r.PatientName ?? r.PatientId,
                             r.StudyDescription,
+                            BodyPartExamined = r.BodyPartExamined,
                             Modality = r.Modality,
                             UnidadeNome = r.Unidade,
                             ActionType = "EXAM",
